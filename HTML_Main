@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>DF</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
+    input { padding: 10px; width: 300px; }
+    button { padding: 10px; }
+    #results { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+    img { max-width: 300px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h1>What are you looking for?</h1>
+  <input type="text" id="keyword" placeholder="Enter a keyword...">
+  <button onclick="searchImages()">Search</button>
+  <div id="results"></div>
+  
+  <script src="script.js"></script>
+</body>
+</html>
