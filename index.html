@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DF</title>
+<style>
+body {
+  font-family: 'Courier New', monospace;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  overflow: hidden;
+  background: #fafafa;
+  position: relative;
+}
+
+#button-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 100;
+  text-align: center;
+}
+
+button#show-btn {
+  padding: 20px 40px;
+  font-size: 20px;
+  border: none;
+  background: black;
+  color: white;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+}
+
+button#show-btn:hover { background: #222; }
+
+#results {
+  width: 100%;
+  height: 100vh;
+  position: relative;
+  top: 0;
+  left: 0;
+}
+
+#results img {
+  position: absolute;
+  border-radius: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  transition: transform 0.2s ease;
+  cursor: grab;
+  height: auto;
+  max-width: 500px;
+}
+#results img:active { cursor: grabbing; }
+
+#add-btn, #start-btn {
+  position: fixed;
+  bottom: 20px;
+  padding: 15px 30px;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  font-size: 18px;
+  background: black;
+  color: white;
+  border: none;
+  cursor: pointer;
+  z-index: 200;
+}
+
+#add-btn {
+  right: 20px;
+  display: none;
+}
+
+#add-btn:hover, #start-btn:hover { background: #222; }
+
+#start-btn {
+  left: 20px;
+  display: none;
+}
+</style>
+</head>
+<body>
+
+<div id="button-container">
+  <button id="show-btn" onclick="showSomething()">show me something...</button>
+</div>
+
+<div id="results"></div>
+
+<button id="add-btn" onclick="replaceImages()">Add 10 More</button>
+<button id="start-btn" onclick="resetPage()">Start Over</button>
+
+<script>
+const allPhotos = [
+"photos/DSC00309.jpg",
+"photos/DSC00318.jpg",
+"photos/R0002507.jpg",
+"photos/R0002528.jpg",
+"photos/R0020120.jpg",
+"photos/R0022698.jpg",
+"photos/R0024211.jpg",
+"photos/R0024368.jpg",
+];
+
+let zIndexCounter = 1;
+let imagesData = [];
+const topBuffer = 10;
+
+function showSomething() {
+  document.getElementById("button-container").style.display = "none";
+  document.getElementById("add-btn").style.display = "block";
+  document.getElementById("start-btn").style.display = "block";
+
+  replaceImages();
+}
+
+function replaceImages() {
+  document.getElementById("results").innerHTML = "";
+  imagesData = [];
+
+  addImages(10);
+}
+
+function addImages(count) {
+  const resultsDiv = document.getElementById("results");
+  const selected = shuffleArray(allPhotos).slice(0, count);
+
+  selected.forEach(src => {
+    const img = new Image();
+    img.src = src;
+    img.alt = "random photo";
+
+    img.onload = () => {
+      let scale = 1;
+      if (img.naturalWidth > 500) scale = 500 / img.naturalWidth;
+      const width = img.naturalWidth * scale;
+      const height = img.naturalHeight * scale;
+
+      img.style.width = width + "px";
+      img.style.height = height + "px";
+
+      const maxX = window.innerWidth - width;
+      const maxY = window.innerHeight - height;
+      const x = Math.random() * maxX;
+      const y = Math.random() * (maxY - topBuffer) + topBuffer;
+
+      img.style.left = x + "px";
+      img.style.top = y + "px";
+      img.style.zIndex = zIndexCounter++;
+
+      makeDraggable(img);
+      resultsDiv.appendChild(img);
+
+      imagesData.push({img, width, height, relX: x/maxX, relY: (y-topBuffer)/(maxY-topBuffer)});
+    };
+  });
+}
+
+function resetPage() {
+  document.getElementById("results").innerHTML = "";
+  imagesData = [];
+  document.getElementById("add-btn").style.display = "none";
+  document.getElementById("start-btn").style.display = "none";
+  document.getElementById("button-container").style.display = "block";
+}
+
+function makeDraggable(img) {
+  let offsetX, offsetY, isDragging = false;
+  img.ondragstart = () => false;
+
+  img.addEventListener("mousedown", e => {
+    e.preventDefault();
+    if (isDragging) return;
+    isDragging = true;
+
+    offsetX = e.clientX - img.offsetLeft;
+    offsetY = e.clientY - img.offsetTop;
+
+    img.style.zIndex = zIndexCounter++;
+    img.style.transition = "none";
+    img.style.cursor = "grabbing";
+
+    function onMouseMove(e) {
+      let newLeft = e.clientX - offsetX;
+      let newTop = e.clientY - offsetY;
+      if (newTop < topBuffer) newTop = topBuffer;
+      img.style.left = newLeft + "px";
+      img.style.top = newTop + "px";
+    }
+
+    function onMouseUp() {
+      isDragging = false;
+      img.style.transition = "transform 0.2s ease";
+      img.style.cursor = "grab";
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    }
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  });
+}
+
+window.addEventListener("resize", () => {
+  imagesData.forEach(data => {
+    const maxX = window.innerWidth - data.width;
+    const maxY = window.innerHeight - data.height;
+    data.img.style.left = data.relX * maxX + "px";
+    data.img.style.top = data.relY * (maxY - topBuffer) + topBuffer + "px";
+  });
+});
+
+function shuffleArray(array) {
+  return array.map(v=>({v,sort:Math.random()})).sort((a,b)=>a.sort-b.sort).map(({v})=>v);
+}
+</script>
+
+</body>
+</html>
