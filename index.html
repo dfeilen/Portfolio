@@ -219,7 +219,6 @@ function addImages(selected) {
     const img = new Image();
     img.src = src;
     img.alt = "random photo";
-    img.loading = "lazy";
 
     img.onload = () => {
       const maxDim = Math.min(window.innerWidth * 0.8, window.innerHeight * 0.8, 500);
@@ -352,3 +351,4 @@ window.onclick = e => { if (e.target === aboutModal) aboutModal.style.display = 
 
 </body>
 </html>
+
