@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>DF</title>
+<title>something</title>
 <style>
 body {
   font-family: 'Courier New', monospace;
@@ -14,6 +14,7 @@ body {
   position: relative;
 }
 
+/* Landing container */
 #button-container {
   position: absolute;
   top: 50%;
@@ -23,6 +24,7 @@ body {
   text-align: center;
 }
 
+/* Main button */
 button#show-btn {
   padding: 20px 40px;
   font-size: 20px;
@@ -34,6 +36,70 @@ button#show-btn {
   font-weight: bold;
 }
 button#show-btn:hover { background: #222; }
+
+/* Generic button styles (shared by bottom & top buttons) */
+button {
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  font-size: 16px;
+  background: black;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 0;
+}
+button:hover { background: #222; }
+
+/* About button (top-right corner) */
+#about-btn {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 10px 20px;
+  z-index: 300;
+}
+
+#shuffle-btn {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 15px 30px;
+  font-size: 18px;
+  z-index: 200;
+  display: none;
+}
+
+#about-modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.6);
+  z-index: 500;
+  justify-content: center;
+  align-items: center;
+}
+#about-content {
+  background: #fff;
+  padding: 30px;
+  max-width: 600px;
+  width: 90%;
+  border-radius: 8px;
+  font-size: 16px;
+  line-height: 1.5;
+  position: relative;
+}
+#about-close {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 20px;
+  font-weight: bold;
+  color: #000;
+  cursor: pointer;
+}
+#about-close:hover { color: #666; }
 
 #results {
   width: 100%;
@@ -54,25 +120,22 @@ button#show-btn:hover { background: #222; }
 }
 #results img:active { cursor: grabbing; }
 
-#add-btn, #start-btn {
+#more-btn, #start-btn {
   position: fixed;
   bottom: 20px;
   padding: 15px 30px;
-  font-family: 'Courier New', monospace;
-  font-weight: bold;
   font-size: 18px;
-  background: black;
-  color: white;
-  border: none;
-  cursor: pointer;
   z-index: 200;
 }
-#add-btn { right: 20px; display: none; }
+#more-btn { right: 20px; display: none; }
 #start-btn { left: 20px; display: none; }
-#add-btn:hover, #start-btn:hover { background: #222; }
 </style>
 </head>
 <body>
+
+<button id="about-btn">About</button>
+<button id="shuffle-btn" onclick="shuffleImages()">Shuffle</button>
+
 
 <div id="button-container">
   <button id="show-btn" onclick="showSomething()">under construction :)</button>
@@ -80,23 +143,54 @@ button#show-btn:hover { background: #222; }
 
 <div id="results"></div>
 
-<button id="add-btn" onclick="addImages(10)">Add 10 More</button>
+<button id="more-btn" onclick="replaceImages(10)">Show me more</button>
 <button id="start-btn" onclick="resetPage()">Start Over</button>
+
+<div id="about-modal">
+  <div id="about-content">
+    <span id="about-close">&times;</span>
+    <h2>What is this?</h2>
+    <p>
+      My name is Devin Feilen, and this is my ongoing photography portfolio.
+    </p>
+    <p>
+      Squarespace sites are cool, but I made this myself and I feel that it provides a more intriguing representation of my work
+      instead of your "typical" photography portfolio. If you've already clicked the big button in the middle of the screen, you'll
+      see what I mean. If not, you should click it. There are thousands of photos to discover and it's almost impossible to get the
+      same spread, so hopefully it'll keep you out of the doom scroll app for a bit.
+    </p>
+    <p>
+      If you'd like to support me, you can do so at https://buymeacoffee.com/devinfeilen
+    </p>
+  </div>
+</div>
 
 <script>
 let allPhotos = [];
+let photoQueue = [];
 let zIndexCounter = 1;
 let imagesData = [];
 const topBuffer = 10;
 
-// load image URLs from photos.json
 fetch("photos.json")
   .then(res => res.json())
   .then(data => {
     allPhotos = data;
+    resetQueue();
     console.log("✅ Loaded", allPhotos.length, "photos");
   })
   .catch(err => console.error("Error loading photos.json:", err));
+
+function resetQueue() {
+  photoQueue = shuffleArray(allPhotos);
+}
+
+function getNextBatch(count) {
+  if (photoQueue.length < count) {
+    resetQueue();
+  }
+  return photoQueue.splice(0, count);
+}
 
 function showSomething() {
   if (!allPhotos.length) {
@@ -104,24 +198,31 @@ function showSomething() {
     return;
   }
   document.getElementById("button-container").style.display = "none";
-  document.getElementById("add-btn").style.display = "block";
+  document.getElementById("more-btn").style.display = "block";
   document.getElementById("start-btn").style.display = "block";
+  document.getElementById("shuffle-btn").style.display = "block";
 
-  resetPage(false);
-  addImages(10);
+  replaceImages(10);
 }
 
-function addImages(count) {
+function replaceImages(count) {
+  document.getElementById("results").innerHTML = "";
+  imagesData = [];
+  const batch = getNextBatch(count);
+  addImages(batch);
+}
+
+function addImages(selected) {
   const resultsDiv = document.getElementById("results");
-  const selected = shuffleArray(allPhotos).slice(0, count);
 
   selected.forEach(src => {
     const img = new Image();
     img.src = src;
     img.alt = "random photo";
+    img.loading = "lazy";
 
     img.onload = () => {
-      const maxDim = 500;
+      const maxDim = Math.min(window.innerWidth * 0.8, window.innerHeight * 0.8, 500);
       let scale = Math.min(
         maxDim / img.naturalWidth,
         maxDim / img.naturalHeight,
@@ -161,10 +262,30 @@ function resetPage(showStart = true) {
   document.getElementById("results").innerHTML = "";
   imagesData = [];
   if (showStart) {
-    document.getElementById("add-btn").style.display = "none";
+    document.getElementById("more-btn").style.display = "none";
     document.getElementById("start-btn").style.display = "none";
     document.getElementById("button-container").style.display = "block";
+    document.getElementById("shuffle-btn").style.display = "none";
   }
+  resetQueue();
+}
+
+function shuffleImages() {
+  imagesData.forEach(data => {
+    const { img, width, height } = data;
+    const maxX = window.innerWidth - width;
+    const maxY = window.innerHeight - height;
+    const x = Math.random() * maxX;
+    const y = Math.random() * (maxY - topBuffer) + topBuffer;
+
+    // update position
+    img.style.left = x + "px";
+    img.style.top = y + "px";
+
+    // update stored relative coords
+    data.relX = x / maxX;
+    data.relY = (y - topBuffer) / (maxY - topBuffer);
+  });
 }
 
 function makeDraggable(img) {
@@ -218,6 +339,15 @@ function shuffleArray(array) {
               .sort((a,b)=>a.sort-b.sort)
               .map(({v})=>v);
 }
+
+/* Modal controls */
+const aboutBtn = document.getElementById("about-btn");
+const aboutModal = document.getElementById("about-modal");
+const aboutClose = document.getElementById("about-close");
+
+aboutBtn.onclick = () => { aboutModal.style.display = "flex"; };
+aboutClose.onclick = () => { aboutModal.style.display = "none"; };
+window.onclick = e => { if (e.target === aboutModal) aboutModal.style.display = "none"; };
 </script>
 
 </body>
