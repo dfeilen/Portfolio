@@ -1,295 +1,376 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Devin Feilen — Photography</title>
-  <meta name="description" content="Photography portfolio by Devin Feilen – exploring cycling culture and spontaneous documentary imagery.">
-  <meta property="og:title" content="Devin Feilen — Photography">
-  <meta property="og:description" content="An experimental, handmade photo portfolio experience.">
-  <meta property="og:image" content="/photos/preview.jpg">
-  <meta name="theme-color" content="#fafafa">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Devin Feilen – Photography</title>
+<style>
+body {
+  font-family: 'Courier New', monospace;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background: #fafafa;
+  position: relative;
+  overflow: hidden;
+}
 
-  <style>
-    body {
-      font-family: 'Courier New', monospace;
-      margin: 0;
-      padding: 0;
-      min-height: 100vh;
-      background: #fafafa;
-      overflow: hidden;
-      color: #111;
-      position: relative;
-    }
+/* Center landing button */
+#button-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 100;
+  text-align: center;
+}
 
-    /* Center intro button */
-    #button-container {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #fafafa;
-      z-index: 10;
-    }
+/* Main “under construction” button */
+button#show-btn {
+  padding: 20px 40px;
+  font-size: 20px;
+  border: none;
+  background: black;
+  color: white;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: bold;
+}
+button#show-btn:hover { background: #222; }
 
-    #enter-btn {
-      font-family: inherit;
-      font-size: 1.2rem;
-      background: none;
-      border: 1px solid #111;
-      padding: 0.8rem 1.6rem;
-      cursor: pointer;
-      transition: background 0.2s ease, color 0.2s ease;
-    }
+/* General button style */
+button {
+  font-family: inherit;
+  font-weight: bold;
+  font-size: 16px;
+  background: black;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 0;
+  transition: background 0.2s ease;
+}
+button:hover { background: #222; }
 
-    #enter-btn:hover {
-      background: #111;
-      color: #fafafa;
-    }
+/* About button */
+#about-btn {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 10px 20px;
+  z-index: 300;
+}
 
-    #results {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
-      overflow: hidden;
-    }
+/* Results container */
+#results {
+  width: 100%;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
 
-    #results img {
-      position: absolute;
-      max-width: 320px;
-      border: 1px solid #111;
-      opacity: 0;
-      transition: opacity 0.5s ease, transform 0.2s ease;
-      cursor: grab;
-    }
+/* Image styling */
+#results img {
+  position: absolute;
+  border-radius: 0;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+  cursor: grab;
+  opacity: 0;
+  transform: scale(0.97);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+#results img.loaded {
+  opacity: 1;
+  transform: scale(1);
+}
+#results img:active { cursor: grabbing; }
 
-    #results img.loaded {
-      opacity: 1;
-    }
+/* Bottom buttons */
+#more-btn, #start-btn {
+  position: fixed;
+  bottom: 20px;
+  padding: 15px 30px;
+  font-size: 18px;
+  z-index: 200;
+}
+#more-btn { right: 20px; display: none; }
+#start-btn { left: 20px; display: none; }
 
-    #results img:active {
-      cursor: grabbing;
-    }
+/* Modal */
+#about-modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.6);
+  z-index: 500;
+  justify-content: center;
+  align-items: center;
+}
+#about-content {
+  background: #fff;
+  padding: 30px;
+  max-width: 600px;
+  width: 90%;
+  border-radius: 8px;
+  font-size: 16px;
+  line-height: 1.5;
+  position: relative;
+}
+#about-close {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 20px;
+  font-weight: bold;
+  color: #000;
+  cursor: pointer;
+}
+#about-close:hover { color: #666; }
 
-    /* Button controls */
-    .control-btn {
-      position: fixed;
-      bottom: 1rem;
-      left: 1rem;
-      background: none;
-      border: 1px solid #111;
-      padding: 0.5rem 1rem;
-      font-family: inherit;
-      cursor: pointer;
-      transition: background 0.2s ease, color 0.2s ease;
-    }
+/* --- Mobile Optimization --- */
+@media (max-width: 768px) {
+  body {
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
 
-    .control-btn:hover {
-      background: #111;
-      color: #fafafa;
-    }
+  #results {
+    height: auto;
+    padding-top: 60px;
+    overflow: visible;
+  }
 
-    #more-btn {
-      left: auto;
-      right: 1rem;
-    }
+  #results img {
+    position: relative;
+    display: block;
+    max-width: 90vw;
+    margin: 12px auto;
+    left: 0 !important;
+    top: 0 !important;
+    transform: none !important;
+    cursor: default;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  }
 
-    #about-btn {
-      top: 1rem;
-      right: 1rem;
-      bottom: auto;
-    }
+  #button-container {
+    position: static;
+    transform: none;
+    margin-top: 40vh;
+  }
 
-    /* Modal styling */
-    #about-modal {
-      position: fixed;
-      inset: 0;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      background: rgba(250, 250, 250, 0.96);
-      z-index: 15;
-      padding: 2rem;
-      text-align: left;
-      overflow-y: auto;
-    }
+  #more-btn,
+  #start-btn {
+    position: static;
+    display: block !important;
+    margin: 10px auto;
+    width: 90%;
+    max-width: 320px;
+  }
 
-    #about-content {
-      max-width: 600px;
-      border: 1px solid #111;
-      padding: 2rem;
-      background: #fff;
-      box-shadow: 4px 4px 0 #111;
-    }
+  #about-btn {
+    top: 10px;
+    right: 10px;
+    padding: 8px 15px;
+  }
 
-    #about-content h2 {
-      margin-top: 0;
-    }
-
-    #close-about {
-      margin-top: 1rem;
-      background: none;
-      border: 1px solid #111;
-      padding: 0.4rem 0.8rem;
-      cursor: pointer;
-      font-family: inherit;
-    }
-
-    #close-about:hover {
-      background: #111;
-      color: #fafafa;
-    }
-
-    /* Mobile tweaks */
-    @media (max-width: 600px) {
-      #results img {
-        max-width: 60vw;
-      }
-      .control-btn {
-        padding: 0.4rem 0.8rem;
-        font-size: 0.9rem;
-      }
-      #about-content {
-        padding: 1.2rem;
-      }
-    }
-  </style>
+  #about-content {
+    width: 95%;
+    padding: 20px;
+    font-size: 15px;
+  }
+}
+</style>
 </head>
 <body>
 
-  <!-- Landing -->
-  <div id="button-container">
-    <button id="enter-btn" aria-label="Enter site">enter</button>
+<button id="about-btn">About</button>
+
+<div id="button-container">
+  <button id="show-btn" onclick="showSomething()">under construction :)</button>
+</div>
+
+<div id="results"></div>
+
+<button id="more-btn" onclick="replaceImages(10)">Show me more</button>
+<button id="start-btn" onclick="resetPage()">Start Over</button>
+
+<div id="about-modal">
+  <div id="about-content">
+    <span id="about-close">&times;</span>
+    <h2>What is this?</h2>
+    <p>My name is Devin Feilen, and this is my ongoing photography portfolio.</p>
+    <p>
+      Squarespace sites are cool, but I made this myself and I feel that it provides a more intriguing representation of my work instead of your "typical" photography portfolio. 
+      If you've already clicked the big button in the middle of the screen, you'll see what I mean. There are thousands of photos to discover and it's almost impossible to get the same spread.
+    </p>
+    <p>
+      If you'd like to support me, you can do so at <a href="https://buymeacoffee.com/devinfeilen" target="_blank">buymeacoffee.com/devinfeilen</a>.
+    </p>
   </div>
+</div>
 
-  <!-- Main container -->
-  <div id="results" aria-live="polite"></div>
+<script>
+const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+let allPhotos = [];
+let photoQueue = [];
+let zIndexCounter = 1;
+let imagesData = [];
+const topBuffer = 10;
 
-  <!-- Controls -->
-  <button id="start-btn" class="control-btn" style="display:none;">Start Over</button>
-  <button id="more-btn" class="control-btn" style="display:none;">Show Me More</button>
-  <button id="about-btn" class="control-btn" style="display:none;">About</button>
+fetch("photos.json")
+  .then(res => res.json())
+  .then(data => {
+    allPhotos = data;
+    resetQueue();
+    console.log("✅ Loaded", allPhotos.length, "photos");
+  })
+  .catch(err => console.error("Error loading photos.json:", err));
 
-  <!-- About Modal -->
-  <div id="about-modal">
-    <div id="about-content">
-      <h2>About</h2>
-      <p>This is an evolving photography portfolio by <strong>Devin Feilen</strong> — exploring cycling culture, Portland, and the interplay between documentation and spontaneity.</p>
-      <p>Each visit is a slightly different spread — drag and rearrange images as you like. The goal isn’t a fixed gallery, but a living shuffle of moments.</p>
-      <button id="close-about">Close</button>
-    </div>
-  </div>
+function resetQueue() {
+  photoQueue = shuffleArray(allPhotos);
+}
 
-  <script>
-    let allPhotos = [];
-    let unusedPhotos = [];
+function getNextBatch(count) {
+  if (photoQueue.length < count) resetQueue();
+  return photoQueue.splice(0, count);
+}
 
-    // Load photos from JSON
-    async function loadPhotos() {
-      try {
-        const response = await fetch("photos.json");
-        const data = await response.json();
-        allPhotos = data;
-        resetQueue();
-      } catch (e) {
-        console.error("Error loading photos.json:", e);
+function showSomething() {
+  if (!allPhotos.length) {
+    alert("Photos not loaded yet — try again in a moment.");
+    return;
+  }
+
+  const buttonContainer = document.getElementById("button-container");
+  buttonContainer.style.transition = "opacity 0.5s";
+  buttonContainer.style.opacity = 0;
+
+  setTimeout(() => {
+    buttonContainer.style.display = "none";
+    document.getElementById("more-btn").style.display = "block";
+    document.getElementById("start-btn").style.display = "block";
+    replaceImages(isMobile ? 5 : 10);
+  }, 500);
+}
+
+function replaceImages(count) {
+  document.getElementById("results").innerHTML = "";
+  imagesData = [];
+  const batch = getNextBatch(count);
+  addImages(batch);
+}
+
+function addImages(selected) {
+  const resultsDiv = document.getElementById("results");
+
+  selected.forEach(src => {
+    const img = new Image();
+    img.src = src;
+    img.alt = "photo";
+    img.loading = "lazy";
+
+    img.onload = () => {
+      if (isMobile) {
+        img.style.position = "relative";
+        img.classList.add("loaded");
+        resultsDiv.appendChild(img);
+      } else {
+        const viewH = window.innerHeight;
+        const scaleH = Math.random() * 0.15 + 0.75; // 75–90% of viewport height
+        const height = viewH * scaleH;
+        const aspect = img.naturalWidth / img.naturalHeight;
+        const width = height * aspect;
+
+        const maxX = window.innerWidth - width;
+        const maxY = window.innerHeight - height;
+        const x = Math.random() * (maxX * 0.95); // allow slight overlap
+        const y = Math.random() * (maxY - topBuffer) + topBuffer;
+
+        img.style.width = width + "px";
+        img.style.height = height + "px";
+        img.style.left = x + "px";
+        img.style.top = y + "px";
+        img.style.zIndex = zIndexCounter++;
+
+        resultsDiv.appendChild(img);
+        requestAnimationFrame(() => img.classList.add("loaded"));
+        makeDraggable(img);
+
+        imagesData.push({
+          img,
+          width,
+          height,
+          relX: x / maxX,
+          relY: (y - topBuffer) / (maxY - topBuffer)
+        });
       }
-    }
-
-    function resetQueue() {
-      unusedPhotos = [...allPhotos];
-    }
-
-    function getRandomPhoto() {
-      if (unusedPhotos.length === 0) resetQueue();
-      const index = Math.floor(Math.random() * unusedPhotos.length);
-      return unusedPhotos.splice(index, 1)[0];
-    }
-
-    // Generate random position
-    function randomPosition() {
-      const x = Math.random() * (window.innerWidth - 320);
-      const y = Math.random() * (window.innerHeight - 240);
-      return { x, y };
-    }
-
-    function showImage() {
-      const src = getRandomPhoto();
-      const img = document.createElement("img");
-      img.src = src;
-      img.alt = "Photograph by Devin Feilen";
-      img.loading = "lazy";
-      const { x, y } = randomPosition();
-      img.style.left = `${x}px`;
-      img.style.top = `${y}px`;
-
-      img.onload = () => img.classList.add("loaded");
-      img.onerror = () => console.warn("Image failed to load:", src);
-
-      // Draggable
-      img.addEventListener("mousedown", dragStart);
-      document.getElementById("results").appendChild(img);
-    }
-
-    // Shuffle and reset
-    function shuffleImages() {
-      const results = document.getElementById("results");
-      results.innerHTML = "";
-      for (let i = 0; i < 6; i++) showImage();
-    }
-
-    // Dragging logic
-    let currentDrag = null;
-    let offsetX = 0, offsetY = 0;
-
-    function dragStart(e) {
-      currentDrag = e.target;
-      offsetX = e.clientX - currentDrag.offsetLeft;
-      offsetY = e.clientY - currentDrag.offsetTop;
-      document.addEventListener("mousemove", dragMove);
-      document.addEventListener("mouseup", dragEnd);
-    }
-
-    function dragMove(e) {
-      if (!currentDrag) return;
-      currentDrag.style.left = `${e.clientX - offsetX}px`;
-      currentDrag.style.top = `${e.clientY - offsetY}px`;
-    }
-
-    function dragEnd() {
-      currentDrag = null;
-      document.removeEventListener("mousemove", dragMove);
-      document.removeEventListener("mouseup", dragEnd);
-    }
-
-    // Modal controls
-    const aboutModal = document.getElementById("about-modal");
-    document.getElementById("about-btn").onclick = () => {
-      aboutModal.style.display = "flex";
     };
-    document.getElementById("close-about").onclick = () => {
-      aboutModal.style.display = "none";
-    };
+  });
+}
 
-    // Main interaction
-    document.getElementById("enter-btn").onclick = () => {
-      document.getElementById("button-container").style.display = "none";
-      shuffleImages();
-      // Show controls with a slight delay
-      setTimeout(() => {
-        document.getElementById("start-btn").style.display = "block";
-        document.getElementById("more-btn").style.display = "block";
-        document.getElementById("about-btn").style.display = "block";
-      }, 600);
-    };
+function makeDraggable(img) {
+  let offsetX, offsetY, isDragging = false;
 
-    document.getElementById("start-btn").onclick = shuffleImages;
-    document.getElementById("more-btn").onclick = showImage;
+  img.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    isDragging = true;
+    img.setPointerCapture(e.pointerId);
+    offsetX = e.clientX - img.offsetLeft;
+    offsetY = e.clientY - img.offsetTop;
+    img.style.cursor = "grabbing";
+    img.style.transition = "none";
+    img.style.zIndex = zIndexCounter++;
 
-    // Initialize
-    document.addEventListener("DOMContentLoaded", loadPhotos);
-  </script>
+    function onMove(e) {
+      if (!isDragging) return;
+      let newLeft = e.clientX - offsetX;
+      let newTop = e.clientY - offsetY;
+      if (newTop < topBuffer) newTop = topBuffer;
+      img.style.left = newLeft + "px";
+      img.style.top = newTop + "px";
+    }
+
+    function onUp() {
+      isDragging = false;
+      img.releasePointerCapture(e.pointerId);
+      img.style.cursor = "grab";
+      img.style.transition = "transform 0.2s ease";
+      img.removeEventListener("pointermove", onMove);
+      img.removeEventListener("pointerup", onUp);
+    }
+
+    img.addEventListener("pointermove", onMove);
+    img.addEventListener("pointerup", onUp);
+  });
+}
+
+function resetPage(showStart = true) {
+  document.getElementById("results").innerHTML = "";
+  imagesData = [];
+  if (showStart) {
+    document.getElementById("more-btn").style.display = "none";
+    document.getElementById("start-btn").style.display = "none";
+    document.getElementById("button-container").style.display = "block";
+  }
+  resetQueue();
+}
+
+function shuffleArray(array) {
+  return array.map(v => ({ v, sort: Math.random() }))
+              .sort((a, b) => a.sort - b.sort)
+              .map(({ v }) => v);
+}
+
+/* Modal controls */
+const aboutBtn = document.getElementById("about-btn");
+const aboutModal = document.getElementById("about-modal");
+const aboutClose = document.getElementById("about-close");
+
+aboutBtn.onclick = () => { aboutModal.style.display = "flex"; };
+aboutClose.onclick = () => { aboutModal.style.display = "none"; };
+window.onclick = e => { if (e.target === aboutModal) aboutModal.style.display = "none"; };
+</script>
 
 </body>
 </html>
