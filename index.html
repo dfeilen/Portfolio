@@ -163,7 +163,7 @@ button:hover { background: #222; }
   #start-btn {
     position: static;
     display: block !important;
-    margin: 10px auto;
+    margin: 20px auto;
     width: 90%;
     max-width: 320px;
   }
@@ -187,7 +187,7 @@ button:hover { background: #222; }
 <button id="about-btn">About</button>
 
 <div id="button-container">
-  <button id="show-btn" onclick="showSomething()">under construction :)</button>
+  <button id="show-btn" onclick="showSomething()">Enter Gallery</button>
 </div>
 
 <div id="results"></div>
@@ -218,6 +218,14 @@ let zIndexCounter = 1;
 let imagesData = [];
 const topBuffer = 10;
 
+// --- NOTE: Update your photos.json! ---
+// For improved accessibility, change your JSON from an array of strings:
+// ["img1.jpg", "img2.jpg"]
+// to an array of objects:
+// [
+//   { "src": "img1.jpg", "alt": "A meaningful description of the photo." },
+//   { "src": "img2.jpg", "alt": "Another great description." }
+// ]
 fetch("photos.json")
   .then(res => res.json())
   .then(data => {
@@ -228,7 +236,8 @@ fetch("photos.json")
   .catch(err => console.error("Error loading photos.json:", err));
 
 function resetQueue() {
-  photoQueue = shuffleArray(allPhotos);
+  // Use a copy to avoid modifying the original `allPhotos` array
+  photoQueue = shuffleArray([...allPhotos]);
 }
 
 function getNextBatch(count) {
@@ -254,20 +263,26 @@ function showSomething() {
   }, 500);
 }
 
+// --- MODIFIED: Added mobile scroll-to-top behavior ---
 function replaceImages(count) {
+  if (isMobile) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
   document.getElementById("results").innerHTML = "";
   imagesData = [];
   const batch = getNextBatch(count);
   addImages(batch);
 }
 
+// --- MODIFIED: To support new JSON structure and save data for resizing ---
 function addImages(selected) {
   const resultsDiv = document.getElementById("results");
 
-  selected.forEach(src => {
+  selected.forEach(photo => {
     const img = new Image();
-    img.src = src;
-    img.alt = "photo";
+    // Use photo.src and photo.alt from the new JSON object structure
+    img.src = photo.src;
+    img.alt = photo.alt || "A photo by Devin Feilen"; // Fallback alt text
     img.loading = "lazy";
 
     img.onload = () => {
@@ -296,13 +311,14 @@ function addImages(selected) {
         resultsDiv.appendChild(img);
         requestAnimationFrame(() => img.classList.add("loaded"));
         makeDraggable(img);
-
+        
+        // Save data needed for recalculating layout on resize
         imagesData.push({
           img,
-          width,
-          height,
-          relX: x / maxX,
-          relY: (y - topBuffer) / (maxY - topBuffer)
+          aspect,
+          scaleH,
+          relX: maxX > 0 ? x / maxX : 0,
+          relY: (maxY - topBuffer) > 0 ? (y - topBuffer) / (maxY - topBuffer) : 0
         });
       }
     };
@@ -351,15 +367,55 @@ function resetPage(showStart = true) {
   if (showStart) {
     document.getElementById("more-btn").style.display = "none";
     document.getElementById("start-btn").style.display = "none";
-    document.getElementById("button-container").style.display = "block";
+    const buttonContainer = document.getElementById("button-container");
+    buttonContainer.style.display = "block";
+    // We need to trigger a reflow for the opacity transition to work again
+    void buttonContainer.offsetWidth; 
+    buttonContainer.style.opacity = 1;
   }
   resetQueue();
 }
 
+// --- MODIFIED: Replaced with the more efficient Fisher-Yates shuffle algorithm ---
 function shuffleArray(array) {
-  return array.map(v => ({ v, sort: Math.random() }))
-              .sort((a, b) => a.sort - b.sort)
-              .map(({ v }) => v);
+  let currentIndex = array.length, randomIndex;
+  while (currentIndex > 0) {
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+    [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+  }
+  return array;
+}
+
+// --- ADDED: Debounce function to limit how often resize events are handled ---
+function debounce(func, wait = 150) {
+  let timeout;
+  return function(...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(this, args), wait);
+  };
+}
+
+// --- ADDED: Function to recalculate layout on window resize ---
+function updateLayout() {
+  if (isMobile || imagesData.length === 0) return;
+
+  const viewW = window.innerWidth;
+  const viewH = window.innerHeight;
+
+  imagesData.forEach(data => {
+    const { img, relX, relY, aspect, scaleH } = data;
+
+    const height = viewH * scaleH;
+    const width = height * aspect;
+    const maxX = Math.max(0, viewW - width);
+    const maxY = Math.max(0, viewH - height);
+
+    img.style.width = width + "px";
+    img.style.height = height + "px";
+    img.style.left = (relX * maxX * 0.95) + "px";
+    img.style.top = (relY * (maxY - topBuffer) + topBuffer) + "px";
+  });
 }
 
 /* Modal controls */
@@ -370,6 +426,10 @@ const aboutClose = document.getElementById("about-close");
 aboutBtn.onclick = () => { aboutModal.style.display = "flex"; };
 aboutClose.onclick = () => { aboutModal.style.display = "none"; };
 window.onclick = e => { if (e.target === aboutModal) aboutModal.style.display = "none"; };
+
+// --- ADDED: Event listener for window resize ---
+window.addEventListener('resize', debounce(updateLayout));
+
 </script>
 
 </body>
