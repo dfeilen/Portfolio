@@ -233,6 +233,57 @@
     #mobile-indicator {
       display: none;
     }
+
+    /* Mobile welcome popup */
+    #mobile-welcome {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 2000;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    #mobile-welcome-content {
+      background: #fff;
+      padding: 24px;
+      border-radius: 16px;
+      max-width: 340px;
+      width: 100%;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+      text-align: center;
+    }
+
+    #mobile-welcome-content p {
+      margin: 0 0 20px 0;
+      font-size: 15px;
+      line-height: 1.5;
+      color: #333;
+    }
+
+    #mobile-welcome-btn {
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    #mobile-welcome-btn:active {
+      background: rgba(0, 0, 0, 0.9);
+    }
   </style>
 </head>
 <body>
@@ -246,6 +297,13 @@
   <div id="results" role="main" aria-label="Photo gallery"></div>
 
   <div id="mobile-indicator"></div>
+
+  <div id="mobile-welcome">
+    <div id="mobile-welcome-content">
+      <p>Hi! This portfolio is best experienced on a desktop or a screen larger than the one you're viewing it on. This is a simplified mobile version, but still gives you random images as you scroll.</p>
+      <button id="mobile-welcome-btn">Got it!</button>
+    </div>
+  </div>
 
   <div id="about-modal" role="dialog" aria-labelledby="about-heading" aria-modal="true">
     <div id="about-content">
@@ -302,8 +360,33 @@
     function loadInitialPhotos() {
       // Hide loading indicator immediately since JSON loaded successfully
       document.getElementById("loading").style.display = "none";
+      
+      // Show mobile welcome popup on mobile devices
+      const isMobile = window.innerWidth <= 768;
+      if (isMobile) {
+        showMobileWelcome();
+      }
+      
       const batch = getNextBatch(initialLoadCount);
       addImages(batch);
+    }
+
+    function showMobileWelcome() {
+      const welcomePopup = document.getElementById("mobile-welcome");
+      const welcomeBtn = document.getElementById("mobile-welcome-btn");
+      
+      welcomePopup.style.display = "flex";
+      
+      welcomeBtn.onclick = () => {
+        welcomePopup.style.display = "none";
+      };
+      
+      // Also close on background click
+      welcomePopup.onclick = (e) => {
+        if (e.target === welcomePopup) {
+          welcomePopup.style.display = "none";
+        }
+      };
     }
 
     function addImages(selected) {
