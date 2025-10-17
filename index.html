@@ -1,206 +1,463 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Photo Scatter</title>
-<style>
-  body {
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    background: #fafafa;
-    font-family: 'Courier New', monospace;
-  }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Photography Portfolio</title>
+  <style>
+    body {
+      font-family: 'Courier New', monospace;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      overflow: hidden;
+      background: #fafafa;
+      position: relative;
+    }
 
-  #about-btn {
-    position: fixed;
-    top: 10px;
-    right: 20px;
-    background: transparent;
-    border: none;
-    font-size: 16px;
-    cursor: pointer;
-    z-index: 2000;
-  }
+    /* Loading indicator */
+    #loading {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      z-index: 1000;
+    }
 
-  #about-btn:hover {
-    text-decoration: underline;
-  }
+    #loading-spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #000;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 10px;
+    }
 
-  .photo {
-    position: absolute;
-    cursor: grab;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    user-select: none;
-  }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
 
-  .photo:active {
-    cursor: grabbing;
-  }
+    /* About button (top-right corner) */
+    #about-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 10px 20px;
+      z-index: 300;
+      font-family: 'Courier New', monospace;
+      font-weight: bold;
+      font-size: 16px;
+      background: black;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 0;
+    }
 
-  .photo img {
-    display: block;
-    width: 100%;
-    height: auto;
-    border-radius: 6px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-    transition: box-shadow 0.2s ease;
-  }
+    #about-btn:hover {
+      background: #222;
+    }
 
-  .photo:hover img {
-    box-shadow: 0 6px 15px rgba(0,0,0,0.25);
-  }
+    #about-btn:focus {
+      outline: 2px solid #000;
+      outline-offset: 2px;
+    }
 
-  .resize-handle {
-    position: absolute;
-    width: 12px;
-    height: 12px;
-    background: #000;
-    opacity: 0;
-    border-radius: 50%;
-    cursor: nwse-resize;
-    right: -6px;
-    bottom: -6px;
-    transition: opacity 0.2s ease;
-  }
+    #about-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.6);
+      z-index: 500;
+      justify-content: center;
+      align-items: center;
+    }
 
-  .photo:hover .resize-handle {
-    opacity: 0.6;
-  }
+    #about-content {
+      background: #fff;
+      padding: 30px;
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      border-radius: 8px;
+      font-size: 16px;
+      line-height: 1.5;
+      position: relative;
+    }
 
-  #about-modal {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(250, 250, 250, 0.95);
-    z-index: 3000;
-    padding: 40px;
-    font-size: 16px;
-  }
+    #about-close {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 20px;
+      font-weight: bold;
+      color: #000;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 5px 10px;
+    }
 
-  #about-modal p {
-    max-width: 600px;
-    line-height: 1.6;
-  }
+    #about-close:hover {
+      color: #666;
+    }
 
-  #close-about {
-    position: absolute;
-    top: 15px;
-    right: 25px;
-    background: none;
-    border: none;
-    font-size: 18px;
-    cursor: pointer;
-  }
-</style>
+    #about-close:focus {
+      outline: 2px solid #000;
+      outline-offset: 2px;
+    }
+
+    #results {
+      width: 100%;
+      height: 100vh;
+      position: relative;
+      top: 0;
+      left: 0;
+    }
+
+    #results img {
+      position: absolute;
+      border-radius: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      transition: transform 0.2s ease;
+      cursor: grab;
+      height: auto;
+      max-width: 500px;
+      opacity: 0;
+      animation: fadeIn 0.3s ease forwards;
+    }
+
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+
+    #results img:active {
+      cursor: grabbing;
+    }
+
+    #results img:focus {
+      outline: 3px solid #000;
+      outline-offset: 2px;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 768px) {
+      #results img {
+        max-width: 80vw;
+      }
+      
+      #about-btn {
+        padding: 8px 16px;
+        font-size: 14px;
+        top: 10px;
+        right: 10px;
+      }
+
+      #about-content {
+        padding: 20px;
+        font-size: 14px;
+      }
+    }
+  </style>
 </head>
 <body>
+  <button id="about-btn" aria-label="About this portfolio">About</button>
 
-<button id="about-btn">about</button>
+  <div id="loading" role="status" aria-live="polite">
+    <div id="loading-spinner" aria-hidden="true"></div>
+    <p>Loading photos...</p>
+  </div>
 
-<div id="about-modal">
-  <button id="close-about">×</button>
-  <p>Photo collage site featuring images from Portland's cycling scene. Click and drag to move photos. Resize them by grabbing the lower-right corner.</p>
-</div>
+  <div id="results" role="main" aria-label="Photo gallery"></div>
 
-<script>
-const photos = [
-  '/photos/photo1.jpg',
-  '/photos/photo2.jpg',
-  '/photos/photo3.jpg',
-  '/photos/photo4.jpg',
-  '/photos/photo5.jpg',
-  '/photos/photo6.jpg'
-];
+  <div id="about-modal" role="dialog" aria-labelledby="about-heading" aria-modal="true">
+    <div id="about-content">
+      <button id="about-close" aria-label="Close about dialog">&times;</button>
+      <h2 id="about-heading">What is this?</h2>
+      <p>
+        My name is Devin Feilen, and this is my ongoing photography portfolio.
+      </p>
+      <p>
+        Squarespace sites are cool, but I made this myself and I feel that it provides a more intriguing representation of my work instead of your "typical" photography portfolio. The photos are randomly scattered across the screen and you can drag them around to explore. There are thousands of photos to discover and it's almost impossible to get the same spread, so hopefully it'll keep you out of the doom scroll app for a bit.
+      </p>
+      <p>
+        If you'd like to support me, you can do so at <a href="https://buymeacoffee.com/devinfeilen" target="_blank" rel="noopener noreferrer">buymeacoffee.com/devinfeilen</a>
+      </p>
+    </div>
+  </div>
 
-function randomInRange(min, max) {
-  return Math.random() * (max - min) + min;
-}
+  <script>
+    let allPhotos = [];
+    let photoQueue = [];
+    let zIndexCounter = 1;
+    let imagesData = [];
+    const topBuffer = 60; // More space for the about button
+    let loadedCount = 0;
+    const initialLoadCount = 15; // Load more images initially
 
-function createPhoto(src) {
-  const container = document.createElement('div');
-  container.className = 'photo';
-  container.style.width = randomInRange(window.innerWidth * 0.25, window.innerWidth * 0.4) + 'px';
-  container.style.top = randomInRange(10, window.innerHeight * 0.5) + 'px';
-  container.style.left = randomInRange(10, window.innerWidth * 0.5) + 'px';
-  container.style.zIndex = Math.floor(Math.random() * 100);
+    // Load photos immediately
+    fetch("photos.json")
+      .then(res => res.json())
+      .then(data => {
+        allPhotos = data;
+        resetQueue();
+        console.log("✅ Loaded", allPhotos.length, "photos");
+        loadInitialPhotos();
+      })
+      .catch(err => {
+        console.error("Error loading photos.json:", err);
+        document.getElementById("loading").innerHTML = "<p>Error loading photos. Please refresh the page.</p>";
+      });
 
-  const img = document.createElement('img');
-  img.src = src;
-  container.appendChild(img);
-
-  const handle = document.createElement('div');
-  handle.className = 'resize-handle';
-  container.appendChild(handle);
-
-  document.body.appendChild(container);
-
-  // --- Dragging ---
-  let offsetX, offsetY, isDragging = false;
-
-  container.addEventListener('pointerdown', e => {
-    if (e.target === handle) return;
-    isDragging = true;
-    offsetX = e.clientX - container.offsetLeft;
-    offsetY = e.clientY - container.offsetTop;
-    container.style.zIndex = 1000;
-    container.setPointerCapture(e.pointerId);
-  });
-
-  container.addEventListener('pointermove', e => {
-    if (!isDragging) return;
-    container.style.left = e.clientX - offsetX + 'px';
-    container.style.top = e.clientY - offsetY + 'px';
-  });
-
-  container.addEventListener('pointerup', e => {
-    isDragging = false;
-    container.releasePointerCapture(e.pointerId);
-  });
-
-  // --- Resizing (keep aspect ratio) ---
-  let isResizing = false, startX, startY, startWidth, startHeight, aspectRatio;
-
-  handle.addEventListener('pointerdown', e => {
-    e.stopPropagation();
-    isResizing = true;
-    startX = e.clientX;
-    startY = e.clientY;
-    startWidth = parseFloat(getComputedStyle(container).width);
-    startHeight = parseFloat(getComputedStyle(container).height);
-    aspectRatio = startWidth / startHeight;
-    container.setPointerCapture(e.pointerId);
-  });
-
-  container.addEventListener('pointermove', e => {
-    if (!isResizing) return;
-    const dx = e.clientX - startX;
-    let newWidth = startWidth + dx;
-    let newHeight = newWidth / aspectRatio;
-    if (newWidth > 100) {
-      container.style.width = newWidth + 'px';
-      container.style.height = newHeight + 'px';
+    function resetQueue() {
+      photoQueue = shuffleArray([...allPhotos]);
     }
-  });
 
-  container.addEventListener('pointerup', e => {
-    if (isResizing) {
-      isResizing = false;
-      container.releasePointerCapture(e.pointerId);
+    function getNextBatch(count) {
+      if (photoQueue.length < count) {
+        resetQueue();
+      }
+      return photoQueue.splice(0, count);
     }
-  });
-}
 
-window.onload = () => {
-  photos.forEach(src => createPhoto(src));
+    function loadInitialPhotos() {
+      const batch = getNextBatch(initialLoadCount);
+      addImages(batch);
+    }
 
-  const aboutBtn = document.getElementById('about-btn');
-  const modal = document.getElementById('about-modal');
-  const closeBtn = document.getElementById('close-about');
+    function addImages(selected) {
+      const resultsDiv = document.getElementById("results");
+      
+      selected.forEach((src, index) => {
+        const img = new Image();
+        img.src = src;
+        img.alt = `Photography by Devin Feilen - Image ${loadedCount + index + 1}`;
+        img.loading = "lazy";
+        img.tabIndex = 0; // Make keyboard accessible
+        img.setAttribute('role', 'img');
+        
+        img.onload = () => {
+          loadedCount++;
+          
+          // Hide loading indicator after first image loads
+          if (loadedCount === 1) {
+            document.getElementById("loading").style.display = "none";
+          }
 
-  aboutBtn.addEventListener('click', () => modal.style.display = 'block');
-  closeBtn.addEventListener('click', () => modal.style.display = 'none');
-};
-</script>
+          const isMobile = window.innerWidth <= 768;
+          const maxDim = isMobile 
+            ? Math.min(window.innerWidth * 0.7, window.innerHeight * 0.6)
+            : Math.min(window.innerWidth * 0.8, window.innerHeight * 0.8, 500);
+          
+          let scale = Math.min(
+            maxDim / img.naturalWidth,
+            maxDim / img.naturalHeight,
+            1
+          );
+          
+          const width = img.naturalWidth * scale;
+          const height = img.naturalHeight * scale;
+          
+          img.style.width = width + "px";
+          img.style.height = height + "px";
+
+          const maxX = window.innerWidth - width;
+          const maxY = window.innerHeight - height - topBuffer;
+          
+          const x = Math.random() * maxX;
+          const y = Math.random() * maxY + topBuffer;
+          
+          img.style.left = x + "px";
+          img.style.top = y + "px";
+          img.style.zIndex = zIndexCounter++;
+
+          makeDraggable(img);
+          resultsDiv.appendChild(img);
+
+          imagesData.push({
+            img,
+            width,
+            height,
+            relX: x / maxX,
+            relY: (y - topBuffer) / maxY
+          });
+        };
+
+        img.onerror = () => {
+          console.error("Failed to load image:", src);
+        };
+      });
+    }
+
+    function makeDraggable(img) {
+      let offsetX, offsetY, isDragging = false;
+
+      // Prevent default drag behavior
+      img.ondragstart = () => false;
+
+      // Mouse events
+      img.addEventListener("mousedown", e => {
+        e.preventDefault();
+        startDrag(e.clientX, e.clientY);
+      });
+
+      // Touch events for mobile
+      img.addEventListener("touchstart", e => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        startDrag(touch.clientX, touch.clientY);
+      }, { passive: false });
+
+      // Keyboard accessibility
+      img.addEventListener("keydown", e => {
+        const step = e.shiftKey ? 50 : 10;
+        let newLeft = img.offsetLeft;
+        let newTop = img.offsetTop;
+
+        switch(e.key) {
+          case "ArrowLeft":
+            newLeft -= step;
+            e.preventDefault();
+            break;
+          case "ArrowRight":
+            newLeft += step;
+            e.preventDefault();
+            break;
+          case "ArrowUp":
+            newTop -= step;
+            e.preventDefault();
+            break;
+          case "ArrowDown":
+            newTop += step;
+            e.preventDefault();
+            break;
+          default:
+            return;
+        }
+
+        if (newTop < topBuffer) newTop = topBuffer;
+        img.style.left = newLeft + "px";
+        img.style.top = newTop + "px";
+        img.style.zIndex = zIndexCounter++;
+      });
+
+      function startDrag(clientX, clientY) {
+        if (isDragging) return;
+        isDragging = true;
+        offsetX = clientX - img.offsetLeft;
+        offsetY = clientY - img.offsetTop;
+        img.style.zIndex = zIndexCounter++;
+        img.style.transition = "none";
+        img.style.cursor = "grabbing";
+
+        function onMove(clientX, clientY) {
+          let newLeft = clientX - offsetX;
+          let newTop = clientY - offsetY;
+          if (newTop < topBuffer) newTop = topBuffer;
+          img.style.left = newLeft + "px";
+          img.style.top = newTop + "px";
+        }
+
+        function onMouseMove(e) {
+          onMove(e.clientX, e.clientY);
+        }
+
+        function onTouchMove(e) {
+          e.preventDefault();
+          const touch = e.touches[0];
+          onMove(touch.clientX, touch.clientY);
+        }
+
+        function stopDrag() {
+          isDragging = false;
+          img.style.transition = "transform 0.2s ease";
+          img.style.cursor = "grab";
+          document.removeEventListener("mousemove", onMouseMove);
+          document.removeEventListener("mouseup", stopDrag);
+          document.removeEventListener("touchmove", onTouchMove);
+          document.removeEventListener("touchend", stopDrag);
+        }
+
+        document.addEventListener("mousemove", onMouseMove);
+        document.addEventListener("mouseup", stopDrag);
+        document.addEventListener("touchmove", onTouchMove, { passive: false });
+        document.addEventListener("touchend", stopDrag);
+      }
+    }
+
+    // Handle window resize
+    let resizeTimeout;
+    window.addEventListener("resize", () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        imagesData.forEach(data => {
+          const maxX = window.innerWidth - data.width;
+          const maxY = window.innerHeight - data.height - topBuffer;
+          data.img.style.left = data.relX * maxX + "px";
+          data.img.style.top = data.relY * maxY + topBuffer + "px";
+        });
+      }, 250);
+    });
+
+    function shuffleArray(array) {
+      return array.map(v => ({v, sort: Math.random()}))
+        .sort((a, b) => a.sort - b.sort)
+        .map(({v}) => v);
+    }
+
+    /* Modal controls */
+    const aboutBtn = document.getElementById("about-btn");
+    const aboutModal = document.getElementById("about-modal");
+    const aboutClose = document.getElementById("about-close");
+
+    aboutBtn.onclick = () => {
+      aboutModal.style.display = "flex";
+      aboutClose.focus(); // Focus the close button for accessibility
+    };
+
+    aboutClose.onclick = () => {
+      aboutModal.style.display = "none";
+      aboutBtn.focus(); // Return focus to the about button
+    };
+
+    window.onclick = e => {
+      if (e.target === aboutModal) {
+        aboutModal.style.display = "none";
+        aboutBtn.focus();
+      }
+    };
+
+    // Keyboard accessibility for modal
+    aboutModal.addEventListener("keydown", e => {
+      if (e.key === "Escape") {
+        aboutModal.style.display = "none";
+        aboutBtn.focus();
+      }
+    });
+
+    // Trap focus within modal when open
+    aboutModal.addEventListener("keydown", e => {
+      if (e.key === "Tab") {
+        const focusableElements = aboutModal.querySelectorAll('button, a[href]');
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey && document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement.focus();
+        } else if (!e.shiftKey && document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement.focus();
+        }
+      }
+    });
+  </script>
 </body>
 </html>
