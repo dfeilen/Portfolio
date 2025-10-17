@@ -123,7 +123,7 @@
     }
 
     #results img {
-      position: relative;
+      position: absolute;
       border-radius: 0;
       box-shadow: 0 2px 8px rgba(0,0,0,0.2);
       transition: transform 0.2s ease;
@@ -132,7 +132,6 @@
       max-width: 500px;
       opacity: 0;
       animation: fadeIn 0.3s ease forwards;
-      display: block;
     }
 
     @keyframes fadeIn {
@@ -145,91 +144,6 @@
 
     #results img:focus {
       outline: 3px solid #000;
-      outline-offset: 2px;
-    }
-
-    /* Resize handle */
-    .resize-handle {
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      background: #000;
-      border: 2px solid #fff;
-      border-radius: 50%;
-      bottom: -10px;
-      right: -10px;
-      cursor: nwse-resize;
-      z-index: 10;
-      opacity: 0;
-      transition: opacity 0.2s;
-      pointer-events: auto;
-    }
-
-    #results img:hover + .resize-handle,
-    .resize-handle:hover {
-      opacity: 1;
-    }
-
-    .image-wrapper {
-      position: absolute;
-      line-height: 0;
-    }
-
-    .image-wrapper img {
-      position: relative;
-      display: block;
-    }
-
-    .image-wrapper:hover .resize-handle {
-      opacity: 1;
-    }
-
-    /* Lightbox styles */
-    #lightbox {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.95);
-      z-index: 1000;
-      justify-content: center;
-      align-items: center;
-      cursor: zoom-out;
-    }
-
-    #lightbox img {
-      max-width: 90vw;
-      max-height: 90vh;
-      width: auto;
-      height: auto;
-      object-fit: contain;
-      box-shadow: 0 4px 20px rgba(255,255,255,0.1);
-      cursor: zoom-out;
-      position: relative;
-    }
-
-    #lightbox-close {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      font-size: 40px;
-      color: white;
-      cursor: pointer;
-      background: none;
-      border: none;
-      padding: 10px;
-      line-height: 1;
-      z-index: 1001;
-    }
-
-    #lightbox-close:hover {
-      color: #ccc;
-    }
-
-    #lightbox-close:focus {
-      outline: 2px solid #fff;
       outline-offset: 2px;
     }
 
@@ -263,11 +177,6 @@
 
   <div id="results" role="main" aria-label="Photo gallery"></div>
 
-  <div id="lightbox" role="dialog" aria-labelledby="lightbox-img" aria-modal="true">
-    <button id="lightbox-close" aria-label="Close fullscreen view">&times;</button>
-    <img id="lightbox-img" alt="" />
-  </div>
-
   <div id="about-modal" role="dialog" aria-labelledby="about-heading" aria-modal="true">
     <div id="about-content">
       <button id="about-close" aria-label="Close about dialog">&times;</button>
@@ -289,9 +198,9 @@
     let photoQueue = [];
     let zIndexCounter = 1;
     let imagesData = [];
-    const topBuffer = 60; // More space for the about button
+    const topBuffer = 60;
     let loadedCount = 0;
-    const initialLoadCount = 15; // Load more images initially
+    const initialLoadCount = 15;
 
     // Load photos immediately
     fetch("photos.json")
@@ -333,7 +242,7 @@
         img.src = src;
         img.alt = `Photography by Devin Feilen - Image ${loadedCount + index + 1}`;
         img.loading = "lazy";
-        img.tabIndex = 0; // Make keyboard accessible
+        img.tabIndex = 0;
         img.setAttribute('role', 'img');
         
         img.onload = () => {
@@ -384,77 +293,73 @@
       });
     }
 
-    function makeDraggable(wrapper, img) {
+    function makeDraggable(img) {
       let offsetX, offsetY, isDragging = false;
 
-      // Prevent default drag behavior on the image
-      if (img) {
-        img.ondragstart = () => false;
-      }
+      // Prevent default drag behavior
+      img.ondragstart = () => false;
 
-      // Mouse events on image
-      if (img) {
-        img.addEventListener("mousedown", e => {
-          e.preventDefault();
-          startDrag(e.clientX, e.clientY);
-        });
+      // Mouse events
+      img.addEventListener("mousedown", e => {
+        e.preventDefault();
+        startDrag(e.clientX, e.clientY);
+      });
 
-        // Touch events for mobile
-        img.addEventListener("touchstart", e => {
-          e.preventDefault();
-          const touch = e.touches[0];
-          startDrag(touch.clientX, touch.clientY);
-        }, { passive: false });
+      // Touch events for mobile
+      img.addEventListener("touchstart", e => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        startDrag(touch.clientX, touch.clientY);
+      }, { passive: false });
 
-        // Keyboard accessibility
-        img.addEventListener("keydown", e => {
-          const step = e.shiftKey ? 50 : 10;
-          let newLeft = wrapper.offsetLeft;
-          let newTop = wrapper.offsetTop;
+      // Keyboard accessibility
+      img.addEventListener("keydown", e => {
+        const step = e.shiftKey ? 50 : 10;
+        let newLeft = img.offsetLeft;
+        let newTop = img.offsetTop;
 
-          switch(e.key) {
-            case "ArrowLeft":
-              newLeft -= step;
-              e.preventDefault();
-              break;
-            case "ArrowRight":
-              newLeft += step;
-              e.preventDefault();
-              break;
-            case "ArrowUp":
-              newTop -= step;
-              e.preventDefault();
-              break;
-            case "ArrowDown":
-              newTop += step;
-              e.preventDefault();
-              break;
-            default:
-              return;
-          }
+        switch(e.key) {
+          case "ArrowLeft":
+            newLeft -= step;
+            e.preventDefault();
+            break;
+          case "ArrowRight":
+            newLeft += step;
+            e.preventDefault();
+            break;
+          case "ArrowUp":
+            newTop -= step;
+            e.preventDefault();
+            break;
+          case "ArrowDown":
+            newTop += step;
+            e.preventDefault();
+            break;
+          default:
+            return;
+        }
 
-          if (newTop < topBuffer) newTop = topBuffer;
-          wrapper.style.left = newLeft + "px";
-          wrapper.style.top = newTop + "px";
-          wrapper.style.zIndex = zIndexCounter++;
-        });
-      }
+        if (newTop < topBuffer) newTop = topBuffer;
+        img.style.left = newLeft + "px";
+        img.style.top = newTop + "px";
+        img.style.zIndex = zIndexCounter++;
+      });
 
       function startDrag(clientX, clientY) {
         if (isDragging) return;
         isDragging = true;
-        offsetX = clientX - wrapper.offsetLeft;
-        offsetY = clientY - wrapper.offsetTop;
-        wrapper.style.zIndex = zIndexCounter++;
-        wrapper.style.transition = "none";
-        if (img) img.style.cursor = "grabbing";
+        offsetX = clientX - img.offsetLeft;
+        offsetY = clientY - img.offsetTop;
+        img.style.zIndex = zIndexCounter++;
+        img.style.transition = "none";
+        img.style.cursor = "grabbing";
 
         function onMove(clientX, clientY) {
           let newLeft = clientX - offsetX;
           let newTop = clientY - offsetY;
           if (newTop < topBuffer) newTop = topBuffer;
-          wrapper.style.left = newLeft + "px";
-          wrapper.style.top = newTop + "px";
+          img.style.left = newLeft + "px";
+          img.style.top = newTop + "px";
         }
 
         function onMouseMove(e) {
@@ -469,8 +374,8 @@
 
         function stopDrag() {
           isDragging = false;
-          wrapper.style.transition = "transform 0.2s ease";
-          if (img) img.style.cursor = "grab";
+          img.style.transition = "transform 0.2s ease";
+          img.style.cursor = "grab";
           document.removeEventListener("mousemove", onMouseMove);
           document.removeEventListener("mouseup", stopDrag);
           document.removeEventListener("touchmove", onTouchMove);
@@ -484,171 +389,6 @@
       }
     }
 
-    function makeResizable(wrapper, img, handle) {
-      let isResizing = false;
-      let startWidth, startHeight, startX, startY;
-      let aspectRatio = img.naturalWidth / img.naturalHeight;
-
-      handle.addEventListener("mousedown", e => {
-        e.preventDefault();
-        e.stopPropagation();
-        startResize(e.clientX, e.clientY);
-      });
-
-      handle.addEventListener("touchstart", e => {
-        e.preventDefault();
-        e.stopPropagation();
-        const touch = e.touches[0];
-        startResize(touch.clientX, touch.clientY);
-      }, { passive: false });
-
-      function startResize(clientX, clientY) {
-        isResizing = true;
-        startWidth = img.offsetWidth;
-        startHeight = img.offsetHeight;
-        startX = clientX;
-        startY = clientY;
-        wrapper.style.zIndex = zIndexCounter++;
-
-        function onMouseMove(e) {
-          if (!isResizing) return;
-          const deltaX = e.clientX - startX;
-          const deltaY = e.clientY - startY;
-          const delta = Math.max(deltaX, deltaY);
-          
-          let newWidth = startWidth + delta;
-          let newHeight = newWidth / aspectRatio;
-
-          // Minimum size
-          if (newWidth < 100) {
-            newWidth = 100;
-            newHeight = newWidth / aspectRatio;
-          }
-
-          // Maximum size
-          const maxSize = Math.min(window.innerWidth * 0.9, window.innerHeight * 0.9);
-          if (newWidth > maxSize || newHeight > maxSize) {
-            if (newWidth > newHeight) {
-              newWidth = maxSize;
-              newHeight = newWidth / aspectRatio;
-            } else {
-              newHeight = maxSize;
-              newWidth = newHeight * aspectRatio;
-            }
-          }
-
-          img.style.width = newWidth + "px";
-          img.style.height = newHeight + "px";
-
-          // Update stored dimensions
-          const data = imagesData.find(d => d.img === img);
-          if (data) {
-            data.width = newWidth;
-            data.height = newHeight;
-          }
-        }
-
-        function onTouchMove(e) {
-          e.preventDefault();
-          const touch = e.touches[0];
-          const deltaX = touch.clientX - startX;
-          const deltaY = touch.clientY - startY;
-          const delta = Math.max(deltaX, deltaY);
-          
-          let newWidth = startWidth + delta;
-          let newHeight = newWidth / aspectRatio;
-
-          if (newWidth < 100) {
-            newWidth = 100;
-            newHeight = newWidth / aspectRatio;
-          }
-
-          const maxSize = Math.min(window.innerWidth * 0.9, window.innerHeight * 0.9);
-          if (newWidth > maxSize || newHeight > maxSize) {
-            if (newWidth > newHeight) {
-              newWidth = maxSize;
-              newHeight = newWidth / aspectRatio;
-            } else {
-              newHeight = maxSize;
-              newWidth = newHeight * aspectRatio;
-            }
-          }
-
-          img.style.width = newWidth + "px";
-          img.style.height = newHeight + "px";
-
-          const data = imagesData.find(d => d.img === img);
-          if (data) {
-            data.width = newWidth;
-            data.height = newHeight;
-          }
-        }
-
-        function stopResize() {
-          isResizing = false;
-          document.removeEventListener("mousemove", onMouseMove);
-          document.removeEventListener("mouseup", stopResize);
-          document.removeEventListener("touchmove", onTouchMove);
-          document.removeEventListener("touchend", stopResize);
-        }
-
-        document.addEventListener("mousemove", onMouseMove);
-        document.addEventListener("mouseup", stopResize);
-        document.addEventListener("touchmove", onTouchMove, { passive: false });
-        document.addEventListener("touchend", stopResize);
-      }
-    }
-
-    function makeExpandable(img) {
-      const lightbox = document.getElementById("lightbox");
-      const lightboxImg = document.getElementById("lightbox-img");
-      const lightboxClose = document.getElementById("lightbox-close");
-
-      // Double click to expand
-      img.addEventListener("dblclick", () => {
-        lightboxImg.src = img.src;
-        lightboxImg.alt = img.alt;
-        lightbox.style.display = "flex";
-        lightboxClose.focus();
-      });
-
-      // Touch - double tap to expand
-      let lastTap = 0;
-      img.addEventListener("touchend", e => {
-        const currentTime = new Date().getTime();
-        const tapLength = currentTime - lastTap;
-        if (tapLength < 300 && tapLength > 0) {
-          e.preventDefault();
-          lightboxImg.src = img.src;
-          lightboxImg.alt = img.alt;
-          lightbox.style.display = "flex";
-          lightboxClose.focus();
-        }
-        lastTap = currentTime;
-      });
-
-      // Close lightbox
-      lightboxClose.addEventListener("click", () => {
-        lightbox.style.display = "none";
-        img.focus();
-      });
-
-      lightbox.addEventListener("click", e => {
-        if (e.target === lightbox || e.target === lightboxImg) {
-          lightbox.style.display = "none";
-          img.focus();
-        }
-      });
-
-      // Escape key to close
-      lightbox.addEventListener("keydown", e => {
-        if (e.key === "Escape") {
-          lightbox.style.display = "none";
-          img.focus();
-        }
-      });
-    }
-
     // Handle window resize
     let resizeTimeout;
     window.addEventListener("resize", () => {
@@ -657,8 +397,8 @@
         imagesData.forEach(data => {
           const maxX = window.innerWidth - data.width;
           const maxY = window.innerHeight - data.height - topBuffer;
-          data.wrapper.style.left = data.relX * maxX + "px";
-          data.wrapper.style.top = data.relY * maxY + topBuffer + "px";
+          data.img.style.left = data.relX * maxX + "px";
+          data.img.style.top = data.relY * maxY + topBuffer + "px";
         });
       }, 250);
     });
@@ -676,12 +416,12 @@
 
     aboutBtn.onclick = () => {
       aboutModal.style.display = "flex";
-      aboutClose.focus(); // Focus the close button for accessibility
+      aboutClose.focus();
     };
 
     aboutClose.onclick = () => {
       aboutModal.style.display = "none";
-      aboutBtn.focus(); // Return focus to the about button
+      aboutBtn.focus();
     };
 
     window.onclick = e => {
