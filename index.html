@@ -191,11 +191,16 @@
     .image-wrapper {
       position: absolute;
       line-height: 0;
+      display: inline-block;
     }
 
     .image-wrapper img {
       position: relative;
       display: block;
+    }
+    
+    .image-wrapper .resize-handle {
+      position: absolute;
     }
 
     /* Lightbox styles */
@@ -807,22 +812,10 @@
           let newWidth = startWidth + delta;
           let newHeight = newWidth / aspectRatio;
 
-          // Minimum size
+          // Minimum size only
           if (newWidth < 100) {
             newWidth = 100;
             newHeight = newWidth / aspectRatio;
-          }
-
-          // Maximum size
-          const maxSize = Math.min(window.innerWidth * 0.9, window.innerHeight * 0.9);
-          if (newWidth > maxSize || newHeight > maxSize) {
-            if (newWidth > newHeight) {
-              newWidth = maxSize;
-              newHeight = newWidth / aspectRatio;
-            } else {
-              newHeight = maxSize;
-              newWidth = newHeight * aspectRatio;
-            }
           }
 
           img.style.width = newWidth + "px";
@@ -846,20 +839,10 @@
           let newWidth = startWidth + delta;
           let newHeight = newWidth / aspectRatio;
 
+          // Minimum size only
           if (newWidth < 100) {
             newWidth = 100;
             newHeight = newWidth / aspectRatio;
-          }
-
-          const maxSize = Math.min(window.innerWidth * 0.9, window.innerHeight * 0.9);
-          if (newWidth > maxSize || newHeight > maxSize) {
-            if (newWidth > newHeight) {
-              newWidth = maxSize;
-              newHeight = newWidth / aspectRatio;
-            } else {
-              newHeight = maxSize;
-              newWidth = newHeight * aspectRatio;
-            }
           }
 
           img.style.width = newWidth + "px";
