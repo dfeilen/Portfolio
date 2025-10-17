@@ -167,6 +167,86 @@
       outline-offset: 2px;
     }
 
+    /* Resize handle */
+    .resize-handle {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: #000;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      bottom: -10px;
+      right: -10px;
+      cursor: nwse-resize;
+      z-index: 10;
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: auto;
+    }
+
+    .image-wrapper:hover .resize-handle {
+      opacity: 1;
+    }
+
+    .image-wrapper {
+      position: absolute;
+      line-height: 0;
+    }
+
+    .image-wrapper img {
+      position: relative;
+      display: block;
+    }
+
+    /* Lightbox styles */
+    #lightbox {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      cursor: zoom-out;
+    }
+
+    #lightbox img {
+      max-width: 90vw;
+      max-height: 90vh;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      box-shadow: 0 4px 20px rgba(255,255,255,0.1);
+      cursor: zoom-out;
+      position: relative;
+    }
+
+    #lightbox-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-size: 40px;
+      color: white;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 10px;
+      line-height: 1;
+      z-index: 1001;
+    }
+
+    #lightbox-close:hover {
+      color: #ccc;
+    }
+
+    #lightbox-close:focus {
+      outline: 2px solid #fff;
+      outline-offset: 2px;
+    }
+
     /* Mobile gallery view */
     @media (max-width: 768px) {
       body {
@@ -321,6 +401,11 @@
 
   <div id="mobile-indicator"></div>
 
+  <div id="lightbox" role="dialog" aria-labelledby="lightbox-img" aria-modal="true">
+    <button id="lightbox-close" aria-label="Close fullscreen view">&times;</button>
+    <img id="lightbox-img" alt="" />
+  </div>
+
   <div id="mobile-welcome">
     <div id="mobile-welcome-content">
       <p>Hi! This portfolio is best experienced on a desktop or a screen larger than the one you're viewing it on. This is a simplified mobile version, but still gives you random images as you scroll.</p>
@@ -428,7 +513,14 @@
           loadedCount++;
 
           if (!isMobile) {
-            // Desktop: scattered draggable layout
+            // Desktop: scattered draggable layout with wrapper
+            const wrapper = document.createElement('div');
+            wrapper.className = 'image-wrapper';
+            
+            const resizeHandle = document.createElement('div');
+            resizeHandle.className = 'resize-handle';
+            resizeHandle.setAttribute('aria-label', 'Resize image');
+
             const maxDim = Math.min(window.innerWidth * 0.8, window.innerHeight * 0.8, 500);
             
             let scale = Math.min(
@@ -449,22 +541,30 @@
             const x = Math.random() * maxX;
             const y = Math.random() * maxY + topBuffer;
             
-            img.style.left = x + "px";
-            img.style.top = y + "px";
-            img.style.zIndex = zIndexCounter++;
+            wrapper.style.left = x + "px";
+            wrapper.style.top = y + "px";
+            wrapper.style.zIndex = zIndexCounter++;
 
-            makeDraggable(img);
+            wrapper.appendChild(img);
+            wrapper.appendChild(resizeHandle);
+
+            makeDraggable(wrapper, img);
+            makeResizable(wrapper, img, resizeHandle);
+            makeExpandable(img);
+            
+            resultsDiv.appendChild(wrapper);
 
             imagesData.push({
+              wrapper,
               img,
               width,
               height,
               relX: x / maxX,
               relY: (y - topBuffer) / maxY
             });
+          } else {
+            resultsDiv.appendChild(img);
           }
-
-          resultsDiv.appendChild(img);
 
           // Setup infinite scroll for mobile
           if (isMobile && !resultsDiv.hasAttribute('data-scroll-setup')) {
@@ -569,76 +669,80 @@
       }, 500);
     }
 
-    function makeDraggable(img) {
+    function makeDraggable(wrapper, img) {
       // Only make draggable on desktop
       if (window.innerWidth <= 768) return;
 
       let offsetX, offsetY, isDragging = false;
 
       // Prevent default drag behavior
-      img.ondragstart = () => false;
+      if (img) {
+        img.ondragstart = () => false;
+      }
 
-      // Mouse events
-      img.addEventListener("mousedown", e => {
-        e.preventDefault();
-        startDrag(e.clientX, e.clientY);
-      });
+      // Mouse events on image
+      if (img) {
+        img.addEventListener("mousedown", e => {
+          e.preventDefault();
+          startDrag(e.clientX, e.clientY);
+        });
 
-      // Touch events for mobile
-      img.addEventListener("touchstart", e => {
-        e.preventDefault();
-        const touch = e.touches[0];
-        startDrag(touch.clientX, touch.clientY);
-      }, { passive: false });
+        // Touch events for mobile
+        img.addEventListener("touchstart", e => {
+          e.preventDefault();
+          const touch = e.touches[0];
+          startDrag(touch.clientX, touch.clientY);
+        }, { passive: false });
 
-      // Keyboard accessibility
-      img.addEventListener("keydown", e => {
-        const step = e.shiftKey ? 50 : 10;
-        let newLeft = img.offsetLeft;
-        let newTop = img.offsetTop;
+        // Keyboard accessibility
+        img.addEventListener("keydown", e => {
+          const step = e.shiftKey ? 50 : 10;
+          let newLeft = wrapper.offsetLeft;
+          let newTop = wrapper.offsetTop;
 
-        switch(e.key) {
-          case "ArrowLeft":
-            newLeft -= step;
-            e.preventDefault();
-            break;
-          case "ArrowRight":
-            newLeft += step;
-            e.preventDefault();
-            break;
-          case "ArrowUp":
-            newTop -= step;
-            e.preventDefault();
-            break;
-          case "ArrowDown":
-            newTop += step;
-            e.preventDefault();
-            break;
-          default:
-            return;
-        }
+          switch(e.key) {
+            case "ArrowLeft":
+              newLeft -= step;
+              e.preventDefault();
+              break;
+            case "ArrowRight":
+              newLeft += step;
+              e.preventDefault();
+              break;
+            case "ArrowUp":
+              newTop -= step;
+              e.preventDefault();
+              break;
+            case "ArrowDown":
+              newTop += step;
+              e.preventDefault();
+              break;
+            default:
+              return;
+          }
 
-        if (newTop < topBuffer) newTop = topBuffer;
-        img.style.left = newLeft + "px";
-        img.style.top = newTop + "px";
-        img.style.zIndex = zIndexCounter++;
-      });
+          if (newTop < topBuffer) newTop = topBuffer;
+          wrapper.style.left = newLeft + "px";
+          wrapper.style.top = newTop + "px";
+          wrapper.style.zIndex = zIndexCounter++;
+        });
+      }
 
       function startDrag(clientX, clientY) {
         if (isDragging) return;
         isDragging = true;
-        offsetX = clientX - img.offsetLeft;
-        offsetY = clientY - img.offsetTop;
-        img.style.zIndex = zIndexCounter++;
-        img.style.transition = "none";
-        img.style.cursor = "grabbing";
+        offsetX = clientX - wrapper.offsetLeft;
+        offsetY = clientY - wrapper.offsetTop;
+        wrapper.style.zIndex = zIndexCounter++;
+        wrapper.style.transition = "none";
+        if (img) img.style.cursor = "grabbing";
 
         function onMove(clientX, clientY) {
           let newLeft = clientX - offsetX;
           let newTop = clientY - offsetY;
           if (newTop < topBuffer) newTop = topBuffer;
-          img.style.left = newLeft + "px";
-          img.style.top = newTop + "px";
+          wrapper.style.left = newLeft + "px";
+          wrapper.style.top = newTop + "px";
         }
 
         function onMouseMove(e) {
@@ -653,8 +757,8 @@
 
         function stopDrag() {
           isDragging = false;
-          img.style.transition = "transform 0.2s ease";
-          img.style.cursor = "grab";
+          wrapper.style.transition = "transform 0.2s ease";
+          if (img) img.style.cursor = "grab";
           document.removeEventListener("mousemove", onMouseMove);
           document.removeEventListener("mouseup", stopDrag);
           document.removeEventListener("touchmove", onTouchMove);
@@ -668,16 +772,168 @@
       }
     }
 
+    function makeResizable(wrapper, img, handle) {
+      let isResizing = false;
+      let startWidth, startHeight, startX, startY;
+      let aspectRatio = img.naturalWidth / img.naturalHeight;
+
+      handle.addEventListener("mousedown", e => {
+        e.preventDefault();
+        e.stopPropagation();
+        startResize(e.clientX, e.clientY);
+      });
+
+      handle.addEventListener("touchstart", e => {
+        e.preventDefault();
+        e.stopPropagation();
+        const touch = e.touches[0];
+        startResize(touch.clientX, touch.clientY);
+      }, { passive: false });
+
+      function startResize(clientX, clientY) {
+        isResizing = true;
+        startWidth = img.offsetWidth;
+        startHeight = img.offsetHeight;
+        startX = clientX;
+        startY = clientY;
+        wrapper.style.zIndex = zIndexCounter++;
+
+        function onMouseMove(e) {
+          if (!isResizing) return;
+          const deltaX = e.clientX - startX;
+          const deltaY = e.clientY - startY;
+          const delta = Math.max(deltaX, deltaY);
+          
+          let newWidth = startWidth + delta;
+          let newHeight = newWidth / aspectRatio;
+
+          // Minimum size
+          if (newWidth < 100) {
+            newWidth = 100;
+            newHeight = newWidth / aspectRatio;
+          }
+
+          // Maximum size
+          const maxSize = Math.min(window.innerWidth * 0.9, window.innerHeight * 0.9);
+          if (newWidth > maxSize || newHeight > maxSize) {
+            if (newWidth > newHeight) {
+              newWidth = maxSize;
+              newHeight = newWidth / aspectRatio;
+            } else {
+              newHeight = maxSize;
+              newWidth = newHeight * aspectRatio;
+            }
+          }
+
+          img.style.width = newWidth + "px";
+          img.style.height = newHeight + "px";
+
+          // Update stored dimensions
+          const data = imagesData.find(d => d.img === img);
+          if (data) {
+            data.width = newWidth;
+            data.height = newHeight;
+          }
+        }
+
+        function onTouchMove(e) {
+          e.preventDefault();
+          const touch = e.touches[0];
+          const deltaX = touch.clientX - startX;
+          const deltaY = touch.clientY - startY;
+          const delta = Math.max(deltaX, deltaY);
+          
+          let newWidth = startWidth + delta;
+          let newHeight = newWidth / aspectRatio;
+
+          if (newWidth < 100) {
+            newWidth = 100;
+            newHeight = newWidth / aspectRatio;
+          }
+
+          const maxSize = Math.min(window.innerWidth * 0.9, window.innerHeight * 0.9);
+          if (newWidth > maxSize || newHeight > maxSize) {
+            if (newWidth > newHeight) {
+              newWidth = maxSize;
+              newHeight = newWidth / aspectRatio;
+            } else {
+              newHeight = maxSize;
+              newWidth = newHeight * aspectRatio;
+            }
+          }
+
+          img.style.width = newWidth + "px";
+          img.style.height = newHeight + "px";
+
+          const data = imagesData.find(d => d.img === img);
+          if (data) {
+            data.width = newWidth;
+            data.height = newHeight;
+          }
+        }
+
+        function stopResize() {
+          isResizing = false;
+          document.removeEventListener("mousemove", onMouseMove);
+          document.removeEventListener("mouseup", stopResize);
+          document.removeEventListener("touchmove", onTouchMove);
+          document.removeEventListener("touchend", stopResize);
+        }
+
+        document.addEventListener("mousemove", onMouseMove);
+        document.addEventListener("mouseup", stopResize);
+        document.addEventListener("touchmove", onTouchMove, { passive: false });
+        document.addEventListener("touchend", stopResize);
+      }
+    }
+
+    function makeExpandable(img) {
+      const lightbox = document.getElementById("lightbox");
+      const lightboxImg = document.getElementById("lightbox-img");
+      const lightboxClose = document.getElementById("lightbox-close");
+
+      // Double click to expand
+      img.addEventListener("dblclick", () => {
+        lightboxImg.src = img.src;
+        lightboxImg.alt = img.alt;
+        lightbox.style.display = "flex";
+        lightboxClose.focus();
+      });
+
+      // Close lightbox
+      lightboxClose.addEventListener("click", () => {
+        lightbox.style.display = "none";
+        img.focus();
+      });
+
+      lightbox.addEventListener("click", e => {
+        if (e.target === lightbox || e.target === lightboxImg) {
+          lightbox.style.display = "none";
+          img.focus();
+        }
+      });
+
+      // Escape key to close
+      lightbox.addEventListener("keydown", e => {
+        if (e.key === "Escape") {
+          lightbox.style.display = "none";
+          img.focus();
+        }
+      });
+    }
+
     // Handle window resize
     let resizeTimeout;
     window.addEventListener("resize", () => {
       clearTimeout(resizeTimeout);
       resizeTimeout = setTimeout(() => {
         imagesData.forEach(data => {
-          const maxX = window.innerWidth - data.width;
-          const maxY = window.innerHeight - data.height - topBuffer;
-          data.img.style.left = data.relX * maxX + "px";
-          data.img.style.top = data.relY * maxY + topBuffer + "px";
+          if (data.wrapper) {
+            const maxX = window.innerWidth - data.width;
+            const maxY = window.innerHeight - data.height - topBuffer;
+            data.wrapper.style.left = data.relX * maxX + "px";
+            data.wrapper.style.top = data.relY * maxY + topBuffer + "px";
+          }
         });
       }, 250);
     });
