@@ -123,7 +123,7 @@
     }
 
     #results img {
-      position: absolute;
+      position: relative;
       border-radius: 0;
       box-shadow: 0 2px 8px rgba(0,0,0,0.2);
       transition: transform 0.2s ease;
@@ -132,6 +132,7 @@
       max-width: 500px;
       opacity: 0;
       animation: fadeIn 0.3s ease forwards;
+      display: block;
     }
 
     @keyframes fadeIn {
@@ -171,7 +172,6 @@
 
     .image-wrapper {
       position: absolute;
-      display: inline-block;
       line-height: 0;
     }
 
@@ -387,54 +387,58 @@
     function makeDraggable(wrapper, img) {
       let offsetX, offsetY, isDragging = false;
 
-      // Prevent default drag behavior
-      img.ondragstart = () => false;
+      // Prevent default drag behavior on the image
+      if (img) {
+        img.ondragstart = () => false;
+      }
 
-      // Mouse events
-      img.addEventListener("mousedown", e => {
-        e.preventDefault();
-        startDrag(e.clientX, e.clientY);
-      });
+      // Mouse events on image
+      if (img) {
+        img.addEventListener("mousedown", e => {
+          e.preventDefault();
+          startDrag(e.clientX, e.clientY);
+        });
 
-      // Touch events for mobile
-      img.addEventListener("touchstart", e => {
-        e.preventDefault();
-        const touch = e.touches[0];
-        startDrag(touch.clientX, touch.clientY);
-      }, { passive: false });
+        // Touch events for mobile
+        img.addEventListener("touchstart", e => {
+          e.preventDefault();
+          const touch = e.touches[0];
+          startDrag(touch.clientX, touch.clientY);
+        }, { passive: false });
 
-      // Keyboard accessibility
-      img.addEventListener("keydown", e => {
-        const step = e.shiftKey ? 50 : 10;
-        let newLeft = wrapper.offsetLeft;
-        let newTop = wrapper.offsetTop;
+        // Keyboard accessibility
+        img.addEventListener("keydown", e => {
+          const step = e.shiftKey ? 50 : 10;
+          let newLeft = wrapper.offsetLeft;
+          let newTop = wrapper.offsetTop;
 
-        switch(e.key) {
-          case "ArrowLeft":
-            newLeft -= step;
-            e.preventDefault();
-            break;
-          case "ArrowRight":
-            newLeft += step;
-            e.preventDefault();
-            break;
-          case "ArrowUp":
-            newTop -= step;
-            e.preventDefault();
-            break;
-          case "ArrowDown":
-            newTop += step;
-            e.preventDefault();
-            break;
-          default:
-            return;
-        }
+          switch(e.key) {
+            case "ArrowLeft":
+              newLeft -= step;
+              e.preventDefault();
+              break;
+            case "ArrowRight":
+              newLeft += step;
+              e.preventDefault();
+              break;
+            case "ArrowUp":
+              newTop -= step;
+              e.preventDefault();
+              break;
+            case "ArrowDown":
+              newTop += step;
+              e.preventDefault();
+              break;
+            default:
+              return;
+          }
 
-        if (newTop < topBuffer) newTop = topBuffer;
-        wrapper.style.left = newLeft + "px";
-        wrapper.style.top = newTop + "px";
-        wrapper.style.zIndex = zIndexCounter++;
-      });
+          if (newTop < topBuffer) newTop = topBuffer;
+          wrapper.style.left = newLeft + "px";
+          wrapper.style.top = newTop + "px";
+          wrapper.style.zIndex = zIndexCounter++;
+        });
+      }
 
       function startDrag(clientX, clientY) {
         if (isDragging) return;
@@ -443,7 +447,7 @@
         offsetY = clientY - wrapper.offsetTop;
         wrapper.style.zIndex = zIndexCounter++;
         wrapper.style.transition = "none";
-        img.style.cursor = "grabbing";
+        if (img) img.style.cursor = "grabbing";
 
         function onMove(clientX, clientY) {
           let newLeft = clientX - offsetX;
@@ -466,7 +470,7 @@
         function stopDrag() {
           isDragging = false;
           wrapper.style.transition = "transform 0.2s ease";
-          img.style.cursor = "grab";
+          if (img) img.style.cursor = "grab";
           document.removeEventListener("mousemove", onMouseMove);
           document.removeEventListener("mouseup", stopDrag);
           document.removeEventListener("touchmove", onTouchMove);
