@@ -195,12 +195,13 @@
     }
 
     .image-wrapper img {
-      position: relative;
       display: block;
     }
     
     .image-wrapper .resize-handle {
       position: absolute;
+      bottom: 2px;
+      right: 2px;
     }
 
     /* Lightbox styles */
@@ -539,6 +540,9 @@
             
             img.style.width = width + "px";
             img.style.height = height + "px";
+            
+            wrapper.style.width = width + "px";
+            wrapper.style.height = height + "px";
 
             const maxX = window.innerWidth - width;
             const maxY = window.innerHeight - height - topBuffer;
@@ -820,6 +824,8 @@
 
           img.style.width = newWidth + "px";
           img.style.height = newHeight + "px";
+          wrapper.style.width = newWidth + "px";
+          wrapper.style.height = newHeight + "px";
 
           // Update stored dimensions
           const data = imagesData.find(d => d.img === img);
@@ -847,6 +853,8 @@
 
           img.style.width = newWidth + "px";
           img.style.height = newHeight + "px";
+          wrapper.style.width = newWidth + "px";
+          wrapper.style.height = newHeight + "px";
 
           const data = imagesData.find(d => d.img === img);
           if (data) {
