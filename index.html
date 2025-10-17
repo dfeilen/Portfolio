@@ -57,16 +57,11 @@
       border-radius: 20px;
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
-      transition: all 0.2s ease;
+      transition: background 0.2s ease;
     }
 
     #about-btn:hover {
       background: rgba(0, 0, 0, 0.9);
-      transform: scale(1.05);
-    }
-
-    #about-btn:active {
-      transform: scale(0.95);
     }
 
     #about-btn:focus {
@@ -192,6 +187,7 @@
         animation: none;
         opacity: 1;
         box-shadow: none;
+        padding: 20px;
       }
 
       #results.zoomed {
@@ -224,10 +220,6 @@
 
       #about-btn:hover {
         background: rgba(0, 0, 0, 0.85);
-      }
-
-      #about-btn:active {
-        transform: scale(0.95);
       }
 
       #about-content {
