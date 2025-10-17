@@ -74,6 +74,8 @@
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       transition: background 0.2s ease;
+      text-decoration: none;
+      display: inline-block;
     }
 
     #about-btn:hover {
@@ -326,11 +328,6 @@
         outline: none;
       }
 
-      #about-content {
-        padding: 20px;
-        font-size: 14px;
-      }
-
       #df-logo {
         top: 12px;
         right: 12px;
@@ -396,7 +393,7 @@
   </style>
 </head>
 <body>
-  <button id="about-btn" aria-label="About this portfolio">About</button>
+  <a href="about.html" id="about-btn" aria-label="About this portfolio">About</a>
   <div id="df-logo">DF</div>
 
   <div id="loading" role="status" aria-live="polite">
@@ -417,22 +414,6 @@
     <div id="mobile-welcome-content">
       <p>Hi! This portfolio is best experienced on a desktop or a screen larger than the one you're viewing it on. This is a simplified mobile version, but still gives you random images as you scroll.</p>
       <button id="mobile-welcome-btn">Got it!</button>
-    </div>
-  </div>
-
-  <div id="about-modal" role="dialog" aria-labelledby="about-heading" aria-modal="true">
-    <div id="about-content">
-      <button id="about-close" aria-label="Close about dialog">&times;</button>
-      <h2 id="about-heading">What is this?</h2>
-      <p>
-        My name is Devin Feilen, and this is my ongoing photography portfolio.
-      </p>
-      <p>
-        Squarespace sites are cool, but I made this myself and I feel that it provides a more intriguing representation of my work instead of your "typical" photography portfolio. The photos are randomly scattered across the screen and you can drag them around to explore. There are thousands of photos to discover and it's almost impossible to get the same spread, so hopefully it'll keep you out of the doom scroll app for a bit.
-      </p>
-      <p>
-        If you'd like to support me, you can do so at <a href="https://buymeacoffee.com/devinfeilen" target="_blank" rel="noopener noreferrer">buymeacoffee.com/devinfeilen</a>
-      </p>
     </div>
   </div>
 
@@ -935,53 +916,6 @@
         .sort((a, b) => a.sort - b.sort)
         .map(({v}) => v);
     }
-
-    /* Modal controls */
-    const aboutBtn = document.getElementById("about-btn");
-    const aboutModal = document.getElementById("about-modal");
-    const aboutClose = document.getElementById("about-close");
-
-    aboutBtn.onclick = () => {
-      aboutModal.style.display = "flex";
-      aboutClose.focus();
-    };
-
-    aboutClose.onclick = () => {
-      aboutModal.style.display = "none";
-      aboutBtn.focus();
-    };
-
-    window.onclick = e => {
-      if (e.target === aboutModal) {
-        aboutModal.style.display = "none";
-        aboutBtn.focus();
-      }
-    };
-
-    // Keyboard accessibility for modal
-    aboutModal.addEventListener("keydown", e => {
-      if (e.key === "Escape") {
-        aboutModal.style.display = "none";
-        aboutBtn.focus();
-      }
-    });
-
-    // Trap focus within modal when open
-    aboutModal.addEventListener("keydown", e => {
-      if (e.key === "Tab") {
-        const focusableElements = aboutModal.querySelectorAll('button, a[href]');
-        const firstElement = focusableElements[0];
-        const lastElement = focusableElements[focusableElements.length - 1];
-
-        if (e.shiftKey && document.activeElement === firstElement) {
-          e.preventDefault();
-          lastElement.focus();
-        } else if (!e.shiftKey && document.activeElement === lastElement) {
-          e.preventDefault();
-          firstElement.focus();
-        }
-      }
-    });
   </script>
 </body>
 </html>
