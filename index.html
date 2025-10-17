@@ -228,6 +228,8 @@
     }
 
     function loadInitialPhotos() {
+      // Hide loading indicator immediately since JSON loaded successfully
+      document.getElementById("loading").style.display = "none";
       const batch = getNextBatch(initialLoadCount);
       addImages(batch);
     }
@@ -245,11 +247,6 @@
         
         img.onload = () => {
           loadedCount++;
-          
-          // Hide loading indicator after first image loads
-          if (loadedCount === 1) {
-            document.getElementById("loading").style.display = "none";
-          }
 
           const isMobile = window.innerWidth <= 768;
           const maxDim = isMobile 
