@@ -149,13 +149,20 @@
 
     /* Mobile gallery view */
     @media (max-width: 768px) {
+      body {
+        background: #000;
+      }
+
       #results {
         display: flex;
-        overflow-x: auto;
-        overflow-y: hidden;
-        scroll-snap-type: x mandatory;
+        flex-direction: column;
+        overflow-x: hidden;
+        overflow-y: auto;
+        scroll-snap-type: y mandatory;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
+        background: #000;
+        height: 100vh;
       }
 
       #results::-webkit-scrollbar {
@@ -169,37 +176,18 @@
         height: 100vh;
         max-width: 100vw;
         object-fit: contain;
-        scroll-snap-align: center;
-        padding: 20px;
+        scroll-snap-align: start;
         box-sizing: border-box;
         cursor: default;
         left: auto !important;
         top: auto !important;
         animation: none;
         opacity: 1;
+        box-shadow: none;
       }
 
       #mobile-indicator {
-        display: flex;
-        position: fixed;
-        bottom: 30px;
-        left: 50%;
-        transform: translateX(-50%);
-        gap: 8px;
-        z-index: 250;
-      }
-
-      .dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: rgba(0, 0, 0, 0.3);
-        transition: background 0.3s ease, transform 0.3s ease;
-      }
-
-      .dot.active {
-        background: rgba(0, 0, 0, 0.8);
-        transform: scale(1.3);
+        display: none;
       }
       
       #about-btn {
@@ -207,6 +195,12 @@
         font-size: 14px;
         top: 10px;
         right: 10px;
+        background: rgba(255, 255, 255, 0.9);
+        color: black;
+      }
+
+      #about-btn:hover {
+        background: rgba(255, 255, 255, 1);
       }
 
       #about-content {
@@ -258,6 +252,7 @@
     let loadedCount = 0;
     const isMobileDevice = window.innerWidth <= 768;
     const initialLoadCount = isMobileDevice ? 10 : 15;
+    let isLoadingMore = false;
 
     // Load photos immediately
     fetch("photos.json")
@@ -345,10 +340,10 @@
 
           resultsDiv.appendChild(img);
 
-          // Create mobile indicator dots
-          if (isMobile) {
-            createMobileIndicators(selected.length);
-            setupMobileScroll();
+          // Setup infinite scroll for mobile
+          if (isMobile && !resultsDiv.hasAttribute('data-scroll-setup')) {
+            setupMobileInfiniteScroll();
+            resultsDiv.setAttribute('data-scroll-setup', 'true');
           }
         };
 
@@ -358,34 +353,51 @@
       });
     }
 
-    function createMobileIndicators(count) {
-      const indicator = document.getElementById("mobile-indicator");
-      indicator.innerHTML = '';
-      for (let i = 0; i < count; i++) {
-        const dot = document.createElement('div');
-        dot.className = 'dot';
-        if (i === 0) dot.classList.add('active');
-        indicator.appendChild(dot);
-      }
-    }
-
-    function setupMobileScroll() {
+    function setupMobileInfiniteScroll() {
       const resultsDiv = document.getElementById("results");
-      const dots = document.querySelectorAll('.dot');
       
       resultsDiv.addEventListener('scroll', () => {
-        const scrollLeft = resultsDiv.scrollLeft;
-        const imageWidth = resultsDiv.offsetWidth;
-        const currentIndex = Math.round(scrollLeft / imageWidth);
+        // Check if we're near the bottom
+        const scrollTop = resultsDiv.scrollTop;
+        const scrollHeight = resultsDiv.scrollHeight;
+        const clientHeight = resultsDiv.clientHeight;
         
-        dots.forEach((dot, index) => {
-          if (index === currentIndex) {
-            dot.classList.add('active');
-          } else {
-            dot.classList.remove('active');
-          }
-        });
+        // Load more when within 2 images of the bottom
+        if (scrollTop + clientHeight >= scrollHeight - (clientHeight * 2)) {
+          loadMoreMobileImages();
+        }
       });
+    }
+
+    function loadMoreMobileImages() {
+      if (isLoadingMore) return;
+      isLoadingMore = true;
+      
+      const batch = getNextBatch(5); // Load 5 more images at a time
+      const resultsDiv = document.getElementById("results");
+      
+      batch.forEach(src => {
+        const img = new Image();
+        img.src = src;
+        img.alt = `Photography by Devin Feilen - Image ${loadedCount + 1}`;
+        img.loading = "lazy";
+        img.tabIndex = 0;
+        img.setAttribute('role', 'img');
+        
+        img.onload = () => {
+          loadedCount++;
+          resultsDiv.appendChild(img);
+        };
+
+        img.onerror = () => {
+          console.error("Failed to load image:", src);
+        };
+      });
+      
+      // Reset loading flag after a short delay
+      setTimeout(() => {
+        isLoadingMore = false;
+      }, 500);
     }
 
     function makeDraggable(img) {
