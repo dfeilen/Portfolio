@@ -77,17 +77,14 @@
 
   #results img {
     position: absolute;
-    border-radius: 0;
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     cursor: grab;
     transition: opacity 0.5s ease, transform 0.2s ease;
     opacity: 0;
   }
-
   #results img.loaded {
     opacity: 1;
   }
-
   #results img:active {
     cursor: grabbing;
   }
@@ -108,102 +105,108 @@
     </div>
   </div>
 
-  <script>
-    const topBuffer = 10;
-    const numPhotos = 10; // number of images to load
-    let zIndexCounter = 1;
-    let allPhotos = [];
+<script>
+window.addEventListener("load", () => {
+  console.log("📸 Page loaded, fetching photos...");
+  const numPhotos = 10; // Number of images to show
+  const topBuffer = 10;
+  let zIndexCounter = 1;
 
-    // Fetch photos
-    fetch("photos.json")
-      .then(res => res.json())
-      .then(data => {
-        allPhotos = data;
-        if (allPhotos.length > 0) {
-          const batch = getRandomSubset(allPhotos, numPhotos);
-          addImages(batch);
-        }
-      })
-      .catch(err => console.error("Error loading photos.json:", err));
+  fetch("photos.json")
+    .then(res => {
+      if (!res.ok) throw new Error("Failed to load photos.json");
+      return res.json();
+    })
+    .then(data => {
+      console.log("✅ Loaded photos.json with", data.length, "images");
+      if (!Array.isArray(data) || data.length === 0) {
+        console.error("❌ photos.json is empty or invalid");
+        return;
+      }
+      const batch = getRandomSubset(data, numPhotos);
+      addImages(batch);
+    })
+    .catch(err => console.error("⚠️ Error loading photos:", err));
 
-    function getRandomSubset(arr, n) {
-      const shuffled = arr.slice().sort(() => 0.5 - Math.random());
-      return shuffled.slice(0, n);
-    }
+  function getRandomSubset(arr, n) {
+    const shuffled = arr.slice().sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, n);
+  }
 
-    function addImages(selected) {
-      const resultsDiv = document.getElementById("results");
-      selected.forEach(src => {
-        const img = new Image();
-        img.src = src;
-        img.alt = "random photo";
-        img.loading = "lazy";
-        img.onload = () => {
-          const heightScale = Math.random() * 0.15 + 0.75; // between 75% and 90% height
-          const displayHeight = window.innerHeight * heightScale;
-          const scale = displayHeight / img.naturalHeight;
-          const width = img.naturalWidth * scale;
-          const height = displayHeight;
+  function addImages(selected) {
+    const resultsDiv = document.getElementById("results");
+    selected.forEach(src => {
+      const img = new Image();
+      img.src = src;
+      img.alt = "random photo";
+      img.loading = "lazy";
+      img.onload = () => {
+        const heightScale = Math.random() * 0.15 + 0.75; // between 75–90% viewport height
+        const displayHeight = window.innerHeight * heightScale;
+        const scale = displayHeight / img.naturalHeight;
+        const width = img.naturalWidth * scale;
+        const height = displayHeight;
 
-          img.style.width = width + "px";
-          img.style.height = height + "px";
+        img.style.width = width + "px";
+        img.style.height = height + "px";
 
-          const overlapMargin = 0.1; // 10% overlap area allowance
-          const maxX = window.innerWidth - width * (1 - overlapMargin);
-          const maxY = window.innerHeight - height * (1 - overlapMargin);
-          const x = Math.random() * maxX - width * overlapMargin / 2;
-          const y = Math.random() * (maxY - topBuffer) + topBuffer;
+        const overlapMargin = 0.1; // 10% overlap allowance
+        const maxX = window.innerWidth - width * (1 - overlapMargin);
+        const maxY = window.innerHeight - height * (1 - overlapMargin);
+        const x = Math.random() * maxX - width * overlapMargin / 2;
+        const y = Math.random() * (maxY - topBuffer) + topBuffer;
 
-          img.style.left = x + "px";
-          img.style.top = y + "px";
-          img.style.zIndex = zIndexCounter++;
-
-          makeDraggable(img);
-          resultsDiv.appendChild(img);
-          requestAnimationFrame(() => img.classList.add("loaded"));
-        };
-      });
-    }
-
-    function makeDraggable(img) {
-      let startX, startY, initialX, initialY, dragging = false;
-
-      img.addEventListener("pointerdown", e => {
-        dragging = true;
-        startX = e.clientX;
-        startY = e.clientY;
-        initialX = parseFloat(img.style.left);
-        initialY = parseFloat(img.style.top);
-        img.setPointerCapture(e.pointerId);
+        img.style.left = x + "px";
+        img.style.top = y + "px";
         img.style.zIndex = zIndexCounter++;
-        img.style.cursor = "grabbing";
-      });
 
-      img.addEventListener("pointermove", e => {
-        if (!dragging) return;
-        const dx = e.clientX - startX;
-        const dy = e.clientY - startY;
-        img.style.left = initialX + dx + "px";
-        img.style.top = initialY + dy + "px";
-      });
+        makeDraggable(img);
+        resultsDiv.appendChild(img);
+        requestAnimationFrame(() => img.classList.add("loaded"));
+      };
+      img.onerror = () => console.error("⚠️ Could not load image:", src);
+    });
+  }
 
-      img.addEventListener("pointerup", e => {
-        dragging = false;
-        img.releasePointerCapture(e.pointerId);
-        img.style.cursor = "grab";
-      });
-    }
+  function makeDraggable(img) {
+    let startX, startY, initialX, initialY, dragging = false;
 
-    // About modal logic
-    const aboutBtn = document.getElementById("about-btn");
-    const aboutModal = document.getElementById("about-modal");
-    const aboutClose = document.getElementById("about-close");
+    img.addEventListener("pointerdown", e => {
+      dragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      initialX = parseFloat(img.style.left);
+      initialY = parseFloat(img.style.top);
+      img.setPointerCapture(e.pointerId);
+      img.style.zIndex = zIndexCounter++;
+      img.style.cursor = "grabbing";
+    });
 
-    aboutBtn.onclick = () => (aboutModal.style.display = "flex");
-    aboutClose.onclick = () => (aboutModal.style.display = "none");
-    window.onclick = e => {
-      if (e.target === aboutModal) aboutModal.style.display = "none";
-    };
-  </script>
+    img.addEventListener("pointermove", e => {
+      if (!dragging) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      img.style.left = initialX + dx + "px";
+      img.style.top = initialY + dy + "px";
+    });
+
+    img.addEventListener("pointerup", e => {
+      dragging = false;
+      img.releasePointerCapture(e.pointerId);
+      img.style.cursor = "grab";
+    });
+  }
+
+  // About modal
+  const aboutBtn = document.getElementById("about-btn");
+  const aboutModal = document.getElementById("about-modal");
+  const aboutClose = document.getElementById("about-close");
+  aboutBtn.onclick = () => (aboutModal.style.display = "flex");
+  aboutClose.onclick = () => (aboutModal.style.display = "none");
+  window.onclick = e => {
+    if (e.target === aboutModal) aboutModal.style.display = "none";
+  };
+});
+</script>
 </body>
 </html>
