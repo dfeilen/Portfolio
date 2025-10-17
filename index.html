@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Photography Portfolio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@700&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Courier New', monospace;
@@ -13,6 +16,19 @@
       overflow: hidden;
       background: #fafafa;
       position: relative;
+    }
+
+    /* DF Logo */
+    #df-logo {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      font-family: 'Barlow', sans-serif;
+      font-weight: 700;
+      font-size: 24px;
+      color: #000;
+      z-index: 300;
+      letter-spacing: -1px;
     }
 
     /* Loading indicator */
@@ -182,7 +198,7 @@
         object-fit: contain;
         scroll-snap-align: start;
         box-sizing: border-box;
-        cursor: pointer;
+        cursor: default;
         left: auto !important;
         top: auto !important;
         animation: none;
@@ -226,6 +242,12 @@
       #about-content {
         padding: 20px;
         font-size: 14px;
+      }
+
+      #df-logo {
+        top: 12px;
+        right: 12px;
+        font-size: 20px;
       }
     }
 
@@ -288,6 +310,7 @@
 </head>
 <body>
   <button id="about-btn" aria-label="About this portfolio">About</button>
+  <div id="df-logo">DF</div>
 
   <div id="loading" role="status" aria-live="polite">
     <div id="loading-spinner" aria-hidden="true"></div>
@@ -439,9 +462,6 @@
               relX: x / maxX,
               relY: (y - topBuffer) / maxY
             });
-          } else {
-            // Mobile: add tap to zoom
-            makeMobileTappable(img);
           }
 
           resultsDiv.appendChild(img);
