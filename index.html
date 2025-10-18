@@ -425,8 +425,9 @@
     const topBuffer = 60;
     let loadedCount = 0;
     const isMobileDevice = window.innerWidth <= 768;
-    const initialLoadCount = isMobileDevice ? 10 : 15;
+    const initialLoadCount = isMobileDevice ? 8 : 8; // Reduced from 15 to 8 for desktop
     let isLoadingMore = false;
+    let desktopLoadTimer = null;
 
     // Load photos immediately
     fetch("photos.json")
@@ -465,6 +466,32 @@
       
       const batch = getNextBatch(initialLoadCount);
       addImages(batch);
+
+      // On desktop, progressively load more images after initial load
+      if (!isMobile) {
+        startProgressiveLoading();
+      }
+    }
+
+    function startProgressiveLoading() {
+      // Wait 2 seconds after initial load, then load more images gradually
+      desktopLoadTimer = setTimeout(() => {
+        loadMoreDesktopImages();
+      }, 2000);
+    }
+
+    function loadMoreDesktopImages() {
+      if (photoQueue.length === 0) return;
+      
+      const batch = getNextBatch(4); // Load 4 more at a time
+      addImages(batch);
+
+      // Continue loading more if there are still photos
+      if (photoQueue.length > 0 && imagesData.length < 30) {
+        desktopLoadTimer = setTimeout(() => {
+          loadMoreDesktopImages();
+        }, 3000); // Wait 3 seconds between batches
+      }
     }
 
     function showMobileWelcome() {
@@ -493,7 +520,14 @@
         const img = new Image();
         img.src = src;
         img.alt = `Photography by Devin Feilen - Image ${loadedCount + index + 1}`;
-        img.loading = "lazy";
+        
+        // Load first 4 images eagerly for faster initial display
+        if (loadedCount + index < 4) {
+          img.loading = "eager";
+        } else {
+          img.loading = "lazy";
+        }
+        
         img.tabIndex = 0;
         img.setAttribute('role', 'img');
         
@@ -566,6 +600,13 @@
 
         img.onerror = () => {
           console.error("Failed to load image:", src);
+          console.log("Full error details - URL:", img.src);
+          
+          // Try reloading after a short delay
+          setTimeout(() => {
+            console.log("Retrying image load:", src);
+            img.src = src;
+          }, 2000);
         };
       });
     }
