@@ -546,7 +546,12 @@
           const img = new Image();
           img.src = src;
           img.alt = `Photography by Devin Feilen`;
-          img.loading = index < 4 ? "eager" : "lazy";
+          // Don't use lazy loading for desktop since images are absolutely positioned
+          if (isMobile) {
+            img.loading = "lazy";
+          } else {
+            img.loading = "eager";
+          }
           img.tabIndex = 0;
           img.setAttribute('role', 'img');
           
