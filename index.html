@@ -587,8 +587,11 @@
               relX: x / maxX,
               relY: (y - topBuffer) / maxY
             });
+            
+            console.log(`✓ Image ${loadedCount} loaded successfully`);
           } else {
             resultsDiv.appendChild(img);
+            console.log(`✓ Image ${loadedCount} loaded successfully`);
           }
 
           // Setup infinite scroll for mobile
@@ -599,15 +602,34 @@
         };
 
         img.onerror = () => {
-          console.error("Failed to load image:", src);
-          console.log("Full error details - URL:", img.src);
+          console.error("❌ Failed to load image:", src);
+          console.log("Image natural size:", img.naturalWidth, "x", img.naturalHeight);
+          console.log("Image complete:", img.complete);
           
-          // Try reloading after a short delay
-          setTimeout(() => {
-            console.log("Retrying image load:", src);
-            img.src = src;
-          }, 2000);
+          // Mark for retry
+          img.dataset.retryCount = img.dataset.retryCount ? parseInt(img.dataset.retryCount) + 1 : 1;
+          
+          // Retry up to 3 times with increasing delays
+          if (img.dataset.retryCount <= 3) {
+            const retryDelay = img.dataset.retryCount * 1500;
+            console.log(`Retry attempt ${img.dataset.retryCount} in ${retryDelay}ms`);
+            
+            setTimeout(() => {
+              console.log(`Retrying image load (attempt ${img.dataset.retryCount}):`, src);
+              img.src = src + '?retry=' + img.dataset.retryCount; // Cache bust
+            }, retryDelay);
+          } else {
+            console.error("⚠️ Image failed after 3 retries:", src);
+          }
         };
+        
+        // Add timeout detection (15 seconds)
+        setTimeout(() => {
+          if (!img.complete || img.naturalWidth === 0) {
+            console.warn("⏱️ Image loading timeout (15s):", src);
+            img.onerror(new Error('Timeout'));
+          }
+        }, 15000);
       });
     }
 
