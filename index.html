@@ -18,19 +18,6 @@
       position: relative;
     }
 
-    /* DF Logo */
-    #df-logo {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      font-family: 'Barlow', sans-serif;
-      font-weight: 700;
-      font-size: 32px;
-      color: #000;
-      z-index: 300;
-      letter-spacing: -1px;
-    }
-
     /* Loading indicator */
     #loading {
       position: fixed;
@@ -129,51 +116,27 @@
 
     #about-modal {
       display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.6);
-      z-index: 500;
-      justify-content: center;
-      align-items: center;
     }
 
     #about-content {
-      background: #fff;
-      padding: 30px;
-      max-width: 600px;
-      width: 90%;
-      max-height: 80vh;
-      overflow-y: auto;
-      border-radius: 8px;
-      font-size: 16px;
-      line-height: 1.5;
-      position: relative;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+      display: none;
     }
 
     #about-close {
-      position: absolute;
-      top: 10px;
-      right: 15px;
-      font-size: 20px;
-      font-weight: bold;
+      display: none;
+    }
+
+    /* DF Logo */
+    #df-logo {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      font-family: 'Barlow', sans-serif;
+      font-weight: 700;
+      font-size: 32px;
       color: #000;
-      cursor: pointer;
-      background: none;
-      border: none;
-      padding: 5px 10px;
-    }
-
-    #about-close:hover {
-      color: #666;
-    }
-
-    #about-close:focus {
-      outline: 2px solid #000;
-      outline-offset: 2px;
+      z-index: 300;
+      letter-spacing: -1px;
     }
 
     #results {
@@ -293,6 +256,62 @@
       outline-offset: 2px;
     }
 
+    /* Desktop - hide mobile indicator */
+    #mobile-indicator {
+      display: none;
+    }
+
+    /* Mobile welcome popup */
+    #mobile-welcome {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 2000;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    #mobile-welcome-content {
+      background: #fff;
+      padding: 24px;
+      border-radius: 16px;
+      max-width: 340px;
+      width: 100%;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+      text-align: center;
+    }
+
+    #mobile-welcome-content p {
+      margin: 0 0 20px 0;
+      font-size: 15px;
+      line-height: 1.5;
+      color: #333;
+    }
+
+    #mobile-welcome-btn {
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    #mobile-welcome-btn:active {
+      background: rgba(0, 0, 0, 0.9);
+    }
+
     /* Mobile gallery view */
     @media (max-width: 768px) {
       body {
@@ -381,62 +400,6 @@
         display: none !important;
       }
     }
-
-    /* Desktop - hide mobile indicator */
-    #mobile-indicator {
-      display: none;
-    }
-
-    /* Mobile welcome popup */
-    #mobile-welcome {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 2000;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-      box-sizing: border-box;
-    }
-
-    #mobile-welcome-content {
-      background: #fff;
-      padding: 24px;
-      border-radius: 16px;
-      max-width: 340px;
-      width: 100%;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
-      text-align: center;
-    }
-
-    #mobile-welcome-content p {
-      margin: 0 0 20px 0;
-      font-size: 15px;
-      line-height: 1.5;
-      color: #333;
-    }
-
-    #mobile-welcome-btn {
-      background: rgba(0, 0, 0, 0.8);
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 20px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      width: 100%;
-    }
-
-    #mobile-welcome-btn:active {
-      background: rgba(0, 0, 0, 0.9);
-    }
   </style>
 </head>
 <body>
@@ -473,10 +436,9 @@
     const topBuffer = 60;
     let loadedCount = 0;
     const isMobileDevice = window.innerWidth <= 768;
-    const initialLoadCount = isMobileDevice ? 5 : 10; // 10 for desktop, 5 for mobile
+    const initialLoadCount = isMobileDevice ? 5 : 10;
     let isLoadingMore = false;
 
-    // Load photos immediately
     fetch("photos.json")
       .then(res => res.json())
       .then(data => {
@@ -502,65 +464,18 @@
     }
 
     function loadInitialPhotos() {
-      // Hide loading indicator immediately since JSON loaded successfully
       document.getElementById("loading").style.display = "none";
       
-      // Show mobile welcome popup on mobile devices
       const isMobile = window.innerWidth <= 768;
       if (isMobile) {
         showMobileWelcome();
       } else {
-        // Show load more button on desktop
         document.getElementById("load-more-btn").classList.add("visible");
       }
       
       const batch = getNextBatch(initialLoadCount);
       addImages(batch);
     }
-
-    function loadMorePhotos() {
-      console.log("Loading 10 more random photos...");
-      
-      const loadMoreBtn = document.getElementById("load-more-btn");
-      const resultsDiv = document.getElementById("results");
-      
-      // Disable button and show loading state
-      loadMoreBtn.disabled = true;
-      loadMoreBtn.textContent = "Loading...";
-      
-      // Fade out current images
-      resultsDiv.style.opacity = "0";
-      resultsDiv.style.transition = "opacity 0.3s ease";
-      
-      setTimeout(() => {
-        // Clear existing images on desktop
-        resultsDiv.innerHTML = "";
-        imagesData = [];
-        loadedCount = 0;
-        zIndexCounter = 1;
-        
-        // Get 10 new random photos
-        const batch = getNextBatch(10);
-        addImages(batch);
-        
-        // Fade in new images
-        setTimeout(() => {
-          resultsDiv.style.opacity = "1";
-          
-          // Re-enable button
-          loadMoreBtn.disabled = false;
-          loadMoreBtn.textContent = "Load More Photos";
-        }, 300);
-      }, 300);
-    }
-
-    // Setup load more button click handler
-    window.addEventListener('DOMContentLoaded', () => {
-      const loadMoreBtn = document.getElementById("load-more-btn");
-      if (loadMoreBtn) {
-        loadMoreBtn.addEventListener('click', loadMorePhotos);
-      }
-    });
 
     function showMobileWelcome() {
       const welcomePopup = document.getElementById("mobile-welcome");
@@ -572,7 +487,6 @@
         welcomePopup.style.display = "none";
       };
       
-      // Also close on background click
       welcomePopup.onclick = (e) => {
         if (e.target === welcomePopup) {
           welcomePopup.style.display = "none";
@@ -584,186 +498,105 @@
       const resultsDiv = document.getElementById("results");
       const isMobile = window.innerWidth <= 768;
       
-      // Load images one at a time with a stagger to avoid overwhelming Cloudflare
       selected.forEach((src, index) => {
-        // Stagger each image load by 300ms to prevent timeout
         setTimeout(() => {
-          loadSingleImage(src, index, isMobile, resultsDiv);
+          const img = new Image();
+          img.src = src;
+          img.alt = `Photography by Devin Feilen`;
+          img.loading = index < 4 ? "eager" : "lazy";
+          img.tabIndex = 0;
+          img.setAttribute('role', 'img');
+
+          img.onload = () => {
+            loadedCount++;
+
+            if (!isMobile) {
+              const wrapper = document.createElement('div');
+              wrapper.className = 'image-wrapper';
+              
+              const resizeHandle = document.createElement('div');
+              resizeHandle.className = 'resize-handle';
+
+              const maxDim = Math.min(window.innerWidth * 0.8, window.innerHeight * 0.8, 500);
+              let scale = Math.min(maxDim / img.naturalWidth, maxDim / img.naturalHeight, 1);
+              
+              const width = img.naturalWidth * scale;
+              const height = img.naturalHeight * scale;
+              
+              img.style.width = width + "px";
+              img.style.height = height + "px";
+              wrapper.style.width = width + "px";
+              wrapper.style.height = height + "px";
+
+              const maxX = window.innerWidth - width;
+              const maxY = window.innerHeight - height - topBuffer;
+              const x = Math.random() * maxX;
+              const y = Math.random() * maxY + topBuffer;
+              
+              wrapper.style.left = x + "px";
+              wrapper.style.top = y + "px";
+              wrapper.style.zIndex = zIndexCounter++;
+
+              wrapper.appendChild(img);
+              wrapper.appendChild(resizeHandle);
+
+              makeDraggable(wrapper, img);
+              makeResizable(wrapper, img, resizeHandle);
+              makeExpandable(img);
+              
+              resultsDiv.appendChild(wrapper);
+
+              imagesData.push({wrapper, img, width, height, relX: x / maxX, relY: (y - topBuffer) / maxY});
+            } else {
+              resultsDiv.appendChild(img);
+            }
+
+            if (isMobile && !resultsDiv.hasAttribute('data-scroll-setup')) {
+              setupMobileInfiniteScroll();
+              resultsDiv.setAttribute('data-scroll-setup', 'true');
+            }
+          };
+
+          img.onerror = () => {
+            console.error("Failed to load:", src);
+          };
         }, index * 300);
       });
     }
 
-    function loadSingleImage(src, index, isMobile, resultsDiv) {
-      const img = new Image();
-      img.src = src;
-      img.alt = `Photography by Devin Feilen - Image ${loadedCount + index + 1}`;
-      
-      // Load first 4 images eagerly for faster initial display
-      if (loadedCount + index < 4) {
-        img.loading = "eager";
-      } else {
-        img.loading = "lazy";
-      }
-      
-      img.tabIndex = 0;
-      img.setAttribute('role', 'img');
-      
-      console.log(`🔄 Starting to load image ${index + 1}:`, src);
-        
-        img.onload = () => {
-          loadedCount++;
-
-          if (!isMobile) {
-            // Desktop: scattered draggable layout with wrapper
-            const wrapper = document.createElement('div');
-            wrapper.className = 'image-wrapper';
-            
-            const resizeHandle = document.createElement('div');
-            resizeHandle.className = 'resize-handle';
-            resizeHandle.setAttribute('aria-label', 'Resize image');
-
-            const maxDim = Math.min(window.innerWidth * 0.8, window.innerHeight * 0.8, 500);
-            
-            let scale = Math.min(
-              maxDim / img.naturalWidth,
-              maxDim / img.naturalHeight,
-              1
-            );
-            
-            const width = img.naturalWidth * scale;
-            const height = img.naturalHeight * scale;
-            
-            img.style.width = width + "px";
-            img.style.height = height + "px";
-            
-            wrapper.style.width = width + "px";
-            wrapper.style.height = height + "px";
-
-            const maxX = window.innerWidth - width;
-            const maxY = window.innerHeight - height - topBuffer;
-            
-            const x = Math.random() * maxX;
-            const y = Math.random() * maxY + topBuffer;
-            
-            wrapper.style.left = x + "px";
-            wrapper.style.top = y + "px";
-            wrapper.style.zIndex = zIndexCounter++;
-
-            wrapper.appendChild(img);
-            wrapper.appendChild(resizeHandle);
-
-            makeDraggable(wrapper, img);
-            makeResizable(wrapper, img, resizeHandle);
-            makeExpandable(img);
-            
-            resultsDiv.appendChild(wrapper);
-
-            imagesData.push({
-              wrapper,
-              img,
-              width,
-              height,
-              relX: x / maxX,
-              relY: (y - topBuffer) / maxY
-            });
-            
-            console.log(`✓ Image ${loadedCount} loaded successfully`);
-          } else {
-            resultsDiv.appendChild(img);
-            console.log(`✓ Image ${loadedCount} loaded successfully`);
-          }
-
-          // Setup infinite scroll for mobile
-          if (isMobile && !resultsDiv.hasAttribute('data-scroll-setup')) {
-            setupMobileInfiniteScroll();
-            resultsDiv.setAttribute('data-scroll-setup', 'true');
-          }
-        };
-
-        img.onerror = () => {
-          console.error("❌ Failed to load image:", src);
-          console.log("Image natural size:", img.naturalWidth, "x", img.naturalHeight);
-          console.log("Image complete:", img.complete);
-          
-          // Mark for retry
-          img.dataset.retryCount = img.dataset.retryCount ? parseInt(img.dataset.retryCount) + 1 : 1;
-          
-          // Retry up to 3 times with increasing delays
-          if (img.dataset.retryCount <= 3) {
-            const retryDelay = img.dataset.retryCount * 1500;
-            console.log(`Retry attempt ${img.dataset.retryCount} in ${retryDelay}ms`);
-            
-            setTimeout(() => {
-              console.log(`Retrying image load (attempt ${img.dataset.retryCount}):`, src);
-              img.src = src + '?retry=' + img.dataset.retryCount; // Cache bust
-            }, retryDelay);
-          } else {
-            console.error("⚠️ Image failed after 3 retries:", src);
-          }
-        };
-        
-        // Add timeout detection (15 seconds)
-        setTimeout(() => {
-          if (!img.complete || img.naturalWidth === 0) {
-            console.warn("⏱️ Image loading timeout (15s):", src);
-            img.onerror(new Error('Timeout'));
-          }
-        }, 15000);
-      });
-    }
-
-    function makeMobileTappable(img) {
-      let touchStartTime = 0;
-      let touchStartX = 0;
-      let touchStartY = 0;
-
-      img.addEventListener('touchstart', (e) => {
-        touchStartTime = Date.now();
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
-      });
-
-      img.addEventListener('touchend', (e) => {
-        const touchEndTime = Date.now();
-        const touchDuration = touchEndTime - touchStartTime;
-        const touchEndX = e.changedTouches[0].clientX;
-        const touchEndY = e.changedTouches[0].clientY;
-        const moveX = Math.abs(touchEndX - touchStartX);
-        const moveY = Math.abs(touchEndY - touchStartY);
-
-        // If it's a quick tap (not a scroll), toggle zoom
-        if (touchDuration < 200 && moveX < 10 && moveY < 10) {
-          e.preventDefault();
-          toggleMobileZoom(img);
-        }
-      });
-    }
-
-    function toggleMobileZoom(img) {
+    function loadMorePhotos() {
+      const loadMoreBtn = document.getElementById("load-more-btn");
       const resultsDiv = document.getElementById("results");
-      const isZoomed = img.classList.contains('zoomed');
-
-      if (isZoomed) {
-        // Zoom out
-        img.classList.remove('zoomed');
-        resultsDiv.classList.remove('zoomed');
-      } else {
-        // Zoom in
-        img.classList.add('zoomed');
-        resultsDiv.classList.add('zoomed');
-      }
+      
+      loadMoreBtn.disabled = true;
+      loadMoreBtn.textContent = "Loading...";
+      resultsDiv.style.opacity = "0";
+      
+      setTimeout(() => {
+        resultsDiv.innerHTML = "";
+        imagesData = [];
+        loadedCount = 0;
+        zIndexCounter = 1;
+        
+        const batch = getNextBatch(10);
+        addImages(batch);
+        
+        setTimeout(() => {
+          resultsDiv.style.opacity = "1";
+          loadMoreBtn.disabled = false;
+          loadMoreBtn.textContent = "Load More Photos";
+        }, 300);
+      }, 300);
     }
 
     function setupMobileInfiniteScroll() {
       const resultsDiv = document.getElementById("results");
       
       resultsDiv.addEventListener('scroll', () => {
-        // Check if we're near the bottom
         const scrollTop = resultsDiv.scrollTop;
         const scrollHeight = resultsDiv.scrollHeight;
         const clientHeight = resultsDiv.clientHeight;
         
-        // Load more when within 2 images of the bottom
         if (scrollTop + clientHeight >= scrollHeight - (clientHeight * 2)) {
           loadMoreMobileImages();
         }
@@ -774,84 +607,55 @@
       if (isLoadingMore) return;
       isLoadingMore = true;
       
-      const batch = getNextBatch(5); // Load 5 more images at a time
+      const batch = getNextBatch(2);
       const resultsDiv = document.getElementById("results");
       
-      batch.forEach(src => {
-        const img = new Image();
-        img.src = src;
-        img.alt = `Photography by Devin Feilen - Image ${loadedCount + 1}`;
-        img.loading = "lazy";
-        img.tabIndex = 0;
-        img.setAttribute('role', 'img');
-        
-        img.onload = () => {
-          loadedCount++;
-          makeMobileTappable(img);
-          resultsDiv.appendChild(img);
-        };
+      batch.forEach((src, index) => {
+        setTimeout(() => {
+          const img = new Image();
+          img.src = src;
+          img.alt = `Photography by Devin Feilen`;
+          img.loading = "lazy";
+          img.tabIndex = 0;
+          img.setAttribute('role', 'img');
+          
+          img.onload = () => {
+            loadedCount++;
+            resultsDiv.appendChild(img);
+          };
 
-        img.onerror = () => {
-          console.error("Failed to load image:", src);
-        };
+          img.onerror = () => {
+            console.error("Failed to load:", src);
+          };
+        }, index * 500);
       });
       
-      // Reset loading flag after a short delay
-      setTimeout(() => {
-        isLoadingMore = false;
-      }, 500);
+      setTimeout(() => { isLoadingMore = false; }, 1500);
     }
 
     function makeDraggable(wrapper, img) {
-      // Only make draggable on desktop
       if (window.innerWidth <= 768) return;
 
       let offsetX, offsetY, isDragging = false;
+      if (img) img.ondragstart = () => false;
 
-      // Prevent default drag behavior
-      if (img) {
-        img.ondragstart = () => false;
-      }
-
-      // Mouse events on image
       if (img) {
         img.addEventListener("mousedown", e => {
           e.preventDefault();
           startDrag(e.clientX, e.clientY);
         });
 
-        // Touch events for mobile
-        img.addEventListener("touchstart", e => {
-          e.preventDefault();
-          const touch = e.touches[0];
-          startDrag(touch.clientX, touch.clientY);
-        }, { passive: false });
-
-        // Keyboard accessibility
         img.addEventListener("keydown", e => {
           const step = e.shiftKey ? 50 : 10;
           let newLeft = wrapper.offsetLeft;
           let newTop = wrapper.offsetTop;
 
           switch(e.key) {
-            case "ArrowLeft":
-              newLeft -= step;
-              e.preventDefault();
-              break;
-            case "ArrowRight":
-              newLeft += step;
-              e.preventDefault();
-              break;
-            case "ArrowUp":
-              newTop -= step;
-              e.preventDefault();
-              break;
-            case "ArrowDown":
-              newTop += step;
-              e.preventDefault();
-              break;
-            default:
-              return;
+            case "ArrowLeft": newLeft -= step; e.preventDefault(); break;
+            case "ArrowRight": newLeft += step; e.preventDefault(); break;
+            case "ArrowUp": newTop -= step; e.preventDefault(); break;
+            case "ArrowDown": newTop += step; e.preventDefault(); break;
+            default: return;
           }
 
           if (newTop < topBuffer) newTop = topBuffer;
@@ -882,26 +686,16 @@
           onMove(e.clientX, e.clientY);
         }
 
-        function onTouchMove(e) {
-          e.preventDefault();
-          const touch = e.touches[0];
-          onMove(touch.clientX, touch.clientY);
-        }
-
         function stopDrag() {
           isDragging = false;
           wrapper.style.transition = "transform 0.2s ease";
           if (img) img.style.cursor = "grab";
           document.removeEventListener("mousemove", onMouseMove);
           document.removeEventListener("mouseup", stopDrag);
-          document.removeEventListener("touchmove", onTouchMove);
-          document.removeEventListener("touchend", stopDrag);
         }
 
         document.addEventListener("mousemove", onMouseMove);
         document.addEventListener("mouseup", stopDrag);
-        document.addEventListener("touchmove", onTouchMove, { passive: false });
-        document.addEventListener("touchend", stopDrag);
       }
     }
 
@@ -916,13 +710,6 @@
         startResize(e.clientX, e.clientY);
       });
 
-      handle.addEventListener("touchstart", e => {
-        e.preventDefault();
-        e.stopPropagation();
-        const touch = e.touches[0];
-        startResize(touch.clientX, touch.clientY);
-      }, { passive: false });
-
       function startResize(clientX, clientY) {
         isResizing = true;
         startWidth = img.offsetWidth;
@@ -933,43 +720,11 @@
 
         function onMouseMove(e) {
           if (!isResizing) return;
-          const deltaX = e.clientX - startX;
-          const deltaY = e.clientY - startY;
-          const delta = Math.max(deltaX, deltaY);
+          const delta = Math.max(e.clientX - startX, e.clientY - startY);
           
           let newWidth = startWidth + delta;
           let newHeight = newWidth / aspectRatio;
 
-          // Minimum size only
-          if (newWidth < 100) {
-            newWidth = 100;
-            newHeight = newWidth / aspectRatio;
-          }
-
-          img.style.width = newWidth + "px";
-          img.style.height = newHeight + "px";
-          wrapper.style.width = newWidth + "px";
-          wrapper.style.height = newHeight + "px";
-
-          // Update stored dimensions
-          const data = imagesData.find(d => d.img === img);
-          if (data) {
-            data.width = newWidth;
-            data.height = newHeight;
-          }
-        }
-
-        function onTouchMove(e) {
-          e.preventDefault();
-          const touch = e.touches[0];
-          const deltaX = touch.clientX - startX;
-          const deltaY = touch.clientY - startY;
-          const delta = Math.max(deltaX, deltaY);
-          
-          let newWidth = startWidth + delta;
-          let newHeight = newWidth / aspectRatio;
-
-          // Minimum size only
           if (newWidth < 100) {
             newWidth = 100;
             newHeight = newWidth / aspectRatio;
@@ -991,14 +746,10 @@
           isResizing = false;
           document.removeEventListener("mousemove", onMouseMove);
           document.removeEventListener("mouseup", stopResize);
-          document.removeEventListener("touchmove", onTouchMove);
-          document.removeEventListener("touchend", stopResize);
         }
 
         document.addEventListener("mousemove", onMouseMove);
         document.addEventListener("mouseup", stopResize);
-        document.addEventListener("touchmove", onTouchMove, { passive: false });
-        document.addEventListener("touchend", stopResize);
       }
     }
 
@@ -1007,7 +758,6 @@
       const lightboxImg = document.getElementById("lightbox-img");
       const lightboxClose = document.getElementById("lightbox-close");
 
-      // Double click to expand
       img.addEventListener("dblclick", () => {
         lightboxImg.src = img.src;
         lightboxImg.alt = img.alt;
@@ -1015,7 +765,6 @@
         lightboxClose.focus();
       });
 
-      // Close lightbox
       lightboxClose.addEventListener("click", () => {
         lightbox.style.display = "none";
         img.focus();
@@ -1028,7 +777,6 @@
         }
       });
 
-      // Escape key to close
       lightbox.addEventListener("keydown", e => {
         if (e.key === "Escape") {
           lightbox.style.display = "none";
@@ -1037,7 +785,6 @@
       });
     }
 
-    // Handle window resize
     let resizeTimeout;
     window.addEventListener("resize", () => {
       clearTimeout(resizeTimeout);
@@ -1058,6 +805,13 @@
         .sort((a, b) => a.sort - b.sort)
         .map(({v}) => v);
     }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const loadMoreBtn = document.getElementById("load-more-btn");
+      if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', loadMorePhotos);
+      }
+    });
   </script>
 </body>
 </html>
