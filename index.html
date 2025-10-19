@@ -18,6 +18,87 @@
       position: relative;
     }
 
+    /* Category selection screen */
+    #category-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 5000;
+      gap: 20px;
+      opacity: 1;
+      transition: opacity 0.8s ease;
+    }
+
+    #category-screen.fade-out {
+      opacity: 0;
+    }
+
+    #category-screen.hidden {
+      display: none;
+    }
+
+    #category-screen h1 {
+      font-family: 'Barlow', sans-serif;
+      font-weight: 700;
+      font-size: 48px;
+      margin-bottom: 30px;
+      letter-spacing: -2px;
+    }
+
+    .category-btn {
+      padding: 20px 50px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+      font-weight: 600;
+      font-size: 24px;
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 30px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: all 0.2s ease;
+      min-width: 250px;
+    }
+
+    .category-btn:hover {
+      background: rgba(0, 0, 0, 1);
+      transform: scale(1.05);
+    }
+
+    .category-btn:focus {
+      outline: none;
+    }
+
+    /* Hide main UI initially */
+    body.category-view #about-btn,
+    body.category-view #load-more-btn,
+    body.category-view #organize-btn,
+    body.category-view #df-logo,
+    body.category-view #results,
+    body.category-view #loading,
+    body.category-view #back-btn,
+    body.category-view #mobile-welcome {
+      display: none;
+    }
+
+    /* Portfolio fade in */
+    #results {
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+
+    #results.fade-in {
+      opacity: 1;
+    }
+
     /* Loading indicator */
     #loading {
       position: fixed;
@@ -43,7 +124,7 @@
       100% { transform: rotate(360deg); }
     }
 
-    /* About button (top-left corner) */
+    /* About button */
     #about-btn {
       position: fixed;
       top: 20px;
@@ -65,6 +146,57 @@
       display: inline-block;
     }
 
+    /* Back button */
+    #back-btn {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      padding: 10px 20px;
+      z-index: 300;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+      font-weight: 600;
+      font-size: 16px;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 20px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: background 0.2s ease;
+      display: none;
+    }
+
+    #back-btn:hover {
+      background: rgba(0, 0, 0, 0.9);
+    }
+
+    #back-btn:focus {
+      outline: none;
+    }
+
+    /* Desktop - center About and Back buttons with others */
+    @media (min-width: 769px) {
+      #about-btn {
+        left: 50%;
+        transform: translateX(-200%);
+        margin-left: -40px;
+      }
+
+      #back-btn {
+        left: 50%;
+        transform: translateX(-300%);
+        margin-left: -60px;
+      }
+    }
+
+    /* Mobile - hide About when Back is showing */
+    @media (max-width: 768px) {
+      body:not(.category-view) #about-btn {
+        display: none;
+      }
+    }
+
     #about-btn:hover {
       background: rgba(0, 0, 0, 0.9);
     }
@@ -74,11 +206,12 @@
       outline-offset: 2px;
     }
 
-    /* Load More button (bottom-right) */
+    /* Load More button (top-center) */
     #load-more-btn {
       position: fixed;
-      bottom: 30px;
-      right: 30px;
+      top: 20px;
+      left: 50%;
+      transform: translateX(20px);
       padding: 10px 20px;
       z-index: 300;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
@@ -112,11 +245,13 @@
       cursor: not-allowed;
     }
 
-    /* Organize button (bottom-left) */
+    /* Organize button (top-center, left of More) */
     #organize-btn {
       position: fixed;
-      bottom: 30px;
-      left: 30px;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-100%);
+      margin-left: -20px;
       padding: 10px 20px;
       z-index: 300;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
@@ -353,6 +488,16 @@
         background: #fff;
       }
 
+      .category-btn {
+        font-size: 20px;
+        padding: 16px 40px;
+        min-width: 200px;
+      }
+
+      #category-screen h1 {
+        font-size: 36px;
+      }
+
       #results {
         display: flex;
         flex-direction: column;
@@ -412,6 +557,7 @@
         background: rgba(0, 0, 0, 0.75);
         color: white;
         z-index: 1001;
+        border-radius: 18px;
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
       }
@@ -424,6 +570,23 @@
         outline: none;
       }
 
+      #back-btn {
+        padding: 8px 16px;
+        font-size: 15px;
+        top: 12px;
+        left: 12px;
+        background: rgba(0, 0, 0, 0.75);
+        color: white;
+        z-index: 1001;
+        border-radius: 18px;
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+      }
+
+      #back-btn:hover {
+        background: rgba(0, 0, 0, 0.85);
+      }
+
       #df-logo {
         top: 12px;
         right: 12px;
@@ -431,7 +594,12 @@
       }
 
       #load-more-btn {
-        display: none !important;
+        bottom: 20px;
+        right: 20px;
+        padding: 8px 16px;
+        font-size: 15px;
+        border-radius: 18px;
+        z-index: 1001;
       }
 
       #organize-btn {
@@ -440,7 +608,16 @@
     }
   </style>
 </head>
-<body>
+<body class="category-view">
+  <div id="category-screen">
+    <h1>DF</h1>
+    <button class="category-btn" data-category="cycling">Cycling</button>
+    <button class="category-btn" data-category="street">Street</button>
+    <button class="category-btn" data-category="life">Life</button>
+    <button class="category-btn" data-category="shuffle">Shuffle</button>
+  </div>
+
+  <button id="back-btn" aria-label="Back to categories">← Back</button>
   <a href="about.html" id="about-btn" aria-label="About this portfolio">About</a>
   <button id="load-more-btn" aria-label="Load more photos">More</button>
   <button id="organize-btn" aria-label="Organize photos">Organize</button>
@@ -448,7 +625,7 @@
 
   <div id="loading" role="status" aria-live="polite">
     <div id="loading-spinner" aria-hidden="true"></div>
-    <p>Loading images...</p>
+    <p>Loading photos...</p>
   </div>
 
   <div id="results" role="main" aria-label="Photo gallery"></div>
@@ -462,8 +639,8 @@
 
   <div id="mobile-welcome">
     <div id="mobile-welcome-content">
-      <p>Hi! This portfolio is best experienced on a desktop or a screen larger than the one you're viewing it on. This is a simplified mobile version, which gives you a random image as you scroll.</p>
-      <button id="mobile-welcome-btn">Continue</button>
+      <p>Hi! This portfolio is best experienced on a desktop or a screen larger than the one you're viewing it on. This is a simplified mobile version, but still gives you random images as you scroll.</p>
+      <button id="mobile-welcome-btn">Got it!</button>
     </div>
   </div>
 
@@ -478,19 +655,120 @@
     const initialLoadCount = isMobileDevice ? 5 : 10;
     let isLoadingMore = false;
     let isOrganized = false;
+    let currentCategory = null;
 
-    fetch("photos.json")
-      .then(res => res.json())
-      .then(data => {
-        allPhotos = data;
-        resetQueue();
-        console.log("✅ Loaded", allPhotos.length, "photos");
-        loadInitialPhotos();
-      })
-      .catch(err => {
-        console.error("Error loading photos.json:", err);
-        document.getElementById("loading").innerHTML = "<p>Error loading photos. Please refresh the page.</p>";
+    // Category selection
+    document.addEventListener('DOMContentLoaded', () => {
+      const categoryButtons = document.querySelectorAll('.category-btn');
+      
+      categoryButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const category = btn.dataset.category;
+          loadCategory(category);
+        });
       });
+
+      const loadMoreBtn = document.getElementById("load-more-btn");
+      if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', loadMorePhotos);
+      }
+      
+      const organizeBtn = document.getElementById("organize-btn");
+      if (organizeBtn) {
+        organizeBtn.addEventListener('click', toggleOrganize);
+      }
+
+      const backBtn = document.getElementById("back-btn");
+      if (backBtn) {
+        backBtn.addEventListener('click', backToCategories);
+      }
+    });
+
+    function loadCategory(category) {
+      currentCategory = category;
+      
+      // Start fade out animation
+      const categoryScreen = document.getElementById('category-screen');
+      categoryScreen.classList.add('fade-out');
+      
+      // Wait for fade out to complete
+      setTimeout(() => {
+        // Hide category screen
+        categoryScreen.classList.add('hidden');
+        document.body.classList.remove('category-view');
+        
+        // Show back button
+        document.getElementById('back-btn').style.display = 'block';
+        
+        // Show loading
+        document.getElementById("loading").style.display = "block";
+        
+        // Determine which JSON file to load
+        let jsonFile = 'photos.json'; // default
+        if (category === 'cycling') jsonFile = 'cycling.json';
+        else if (category === 'street') jsonFile = 'street.json';
+        else if (category === 'life') jsonFile = 'life.json';
+        else if (category === 'shuffle') jsonFile = 'photos.json'; // or combine all
+        
+        // Load the photos
+        fetch(jsonFile)
+          .then(res => res.json())
+          .then(data => {
+            allPhotos = data;
+            resetQueue();
+            console.log(`✅ Loaded ${allPhotos.length} photos from ${category}`);
+            loadInitialPhotos();
+            
+            // Fade in the results after a short delay
+            setTimeout(() => {
+              document.getElementById('results').classList.add('fade-in');
+            }, 100);
+          })
+          .catch(err => {
+            console.error(`Error loading ${jsonFile}:`, err);
+            document.getElementById("loading").innerHTML = `<p>Error loading ${category} photos. Please refresh the page.</p>`;
+          });
+      }, 800); // Match the CSS transition duration
+    }
+
+    function backToCategories() {
+      const resultsDiv = document.getElementById('results');
+      
+      // Fade out current view
+      resultsDiv.classList.remove('fade-in');
+      
+      setTimeout(() => {
+        // Hide portfolio elements
+        document.getElementById('back-btn').style.display = 'none';
+        document.getElementById('load-more-btn').classList.remove('visible');
+        document.getElementById('organize-btn').classList.remove('visible');
+        
+        // Clear current photos
+        resultsDiv.innerHTML = '';
+        imagesData = [];
+        loadedCount = 0;
+        zIndexCounter = 1;
+        isOrganized = false;
+        
+        // Close mobile welcome if open
+        const mobileWelcome = document.getElementById('mobile-welcome');
+        if (mobileWelcome) {
+          mobileWelcome.style.display = 'none';
+        }
+        
+        // Reset and show category screen
+        const categoryScreen = document.getElementById('category-screen');
+        categoryScreen.classList.remove('fade-out');
+        categoryScreen.classList.remove('hidden');
+        document.body.classList.add('category-view');
+        
+        // Reset organize button text
+        document.getElementById('organize-btn').textContent = 'Organize';
+      }, 800);
+    }
+
+    // Remove the old auto-load fetch
+    // fetch("photos.json")...
 
     function resetQueue() {
       photoQueue = shuffleArray([...allPhotos]);
@@ -509,6 +787,8 @@
       const isMobile = window.innerWidth <= 768;
       if (isMobile) {
         showMobileWelcome();
+        // Show More button on mobile after category selection
+        document.getElementById("load-more-btn").classList.add("visible");
       } else {
         document.getElementById("load-more-btn").classList.add("visible");
         document.getElementById("organize-btn").classList.add("visible");
@@ -660,7 +940,9 @@
       
       loadMoreBtn.disabled = true;
       loadMoreBtn.textContent = "...";
-      resultsDiv.style.opacity = "0";
+      
+      // Fade out
+      resultsDiv.classList.remove('fade-in');
       
       // Reset organize state
       isOrganized = false;
@@ -676,11 +958,11 @@
         addImages(batch);
         
         setTimeout(() => {
-          resultsDiv.style.opacity = "1";
+          resultsDiv.classList.add('fade-in');
           loadMoreBtn.disabled = false;
           loadMoreBtn.textContent = "More";
         }, 300);
-      }, 300);
+      }, 800);
     }
 
     function setupMobileInfiniteScroll() {
@@ -1005,20 +1287,6 @@
         .sort((a, b) => a.sort - b.sort)
         .map(({v}) => v);
     }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      const loadMoreBtn = document.getElementById("load-more-btn");
-      if (loadMoreBtn) {
-        loadMoreBtn.addEventListener('click', loadMorePhotos);
-      }
-      
-      const organizeBtn = document.getElementById("organize-btn");
-      if (organizeBtn) {
-        organizeBtn.addEventListener('click', toggleOrganize);
-      }
-    });
   </script>
 </body>
 </html>
-
-
