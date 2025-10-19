@@ -74,13 +74,12 @@
       outline-offset: 2px;
     }
 
-    /* Load More button (bottom-center) */
+    /* Load More button (bottom-right) */
     #load-more-btn {
       position: fixed;
       bottom: 30px;
-      left: 50%;
-      transform: translateX(-50%);
-      padding: 12px 30px;
+      right: 30px;
+      padding: 10px 20px;
       z-index: 300;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
       font-weight: 600;
@@ -112,6 +111,44 @@
     #load-more-btn:disabled {
       opacity: 0.6;
       cursor: not-allowed;
+    }
+
+    /* Organize button (bottom-left) */
+    #organize-btn {
+      position: fixed;
+      bottom: 30px;
+      left: 30px;
+      padding: 10px 20px;
+      z-index: 300;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+      font-weight: 600;
+      font-size: 16px;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 20px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: background 0.2s ease;
+      display: none;
+    }
+
+    #organize-btn:hover {
+      background: rgba(0, 0, 0, 0.9);
+    }
+
+    #organize-btn:focus {
+      outline: 2px solid rgba(0, 0, 0, 0.5);
+      outline-offset: 2px;
+    }
+
+    #organize-btn.visible {
+      display: block;
+    }
+
+    .image-wrapper {
+      transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     #about-modal {
@@ -399,12 +436,17 @@
       #load-more-btn {
         display: none !important;
       }
+
+      #organize-btn {
+        display: none !important;
+      }
     }
   </style>
 </head>
 <body>
   <a href="about.html" id="about-btn" aria-label="About this portfolio">About</a>
-  <button id="load-more-btn" aria-label="Load more photos">Load More Photos</button>
+  <button id="load-more-btn" aria-label="Load more photos">More</button>
+  <button id="organize-btn" aria-label="Organize photos">Organize</button>
   <div id="df-logo">DF</div>
 
   <div id="loading" role="status" aria-live="polite">
@@ -438,6 +480,7 @@
     const isMobileDevice = window.innerWidth <= 768;
     const initialLoadCount = isMobileDevice ? 5 : 10;
     let isLoadingMore = false;
+    let isOrganized = false;
 
     fetch("photos.json")
       .then(res => res.json())
@@ -471,6 +514,7 @@
         showMobileWelcome();
       } else {
         document.getElementById("load-more-btn").classList.add("visible");
+        document.getElementById("organize-btn").classList.add("visible");
       }
       
       const batch = getNextBatch(initialLoadCount);
@@ -566,11 +610,16 @@
 
     function loadMorePhotos() {
       const loadMoreBtn = document.getElementById("load-more-btn");
+      const organizeBtn = document.getElementById("organize-btn");
       const resultsDiv = document.getElementById("results");
       
       loadMoreBtn.disabled = true;
-      loadMoreBtn.textContent = "Loading...";
+      loadMoreBtn.textContent = "...";
       resultsDiv.style.opacity = "0";
+      
+      // Reset organize state
+      isOrganized = false;
+      organizeBtn.textContent = "Organize";
       
       setTimeout(() => {
         resultsDiv.innerHTML = "";
@@ -584,7 +633,7 @@
         setTimeout(() => {
           resultsDiv.style.opacity = "1";
           loadMoreBtn.disabled = false;
-          loadMoreBtn.textContent = "Load More Photos";
+          loadMoreBtn.textContent = "More";
         }, 300);
       }, 300);
     }
@@ -800,6 +849,92 @@
       }, 250);
     });
 
+    function toggleOrganize() {
+      const organizeBtn = document.getElementById("organize-btn");
+      
+      if (isOrganized) {
+        // Return to scattered layout
+        organizeBtn.textContent = "Organize";
+        explodeImages();
+        isOrganized = false;
+      } else {
+        // Organize into grid
+        organizeBtn.textContent = "Explode";
+        organizeImages();
+        isOrganized = true;
+      }
+    }
+
+    function organizeImages() {
+      const numImages = imagesData.length;
+      const cols = Math.ceil(Math.sqrt(numImages));
+      const rows = Math.ceil(numImages / cols);
+      
+      const availableWidth = window.innerWidth - 100;
+      const availableHeight = window.innerHeight - 100;
+      
+      const cellWidth = availableWidth / cols;
+      const cellHeight = availableHeight / rows;
+      
+      imagesData.forEach((data, index) => {
+        const col = index % cols;
+        const row = Math.floor(index / cols);
+        
+        // Calculate cell position
+        const cellX = 50 + (col * cellWidth);
+        const cellY = 50 + (row * cellHeight);
+        
+        // Scale image to fit cell while maintaining aspect ratio
+        const imgAspect = data.img.naturalWidth / data.img.naturalHeight;
+        const cellAspect = cellWidth / cellHeight;
+        
+        let newWidth, newHeight;
+        if (imgAspect > cellAspect) {
+          // Image is wider than cell
+          newWidth = cellWidth * 0.9;
+          newHeight = newWidth / imgAspect;
+        } else {
+          // Image is taller than cell
+          newHeight = cellHeight * 0.9;
+          newWidth = newHeight * imgAspect;
+        }
+        
+        // Center image in cell
+        const x = cellX + (cellWidth - newWidth) / 2;
+        const y = cellY + (cellHeight - newHeight) / 2;
+        
+        // Store original position before organizing
+        if (!data.originalLeft) {
+          data.originalLeft = data.wrapper.style.left;
+          data.originalTop = data.wrapper.style.top;
+          data.originalWidth = data.img.style.width;
+          data.originalHeight = data.img.style.height;
+        }
+        
+        // Apply grid position with animation
+        data.wrapper.style.left = x + "px";
+        data.wrapper.style.top = y + "px";
+        data.wrapper.style.width = newWidth + "px";
+        data.wrapper.style.height = newHeight + "px";
+        data.img.style.width = newWidth + "px";
+        data.img.style.height = newHeight + "px";
+      });
+    }
+
+    function explodeImages() {
+      // Restore original positions
+      imagesData.forEach(data => {
+        if (data.originalLeft) {
+          data.wrapper.style.left = data.originalLeft;
+          data.wrapper.style.top = data.originalTop;
+          data.wrapper.style.width = data.originalWidth;
+          data.wrapper.style.height = data.originalHeight;
+          data.img.style.width = data.originalWidth;
+          data.img.style.height = data.originalHeight;
+        }
+      });
+    }
+
     function shuffleArray(array) {
       return array.map(v => ({v, sort: Math.random()}))
         .sort((a, b) => a.sort - b.sort)
@@ -810,6 +945,11 @@
       const loadMoreBtn = document.getElementById("load-more-btn");
       if (loadMoreBtn) {
         loadMoreBtn.addEventListener('click', loadMorePhotos);
+      }
+      
+      const organizeBtn = document.getElementById("organize-btn");
+      if (organizeBtn) {
+        organizeBtn.addEventListener('click', toggleOrganize);
       }
     });
   </script>
