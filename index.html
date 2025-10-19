@@ -617,7 +617,9 @@
               
               setTimeout(() => {
                 console.log(`🔄 Retrying image load (attempt ${img.dataset.retryCount}):`, src);
-                img.src = src;
+                // Force reload
+                const timestamp = new Date().getTime();
+                img.src = src + '?t=' + timestamp;
               }, retryDelay);
             } else {
               console.error("⚠️ Image failed after 2 retries:", src);
@@ -625,13 +627,24 @@
             }
           };
           
-          // Add timeout detection (20 seconds)
-          setTimeout(() => {
+          // Add timeout detection - starts AFTER the stagger delay
+          // Give it 30 seconds from when loading actually starts
+          const timeoutDuration = 30000;
+          const timeoutId = setTimeout(() => {
             if (!img.complete || img.naturalWidth === 0) {
-              console.warn("⏱️ Image loading timeout (20s):", src);
-              console.warn("Consider checking Cloudflare Images settings or URL validity");
+              console.warn("⏱️ Image loading timeout (" + timeoutDuration/1000 + "s):", src);
+              console.warn("Image may be too large or Cloudflare may be rate limiting");
+              // Trigger error handler to retry
+              img.onerror(new Error('Timeout'));
             }
-          }, 20000);
+          }, timeoutDuration);
+          
+          // Clear timeout if image loads successfully
+          const originalOnLoad = img.onload;
+          img.onload = function() {
+            clearTimeout(timeoutId);
+            originalOnLoad.call(this);
+          };
         }, index * 300);
       });
     }
