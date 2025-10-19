@@ -100,8 +100,7 @@
     }
 
     #load-more-btn:focus {
-      outline: 2px solid rgba(0, 0, 0, 0.5);
-      outline-offset: 2px;
+      outline: none;
     }
 
     #load-more-btn.visible {
@@ -139,8 +138,7 @@
     }
 
     #organize-btn:focus {
-      outline: 2px solid rgba(0, 0, 0, 0.5);
-      outline-offset: 2px;
+      outline: none;
     }
 
     #organize-btn.visible {
@@ -543,6 +541,7 @@
       const isMobile = window.innerWidth <= 768;
       
       selected.forEach((src, index) => {
+        // Stagger each image load by 300ms to prevent overwhelming Cloudflare
         setTimeout(() => {
           const img = new Image();
           img.src = src;
@@ -550,9 +549,12 @@
           img.loading = index < 4 ? "eager" : "lazy";
           img.tabIndex = 0;
           img.setAttribute('role', 'img');
+          
+          console.log(`🔄 Starting to load image ${index + 1}:`, src);
 
           img.onload = () => {
             loadedCount++;
+            console.log(`✓ Image ${loadedCount} loaded successfully`);
 
             if (!isMobile) {
               const wrapper = document.createElement('div');
@@ -601,9 +603,35 @@
             }
           };
 
-          img.onerror = () => {
-            console.error("Failed to load:", src);
+          img.onerror = (e) => {
+            console.error("❌ Failed to load image:", src);
+            console.error("Error event:", e);
+            
+            // Mark for retry
+            img.dataset.retryCount = img.dataset.retryCount ? parseInt(img.dataset.retryCount) + 1 : 1;
+            
+            // Retry up to 2 times with longer delays
+            if (img.dataset.retryCount <= 2) {
+              const retryDelay = img.dataset.retryCount * 3000; // 3s, 6s
+              console.log(`⏳ Retry attempt ${img.dataset.retryCount} in ${retryDelay}ms`);
+              
+              setTimeout(() => {
+                console.log(`🔄 Retrying image load (attempt ${img.dataset.retryCount}):`, src);
+                img.src = src;
+              }, retryDelay);
+            } else {
+              console.error("⚠️ Image failed after 2 retries:", src);
+              console.error("This may be a Cloudflare rate limit or invalid URL");
+            }
           };
+          
+          // Add timeout detection (20 seconds)
+          setTimeout(() => {
+            if (!img.complete || img.naturalWidth === 0) {
+              console.warn("⏱️ Image loading timeout (20s):", src);
+              console.warn("Consider checking Cloudflare Images settings or URL validity");
+            }
+          }, 20000);
         }, index * 300);
       });
     }
@@ -668,13 +696,33 @@
           img.tabIndex = 0;
           img.setAttribute('role', 'img');
           
+          console.log(`🔄 Loading mobile image:`, src);
+          
           img.onload = () => {
             loadedCount++;
             resultsDiv.appendChild(img);
+            console.log(`✓ Mobile image ${loadedCount} loaded successfully`);
           };
 
-          img.onerror = () => {
-            console.error("Failed to load:", src);
+          img.onerror = (e) => {
+            console.error("❌ Failed to load mobile image:", src);
+            console.error("Error event:", e);
+            
+            // Mark for retry
+            img.dataset.retryCount = img.dataset.retryCount ? parseInt(img.dataset.retryCount) + 1 : 1;
+            
+            // Retry up to 2 times
+            if (img.dataset.retryCount <= 2) {
+              const retryDelay = img.dataset.retryCount * 3000;
+              console.log(`⏳ Mobile retry attempt ${img.dataset.retryCount} in ${retryDelay}ms`);
+              
+              setTimeout(() => {
+                console.log(`🔄 Retrying mobile image (attempt ${img.dataset.retryCount}):`, src);
+                img.src = src;
+              }, retryDelay);
+            } else {
+              console.error("⚠️ Mobile image failed after 2 retries:", src);
+            }
           };
         }, index * 500);
       });
