@@ -87,6 +87,46 @@
       outline-offset: 2px;
     }
 
+    /* Load More button (bottom-center) */
+    #load-more-btn {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 30px;
+      z-index: 300;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+      font-weight: 600;
+      font-size: 16px;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 20px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: background 0.2s ease;
+      display: none;
+    }
+
+    #load-more-btn:hover {
+      background: rgba(0, 0, 0, 0.9);
+    }
+
+    #load-more-btn:focus {
+      outline: 2px solid rgba(0, 0, 0, 0.5);
+      outline-offset: 2px;
+    }
+
+    #load-more-btn.visible {
+      display: block;
+    }
+
+    #load-more-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
     #about-modal {
       display: none;
       position: fixed;
@@ -142,6 +182,7 @@
       position: relative;
       top: 0;
       left: 0;
+      transition: opacity 0.3s ease;
     }
 
     #results img {
@@ -262,12 +303,13 @@
         display: flex;
         flex-direction: column;
         overflow-x: hidden;
-        overflow-y: auto;
+        overflow-y: scroll;
         scroll-snap-type: y mandatory;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
         background: #fff;
         height: 100vh;
+        scroll-behavior: smooth;
       }
 
       #results::-webkit-scrollbar {
@@ -282,6 +324,7 @@
         max-width: 100vw;
         object-fit: contain;
         scroll-snap-align: start;
+        scroll-snap-stop: always;
         box-sizing: border-box;
         cursor: default;
         left: auto !important;
@@ -332,6 +375,10 @@
         top: 12px;
         right: 12px;
         font-size: 28px;
+      }
+
+      #load-more-btn {
+        display: none !important;
       }
     }
 
@@ -394,6 +441,7 @@
 </head>
 <body>
   <a href="about.html" id="about-btn" aria-label="About this portfolio">About</a>
+  <button id="load-more-btn" aria-label="Load more photos">Load More Photos</button>
   <div id="df-logo">DF</div>
 
   <div id="loading" role="status" aria-live="polite">
@@ -425,9 +473,8 @@
     const topBuffer = 60;
     let loadedCount = 0;
     const isMobileDevice = window.innerWidth <= 768;
-    const initialLoadCount = isMobileDevice ? 8 : 8; // Reduced from 15 to 8 for desktop
+    const initialLoadCount = isMobileDevice ? 5 : 10; // 10 for desktop, 5 for mobile
     let isLoadingMore = false;
-    let desktopLoadTimer = null;
 
     // Load photos immediately
     fetch("photos.json")
@@ -462,37 +509,58 @@
       const isMobile = window.innerWidth <= 768;
       if (isMobile) {
         showMobileWelcome();
+      } else {
+        // Show load more button on desktop
+        document.getElementById("load-more-btn").classList.add("visible");
       }
       
       const batch = getNextBatch(initialLoadCount);
       addImages(batch);
-
-      // On desktop, progressively load more images after initial load
-      if (!isMobile) {
-        startProgressiveLoading();
-      }
     }
 
-    function startProgressiveLoading() {
-      // Wait 2 seconds after initial load, then load more images gradually
-      desktopLoadTimer = setTimeout(() => {
-        loadMoreDesktopImages();
-      }, 2000);
-    }
-
-    function loadMoreDesktopImages() {
-      if (photoQueue.length === 0) return;
+    function loadMorePhotos() {
+      console.log("Loading 10 more random photos...");
       
-      const batch = getNextBatch(4); // Load 4 more at a time
-      addImages(batch);
-
-      // Continue loading more if there are still photos
-      if (photoQueue.length > 0 && imagesData.length < 30) {
-        desktopLoadTimer = setTimeout(() => {
-          loadMoreDesktopImages();
-        }, 3000); // Wait 3 seconds between batches
-      }
+      const loadMoreBtn = document.getElementById("load-more-btn");
+      const resultsDiv = document.getElementById("results");
+      
+      // Disable button and show loading state
+      loadMoreBtn.disabled = true;
+      loadMoreBtn.textContent = "Loading...";
+      
+      // Fade out current images
+      resultsDiv.style.opacity = "0";
+      resultsDiv.style.transition = "opacity 0.3s ease";
+      
+      setTimeout(() => {
+        // Clear existing images on desktop
+        resultsDiv.innerHTML = "";
+        imagesData = [];
+        loadedCount = 0;
+        zIndexCounter = 1;
+        
+        // Get 10 new random photos
+        const batch = getNextBatch(10);
+        addImages(batch);
+        
+        // Fade in new images
+        setTimeout(() => {
+          resultsDiv.style.opacity = "1";
+          
+          // Re-enable button
+          loadMoreBtn.disabled = false;
+          loadMoreBtn.textContent = "Load More Photos";
+        }, 300);
+      }, 300);
     }
+
+    // Setup load more button click handler
+    window.addEventListener('DOMContentLoaded', () => {
+      const loadMoreBtn = document.getElementById("load-more-btn");
+      if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', loadMorePhotos);
+      }
+    });
 
     function showMobileWelcome() {
       const welcomePopup = document.getElementById("mobile-welcome");
@@ -516,20 +584,31 @@
       const resultsDiv = document.getElementById("results");
       const isMobile = window.innerWidth <= 768;
       
+      // Load images one at a time with a stagger to avoid overwhelming Cloudflare
       selected.forEach((src, index) => {
-        const img = new Image();
-        img.src = src;
-        img.alt = `Photography by Devin Feilen - Image ${loadedCount + index + 1}`;
-        
-        // Load first 4 images eagerly for faster initial display
-        if (loadedCount + index < 4) {
-          img.loading = "eager";
-        } else {
-          img.loading = "lazy";
-        }
-        
-        img.tabIndex = 0;
-        img.setAttribute('role', 'img');
+        // Stagger each image load by 300ms to prevent timeout
+        setTimeout(() => {
+          loadSingleImage(src, index, isMobile, resultsDiv);
+        }, index * 300);
+      });
+    }
+
+    function loadSingleImage(src, index, isMobile, resultsDiv) {
+      const img = new Image();
+      img.src = src;
+      img.alt = `Photography by Devin Feilen - Image ${loadedCount + index + 1}`;
+      
+      // Load first 4 images eagerly for faster initial display
+      if (loadedCount + index < 4) {
+        img.loading = "eager";
+      } else {
+        img.loading = "lazy";
+      }
+      
+      img.tabIndex = 0;
+      img.setAttribute('role', 'img');
+      
+      console.log(`🔄 Starting to load image ${index + 1}:`, src);
         
         img.onload = () => {
           loadedCount++;
