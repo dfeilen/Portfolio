@@ -105,6 +105,35 @@
       outline: none;
     }
 
+    #category-about-btn {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 28px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      background: transparent;
+      color: #666;
+      border: 2px solid #666;
+      cursor: pointer;
+      border-radius: 30px;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    #category-about-btn:hover {
+      background: #666;
+      color: #fff;
+      transform: translateX(-50%) scale(1.02);
+    }
+
+    #category-about-btn:focus {
+      outline: none;
+    }
+
     body.category-view #button-container,
     body.category-view #df-logo,
     body.category-view #results,
@@ -383,6 +412,12 @@
       #category-screen {
         gap: 20px;
         padding-bottom: 70px;
+      }
+
+      #category-about-btn {
+        font-size: 13px;
+        padding: 8px 24px;
+        bottom: 25px;
       }
 
       #category-about-btn {
