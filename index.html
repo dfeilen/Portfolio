@@ -434,6 +434,10 @@
     @media (max-width: 768px) {
       body {
         background: #fafafa;
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+        height: 100vh;
       }
 
       .category-btn {
@@ -451,6 +455,7 @@
         height: 100vh;
         position: relative;
         overflow: hidden;
+        touch-action: none;
       }
 
       .image-wrapper {
@@ -711,6 +716,31 @@
       const resultsDiv = document.getElementById("results");
       const isMobile = window.innerWidth <= 768;
       
+      // Calculate grid layout for mobile
+      let gridPositions = [];
+      if (isMobile) {
+        const numImages = selected.length;
+        const cols = 2; // 2x2 grid for 4 images
+        const rows = Math.ceil(numImages / cols);
+        
+        const availableWidth = window.innerWidth - 40;
+        const availableHeight = window.innerHeight - topBuffer - 100;
+        
+        const cellWidth = availableWidth / cols;
+        const cellHeight = availableHeight / rows;
+        
+        for (let i = 0; i < numImages; i++) {
+          const col = i % cols;
+          const row = Math.floor(i / cols);
+          gridPositions.push({
+            cellX: 20 + (col * cellWidth),
+            cellY: topBuffer + 20 + (row * cellHeight),
+            cellWidth,
+            cellHeight
+          });
+        }
+      }
+      
       selected.forEach((src, index) => {
         // Stagger each image load by 300ms to prevent overwhelming Cloudflare
         setTimeout(() => {
@@ -737,26 +767,47 @@
               makeResizable(wrapper, img, resizeHandle);
             }
 
-            // Scale images appropriately for mobile vs desktop
-            const maxDim = isMobile ? 
-              Math.min(window.innerWidth * 0.7, window.innerHeight * 0.5, 300) :
-              Math.min(window.innerWidth * 0.8, window.innerHeight * 0.8, 500);
+            let width, height, x, y;
             
-            let scale = Math.min(maxDim / img.naturalWidth, maxDim / img.naturalHeight, 1);
-            
-            const width = img.naturalWidth * scale;
-            const height = img.naturalHeight * scale;
+            if (isMobile) {
+              // Grid layout for mobile
+              const grid = gridPositions[index];
+              
+              // Scale image to fit cell while maintaining aspect ratio
+              const imgAspect = img.naturalWidth / img.naturalHeight;
+              const cellAspect = grid.cellWidth / grid.cellHeight;
+              
+              if (imgAspect > cellAspect) {
+                // Image is wider than cell
+                width = grid.cellWidth * 0.85;
+                height = width / imgAspect;
+              } else {
+                // Image is taller than cell
+                height = grid.cellHeight * 0.85;
+                width = height * imgAspect;
+              }
+              
+              // Center image in cell
+              x = grid.cellX + (grid.cellWidth - width) / 2;
+              y = grid.cellY + (grid.cellHeight - height) / 2;
+            } else {
+              // Random layout for desktop
+              const maxDim = Math.min(window.innerWidth * 0.8, window.innerHeight * 0.8, 500);
+              let scale = Math.min(maxDim / img.naturalWidth, maxDim / img.naturalHeight, 1);
+              
+              width = img.naturalWidth * scale;
+              height = img.naturalHeight * scale;
+              
+              const maxX = window.innerWidth - width;
+              const maxY = window.innerHeight - height - topBuffer;
+              x = Math.random() * maxX;
+              y = Math.random() * maxY + topBuffer;
+            }
             
             img.style.width = width + "px";
             img.style.height = height + "px";
             wrapper.style.width = width + "px";
             wrapper.style.height = height + "px";
-
-            const maxX = window.innerWidth - width;
-            const maxY = window.innerHeight - height - topBuffer;
-            const x = Math.random() * maxX;
-            const y = Math.random() * maxY + topBuffer;
-            
             wrapper.style.left = x + "px";
             wrapper.style.top = y + "px";
             wrapper.style.zIndex = zIndexCounter++;
@@ -770,6 +821,8 @@
             
             resultsDiv.appendChild(wrapper);
 
+            const maxX = window.innerWidth - width;
+            const maxY = window.innerHeight - height - topBuffer;
             imagesData.push({wrapper, img, width, height, relX: x / maxX, relY: (y - topBuffer) / maxY});
           };
 
