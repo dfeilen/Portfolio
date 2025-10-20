@@ -369,10 +369,11 @@
         overflow-x: auto;
         overflow-y: hidden;
         display: flex;
-        flex-direction: row;
-        align-items: center;
-        gap: 12px;
-        padding: 0 20px;
+        flex-direction: column;
+        flex-wrap: wrap;
+        align-content: flex-start;
+        gap: 8px;
+        padding: 60px 20px 20px 20px;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
       }
@@ -386,6 +387,7 @@
         flex-shrink: 0;
         display: flex;
         align-items: center;
+        justify-content: center;
       }
 
       #results img {
@@ -393,8 +395,11 @@
         cursor: default;
         pointer-events: auto;
         display: block;
-        border-radius: 4px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        border-radius: 6px;
+        box-shadow: 0 3px 12px rgba(0,0,0,0.2);
+        object-fit: cover;
+        opacity: 0;
+        animation: fadeIn 0.3s ease forwards;
       }
 
       .resize-handle {
@@ -491,7 +496,7 @@
     const topBuffer = 60;
     let loadedCount = 0;
     const isMobileDevice = window.innerWidth <= 768;
-    const initialLoadCount = isMobileDevice ? 8 : 10;
+    const initialLoadCount = isMobileDevice ? 12 : 10;
     let isLoadingMore = false;
     let isOrganized = false;
     let currentCategory = null;
@@ -641,8 +646,19 @@
       const resultsDiv = document.getElementById("results");
       const isMobile = window.innerWidth <= 768;
       
-      // For mobile: use varying heights to create mosaic effect
-      const mobileHeights = [200, 280, 240, 220, 260, 250, 230, 270];
+      // For mobile: use varying heights to create mosaic effect with larger images
+      // Heights range from 180px to full viewport height minus padding
+      const viewportHeight = window.innerHeight - 120; // Account for top/bottom padding
+      const mobileHeights = [
+        viewportHeight * 0.35,  // Small
+        viewportHeight * 0.5,   // Medium
+        viewportHeight * 0.65,  // Large
+        viewportHeight * 0.45,  // Medium-small
+        viewportHeight * 0.7,   // Extra large
+        viewportHeight * 0.4,   // Small-medium
+        viewportHeight * 0.6,   // Large-medium
+        viewportHeight * 0.55   // Medium-large
+      ];
       
       selected.forEach((src, index) => {
         // Stagger each image load by 200ms for mobile, 300ms for desktop
@@ -665,7 +681,7 @@
             wrapper.className = 'image-wrapper';
             
             if (isMobile) {
-              // Mobile: horizontal mosaic with varying heights
+              // Mobile: horizontal mosaic with varying heights in multiple rows
               const height = mobileHeights[index % mobileHeights.length];
               const aspectRatio = img.naturalWidth / img.naturalHeight;
               const width = height * aspectRatio;
@@ -779,7 +795,7 @@
         loadedCount = 0;
         zIndexCounter = 1;
         
-        const batchSize = isMobile ? 8 : 10;
+        const batchSize = isMobile ? 12 : 10;
         const batch = getNextBatch(batchSize);
         addImages(batch);
         
@@ -802,8 +818,8 @@
         const scrollWidth = resultsDiv.scrollWidth;
         const clientWidth = resultsDiv.clientWidth;
         
-        // Load more when within 500px of the right edge
-        if (scrollLeft + clientWidth >= scrollWidth - 500) {
+        // Load more when within 800px of the right edge (increased from 500px for larger images)
+        if (scrollLeft + clientWidth >= scrollWidth - 800) {
           loadMoreMobileImages();
         }
       });
@@ -815,7 +831,7 @@
       
       console.log('📱 Loading more mobile images...');
       
-      const batch = getNextBatch(4);
+      const batch = getNextBatch(6);
       addImages(batch);
       
       // Reset loading flag after images start loading
