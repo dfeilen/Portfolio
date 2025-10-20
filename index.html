@@ -6,7 +6,7 @@
   <title>DF</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@700&family=Archivo+Black&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Courier New', monospace;
@@ -18,7 +18,6 @@
       position: relative;
     }
 
-    /* Category selection screen */
     #category-screen {
       position: fixed;
       top: 0;
@@ -31,9 +30,10 @@
       justify-content: center;
       align-items: center;
       z-index: 5000;
-      gap: 30px;
+      gap: 24px;
       opacity: 1;
       transition: opacity 0.8s ease;
+      padding-bottom: 80px;
     }
 
     #category-screen.fade-out {
@@ -45,25 +45,25 @@
     }
 
     #category-screen h1 {
-      font-family: 'Barlow', sans-serif;
-      font-weight: 700;
+      font-family: 'Archivo Black', sans-serif;
+      font-weight: 900;
       font-size: 48px;
-      margin-bottom: 30px;
+      margin-bottom: 20px;
       letter-spacing: -2px;
     }
 
     .category-btn {
-      padding: 14px 36px;
+      padding: 12px 32px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
       font-weight: 600;
-      font-size: 18px;
+      font-size: 16px;
       background: transparent;
       color: #000;
       border: 2px solid #000;
       cursor: pointer;
       border-radius: 30px;
       transition: all 0.3s ease;
-      min-width: 200px;
+      min-width: 180px;
     }
 
     .category-btn:hover {
@@ -76,7 +76,35 @@
       outline: none;
     }
 
-    /* Hide main UI initially */
+    #category-about-btn {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 28px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      background: transparent;
+      color: #666;
+      border: 2px solid #666;
+      cursor: pointer;
+      border-radius: 30px;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    #category-about-btn:hover {
+      background: #666;
+      color: #fff;
+      transform: translateX(-50%) scale(1.02);
+    }
+
+    #category-about-btn:focus {
+      outline: none;
+    }
+
     body.category-view #button-container,
     body.category-view #df-logo,
     body.category-view #results,
@@ -84,7 +112,6 @@
       display: none;
     }
 
-    /* Portfolio fade in */
     #results {
       opacity: 0;
       transition: opacity 0.5s ease;
@@ -94,7 +121,6 @@
       opacity: 1;
     }
 
-    /* Loading indicator */
     #loading {
       position: fixed;
       top: 50%;
@@ -119,10 +145,9 @@
       100% { transform: rotate(360deg); }
     }
 
-    /* Button container for desktop */
     #button-container {
       position: fixed;
-      top: 20px;
+      top: 25px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
@@ -131,15 +156,14 @@
       align-items: center;
     }
 
-    /* Shared button styles */
     #about-btn,
     #back-btn,
     #organize-btn,
     #load-more-btn {
-      padding: 10px 20px;
+      padding: 8px 18px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
       font-weight: 600;
-      font-size: 16px;
+      font-size: 15px;
       background: rgba(0, 0, 0, 0.8);
       color: white;
       border: none;
@@ -206,14 +230,13 @@
       display: none;
     }
 
-    /* DF Logo */
     #df-logo {
       position: fixed;
-      top: 20px;
-      right: 20px;
-      font-family: 'Barlow', sans-serif;
-      font-weight: 700;
-      font-size: 32px;
+      top: 25px;
+      right: 25px;
+      font-family: 'Archivo Black', sans-serif;
+      font-weight: 900;
+      font-size: 28px;
       color: #000;
       z-index: 300;
       letter-spacing: -1px;
@@ -252,7 +275,6 @@
       outline-offset: 2px;
     }
 
-    /* Resize handle */
     .resize-handle {
       position: absolute;
       width: 12px;
@@ -287,7 +309,6 @@
       position: absolute;
     }
 
-    /* Lightbox styles */
     #lightbox {
       display: none;
       position: fixed;
@@ -336,12 +357,10 @@
       outline-offset: 2px;
     }
 
-    /* Desktop - hide mobile indicator */
     #mobile-indicator {
       display: none;
     }
 
-    /* Mobile gallery view */
     @media (max-width: 768px) {
       body {
         background: #fafafa;
@@ -351,21 +370,25 @@
       }
 
       .category-btn {
-        font-size: 16px;
-        padding: 12px 32px;
-        min-width: 180px;
-      }
-
-      #category-screen {
-        gap: 24px;
+        font-size: 15px;
+        padding: 10px 28px;
+        min-width: 160px;
       }
 
       #category-screen h1 {
         font-size: 36px;
+        margin-bottom: 15px;
       }
 
       #category-screen {
-        gap: 24px;
+        gap: 20px;
+        padding-bottom: 70px;
+      }
+
+      #category-about-btn {
+        font-size: 13px;
+        padding: 8px 24px;
+        bottom: 25px;
       }
 
       #results {
@@ -379,10 +402,12 @@
         flex-wrap: wrap;
         align-content: flex-start;
         justify-content: center;
-        gap: 8px;
-        padding: 60px 8px 60px 8px;
+        gap: 6px;
+        padding: 55px 6px 60px 6px;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
+        scroll-behavior: smooth;
+        overscroll-behavior-y: contain;
       }
 
       #results::-webkit-scrollbar {
@@ -402,8 +427,8 @@
         cursor: default;
         pointer-events: auto;
         display: block;
-        border-radius: 6px;
-        box-shadow: 0 3px 12px rgba(0,0,0,0.2);
+        border-radius: 4px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         opacity: 0;
         animation: fadeIn 0.3s ease forwards;
       }
@@ -416,7 +441,6 @@
         display: none;
       }
       
-      /* Mobile - separate positioning */
       #button-container {
         position: static;
         transform: none;
@@ -429,8 +453,8 @@
         top: 12px;
         left: 12px;
         z-index: 1001;
-        padding: 8px 16px;
-        font-size: 15px;
+        padding: 7px 14px;
+        font-size: 14px;
         border-radius: 18px;
         background: rgba(0, 0, 0, 0.75);
       }
@@ -458,7 +482,7 @@
       #df-logo {
         top: 12px;
         right: 12px;
-        font-size: 28px;
+        font-size: 24px;
       }
     }
   </style>
@@ -470,6 +494,7 @@
     <button class="category-btn" data-category="street">Street</button>
     <button class="category-btn" data-category="life">Life</button>
     <button class="category-btn" data-category="shuffle">Shuffle</button>
+    <a href="about.html" id="category-about-btn">About</a>
   </div>
 
   <div id="button-container">
@@ -499,16 +524,15 @@
     let photoQueue = [];
     let zIndexCounter = 1;
     let imagesData = [];
-    const topBuffer = 60;
+    const topBuffer = 55;
     let loadedCount = 0;
     const isMobileDevice = window.innerWidth <= 768;
-    const initialLoadCount = isMobileDevice ? 12 : 10;
+    const initialLoadCount = isMobileDevice ? 18 : 10;
     let isLoadingMore = false;
     let isOrganized = false;
     let currentCategory = null;
     let mobileScrollSetup = false;
 
-    // Category selection
     document.addEventListener('DOMContentLoaded', () => {
       const categoryButtons = document.querySelectorAll('.category-btn');
       
@@ -538,17 +562,13 @@
     function loadCategory(category) {
       currentCategory = category;
       
-      // Start fade out animation
       const categoryScreen = document.getElementById('category-screen');
       categoryScreen.classList.add('fade-out');
       
-      // Wait for fade out to complete
       setTimeout(() => {
-        // Hide category screen
         categoryScreen.classList.add('hidden');
         document.body.classList.remove('category-view');
         
-        // Show back button, hide about button (desktop)
         const isMobile = window.innerWidth <= 768;
         if (!isMobile) {
           document.getElementById('back-btn').style.display = 'block';
@@ -558,65 +578,54 @@
           document.getElementById('about-btn').style.display = 'none';
         }
         
-        // Show loading
         document.getElementById("loading").style.display = "block";
         
-        // Determine which JSON file to load
-        let jsonFile = 'photos.json'; // default
+        let jsonFile = 'photos.json';
         if (category === 'cycling') jsonFile = 'cycling.json';
         else if (category === 'street') jsonFile = 'street.json';
         else if (category === 'life') jsonFile = 'life.json';
-        else if (category === 'shuffle') jsonFile = 'photos.json'; // or combine all
+        else if (category === 'shuffle') jsonFile = 'photos.json';
         
-        // Load the photos
         fetch(jsonFile)
           .then(res => res.json())
           .then(data => {
             allPhotos = data;
             resetQueue();
-            console.log(`✅ Loaded ${allPhotos.length} photos from ${category}`);
             loadInitialPhotos();
             
-            // Fade in the results after a short delay
             setTimeout(() => {
               document.getElementById('results').classList.add('fade-in');
             }, 100);
           })
           .catch(err => {
-            console.error(`Error loading ${jsonFile}:`, err);
             document.getElementById("loading").innerHTML = `<p>Error loading ${category} photos. Please refresh the page.</p>`;
           });
-      }, 800); // Match the CSS transition duration
+      }, 800);
     }
 
     function backToCategories() {
       const resultsDiv = document.getElementById('results');
       
-      // Fade out current view
       resultsDiv.classList.remove('fade-in');
       
       setTimeout(() => {
-        // Hide portfolio elements
         document.getElementById('back-btn').style.display = 'none';
         document.getElementById('about-btn').style.display = 'inline-block';
         document.getElementById('load-more-btn').classList.remove('visible');
         document.getElementById('organize-btn').classList.remove('visible');
         
-        // Clear current photos
         resultsDiv.innerHTML = '';
         imagesData = [];
         loadedCount = 0;
         zIndexCounter = 1;
         isOrganized = false;
-        mobileScrollSetup = false; // Reset mobile scroll setup
+        mobileScrollSetup = false;
         
-        // Reset and show category screen
         const categoryScreen = document.getElementById('category-screen');
         categoryScreen.classList.remove('fade-out');
         categoryScreen.classList.remove('hidden');
         document.body.classList.add('category-view');
         
-        // Reset organize button text
         document.getElementById('organize-btn').textContent = 'Organize';
       }, 800);
     }
@@ -637,7 +646,6 @@
       
       const isMobile = window.innerWidth <= 768;
       if (isMobile) {
-        // Don't show More button on mobile - using infinite scroll
         setupMobileVerticalScroll();
       } else {
         document.getElementById("load-more-btn").classList.add("visible");
@@ -652,21 +660,22 @@
       const resultsDiv = document.getElementById("results");
       const isMobile = window.innerWidth <= 768;
       
-      // For mobile vertical scrolling: use varying widths to create mosaic effect
-      // Widths are percentages of viewport width
       const mobileWidths = [
-        window.innerWidth * 0.45,  // Small
-        window.innerWidth * 0.6,   // Medium
-        window.innerWidth * 0.55,  // Medium-small
-        window.innerWidth * 0.48,  // Small-medium
-        window.innerWidth * 0.65,  // Large
-        window.innerWidth * 0.52,  // Medium
-        window.innerWidth * 0.58,  // Medium-large
-        window.innerWidth * 0.50   // Medium
+        window.innerWidth * 0.32,
+        window.innerWidth * 0.48,
+        window.innerWidth * 0.38,
+        window.innerWidth * 0.30,
+        window.innerWidth * 0.52,
+        window.innerWidth * 0.42,
+        window.innerWidth * 0.35,
+        window.innerWidth * 0.45,
+        window.innerWidth * 0.40,
+        window.innerWidth * 0.33,
+        window.innerWidth * 0.50,
+        window.innerWidth * 0.36
       ];
       
       selected.forEach((src, index) => {
-        // Stagger each image load by 200ms for mobile, 300ms for desktop
         const staggerDelay = isMobile ? 200 : 300;
         setTimeout(() => {
           const img = new Image();
@@ -675,18 +684,14 @@
           img.loading = "eager";
           img.tabIndex = 0;
           img.setAttribute('role', 'img');
-          
-          console.log(`🔄 Starting to load image ${index + 1}:`, src);
 
           img.onload = () => {
             loadedCount++;
-            console.log(`✓ Image ${loadedCount} loaded successfully`);
 
             const wrapper = document.createElement('div');
             wrapper.className = 'image-wrapper';
             
             if (isMobile) {
-              // Mobile: vertical scrolling mosaic with varying widths
               const width = mobileWidths[index % mobileWidths.length];
               const aspectRatio = img.naturalWidth / img.naturalHeight;
               const height = width / aspectRatio;
@@ -702,7 +707,6 @@
               
               imagesData.push({wrapper, img, width, height});
             } else {
-              // Desktop: random scattered layout
               const resizeHandle = document.createElement('div');
               resizeHandle.className = 'resize-handle';
               wrapper.appendChild(resizeHandle);
@@ -738,31 +742,21 @@
           };
 
           img.onerror = (e) => {
-            console.error("❌ Failed to load image:", src);
-            console.error("Error event:", e);
-            
             img.dataset.retryCount = img.dataset.retryCount ? parseInt(img.dataset.retryCount) + 1 : 1;
             
             if (img.dataset.retryCount <= 2) {
               const retryDelay = img.dataset.retryCount * 3000;
-              console.log(`⏳ Retry attempt ${img.dataset.retryCount} in ${retryDelay}ms`);
               
               setTimeout(() => {
-                console.log(`🔄 Retrying image load (attempt ${img.dataset.retryCount}):`, src);
                 const timestamp = new Date().getTime();
                 img.src = src + '?t=' + timestamp;
               }, retryDelay);
-            } else {
-              console.error("⚠️ Image failed after 2 retries:", src);
-              console.error("This may be a Cloudflare rate limit or invalid URL");
             }
           };
           
           const timeoutDuration = 30000;
           const timeoutId = setTimeout(() => {
             if (!img.complete || img.naturalWidth === 0) {
-              console.warn("⏱️ Image loading timeout (" + timeoutDuration/1000 + "s):", src);
-              console.warn("Image may be too large or Cloudflare may be rate limiting");
               img.onerror(new Error('Timeout'));
             }
           }, timeoutDuration);
@@ -785,10 +779,8 @@
       loadMoreBtn.disabled = true;
       loadMoreBtn.textContent = "...";
       
-      // Fade out
       resultsDiv.classList.remove('fade-in');
       
-      // Reset organize state if desktop
       if (!isMobile) {
         isOrganized = false;
         organizeBtn.textContent = "Organize";
@@ -800,7 +792,7 @@
         loadedCount = 0;
         zIndexCounter = 1;
         
-        const batchSize = isMobile ? 12 : 10;
+        const batchSize = isMobile ? 18 : 10;
         const batch = getNextBatch(batchSize);
         addImages(batch);
         
@@ -818,28 +810,46 @@
       
       const resultsDiv = document.getElementById("results");
       
+      let isScrolling = false;
+      let scrollTimeout;
+      
       resultsDiv.addEventListener('scroll', () => {
         const scrollTop = resultsDiv.scrollTop;
         const scrollHeight = resultsDiv.scrollHeight;
         const clientHeight = resultsDiv.clientHeight;
         
-        // Load more when within 800px of the bottom
-        if (scrollTop + clientHeight >= scrollHeight - 800) {
+        clearTimeout(scrollTimeout);
+        
+        isScrolling = true;
+        
+        scrollTimeout = setTimeout(() => {
+          isScrolling = false;
+        }, 150);
+        
+        if (scrollTop + clientHeight >= scrollHeight - 1000) {
           loadMoreMobileImages();
         }
       });
+      
+      let startY = 0;
+      let currentY = 0;
+      
+      resultsDiv.addEventListener('touchstart', (e) => {
+        startY = e.touches[0].clientY;
+      }, { passive: true });
+      
+      resultsDiv.addEventListener('touchmove', (e) => {
+        currentY = e.touches[0].clientY;
+      }, { passive: true });
     }
 
     function loadMoreMobileImages() {
       if (isLoadingMore) return;
       isLoadingMore = true;
       
-      console.log('📱 Loading more mobile images...');
-      
-      const batch = getNextBatch(6);
+      const batch = getNextBatch(9);
       addImages(batch);
       
-      // Reset loading flag after images start loading
       setTimeout(() => { 
         isLoadingMore = false; 
       }, 1000);
@@ -971,7 +981,6 @@
       const lightboxClose = document.getElementById("lightbox-close");
       const isMobile = window.innerWidth <= 768;
 
-      // Desktop: double-click, Mobile: single tap
       const eventType = isMobile ? "click" : "dblclick";
       
       img.addEventListener(eventType, () => {
@@ -1020,12 +1029,10 @@
       const organizeBtn = document.getElementById("organize-btn");
       
       if (isOrganized) {
-        // Return to scattered layout
         organizeBtn.textContent = "Organize";
         explodeImages();
         isOrganized = false;
       } else {
-        // Organize into grid
         organizeBtn.textContent = "Explode";
         organizeImages();
         isOrganized = true;
@@ -1047,30 +1054,24 @@
         const col = index % cols;
         const row = Math.floor(index / cols);
         
-        // Calculate cell position
         const cellX = 50 + (col * cellWidth);
         const cellY = 50 + (row * cellHeight);
         
-        // Scale image to fit cell while maintaining aspect ratio
         const imgAspect = data.img.naturalWidth / data.img.naturalHeight;
         const cellAspect = cellWidth / cellHeight;
         
         let newWidth, newHeight;
         if (imgAspect > cellAspect) {
-          // Image is wider than cell
           newWidth = cellWidth * 0.9;
           newHeight = newWidth / imgAspect;
         } else {
-          // Image is taller than cell
           newHeight = cellHeight * 0.9;
           newWidth = newHeight * imgAspect;
         }
         
-        // Center image in cell
         const x = cellX + (cellWidth - newWidth) / 2;
         const y = cellY + (cellHeight - newHeight) / 2;
         
-        // Store original position before organizing
         if (!data.originalLeft) {
           data.originalLeft = data.wrapper.style.left;
           data.originalTop = data.wrapper.style.top;
@@ -1078,7 +1079,6 @@
           data.originalHeight = data.img.style.height;
         }
         
-        // Apply grid position with animation
         data.wrapper.style.left = x + "px";
         data.wrapper.style.top = y + "px";
         data.wrapper.style.width = newWidth + "px";
@@ -1089,7 +1089,6 @@
     }
 
     function explodeImages() {
-      // Restore original positions
       imagesData.forEach(data => {
         if (data.originalLeft) {
           data.wrapper.style.left = data.originalLeft;
