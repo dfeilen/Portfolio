@@ -78,13 +78,10 @@
     }
 
     /* Hide main UI initially */
-    body.category-view #about-btn,
-    body.category-view #load-more-btn,
-    body.category-view #organize-btn,
+    body.category-view #button-container,
     body.category-view #df-logo,
     body.category-view #results,
-    body.category-view #loading,
-    body.category-view #back-btn {
+    body.category-view #loading {
       display: none;
     }
 
@@ -123,13 +120,24 @@
       100% { transform: rotate(360deg); }
     }
 
-    /* About button */
-    #about-btn {
+    /* Button container for desktop */
+    #button-container {
       position: fixed;
       top: 20px;
-      left: 20px;
-      padding: 10px 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 12px;
       z-index: 300;
+      align-items: center;
+    }
+
+    /* Shared button styles */
+    #about-btn,
+    #back-btn,
+    #organize-btn,
+    #load-more-btn {
+      padding: 10px 20px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
       font-weight: 600;
       font-size: 16px;
@@ -140,103 +148,42 @@
       border-radius: 20px;
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
-      transition: background 0.2s ease;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    #about-btn {
       text-decoration: none;
       display: inline-block;
     }
 
-    /* Back button */
     #back-btn {
-      position: fixed;
-      top: 20px;
-      left: 20px;
-      padding: 10px 20px;
-      z-index: 300;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
-      font-weight: 600;
-      font-size: 16px;
-      background: rgba(0, 0, 0, 0.8);
-      color: white;
-      border: none;
-      cursor: pointer;
-      border-radius: 20px;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      transition: background 0.2s ease;
       display: none;
     }
 
-    #back-btn:hover {
-      background: rgba(0, 0, 0, 0.9);
-    }
-
-    #back-btn:focus {
-      outline: none;
-    }
-
-    /* Desktop - center About and Back buttons with others */
-    @media (min-width: 769px) {
-      #about-btn {
-        left: 50%;
-        transform: translateX(-200%);
-        margin-left: -40px;
-      }
-
-      #back-btn {
-        left: 50%;
-        transform: translateX(-300%);
-        margin-left: -60px;
-      }
-    }
-
-    /* Mobile - hide About when Back is showing */
-    @media (max-width: 768px) {
-      body:not(.category-view) #about-btn {
-        display: none;
-      }
-    }
-
-    #about-btn:hover {
-      background: rgba(0, 0, 0, 0.9);
-    }
-
-    #about-btn:focus {
-      outline: 2px solid rgba(0, 0, 0, 0.5);
-      outline-offset: 2px;
-    }
-
-    /* Load More button (top-center) */
+    #organize-btn,
     #load-more-btn {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(20px);
-      padding: 10px 20px;
-      z-index: 300;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
-      font-weight: 600;
-      font-size: 16px;
-      background: rgba(0, 0, 0, 0.8);
-      color: white;
-      border: none;
-      cursor: pointer;
-      border-radius: 20px;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      transition: background 0.2s ease;
       display: none;
     }
 
+    #organize-btn.visible,
+    #load-more-btn.visible {
+      display: block;
+    }
+
+    #about-btn:hover,
+    #back-btn:hover,
+    #organize-btn:hover,
     #load-more-btn:hover {
       background: rgba(0, 0, 0, 0.9);
     }
 
+    #about-btn:focus,
+    #back-btn:focus,
+    #organize-btn:focus,
     #load-more-btn:focus {
-      outline: none;
-    }
-
-    #load-more-btn.visible {
-      display: block;
+      outline: 2px solid rgba(0, 0, 0, 0.5);
+      outline-offset: 2px;
     }
 
     #load-more-btn:disabled {
@@ -244,39 +191,51 @@
       cursor: not-allowed;
     }
 
-    /* Organize button (top-center, left of More) */
-    #organize-btn {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-100%);
-      margin-left: -20px;
-      padding: 10px 20px;
-      z-index: 300;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
-      font-weight: 600;
-      font-size: 16px;
-      background: rgba(0, 0, 0, 0.8);
-      color: white;
-      border: none;
-      cursor: pointer;
-      border-radius: 20px;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      transition: background 0.2s ease;
-      display: none;
-    }
+    /* Mobile - separate positioning */
+    @media (max-width: 768px) {
+      #button-container {
+        position: static;
+        transform: none;
+        display: block;
+      }
 
-    #organize-btn:hover {
-      background: rgba(0, 0, 0, 0.9);
-    }
+      #about-btn,
+      #back-btn {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 1001;
+        padding: 8px 16px;
+        font-size: 15px;
+        border-radius: 18px;
+        background: rgba(0, 0, 0, 0.75);
+      }
 
-    #organize-btn:focus {
-      outline: none;
-    }
+      body:not(.category-view) #about-btn {
+        display: none;
+      }
 
-    #organize-btn.visible {
-      display: block;
+      #back-btn {
+        display: none;
+      }
+
+      body:not(.category-view) #back-btn {
+        display: block;
+      }
+
+      #load-more-btn {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 8px 16px;
+        font-size: 15px;
+        border-radius: 18px;
+        z-index: 1001;
+      }
+
+      #organize-btn {
+        display: none !important;
+      }
     }
 
     .image-wrapper {
@@ -548,10 +507,12 @@
     <button class="category-btn" data-category="shuffle">Shuffle</button>
   </div>
 
-  <button id="back-btn" aria-label="Back to categories">← Back</button>
-  <a href="about.html" id="about-btn" aria-label="About this portfolio">About</a>
-  <button id="load-more-btn" aria-label="Load more photos">More</button>
-  <button id="organize-btn" aria-label="Organize photos">Organize</button>
+  <div id="button-container">
+    <button id="back-btn" aria-label="Back to categories">← Back</button>
+    <a href="about.html" id="about-btn" aria-label="About this portfolio">About</a>
+    <button id="organize-btn" aria-label="Organize photos">Organize</button>
+    <button id="load-more-btn" aria-label="Load more photos">More</button>
+  </div>
   <div id="df-logo">DF</div>
 
   <div id="loading" role="status" aria-live="polite">
@@ -621,8 +582,15 @@
         categoryScreen.classList.add('hidden');
         document.body.classList.remove('category-view');
         
-        // Show back button
-        document.getElementById('back-btn').style.display = 'block';
+        // Show back button, hide about button (desktop)
+        const isMobile = window.innerWidth <= 768;
+        if (!isMobile) {
+          document.getElementById('back-btn').style.display = 'block';
+          document.getElementById('about-btn').style.display = 'none';
+        } else {
+          document.getElementById('back-btn').style.display = 'block';
+          document.getElementById('about-btn').style.display = 'none';
+        }
         
         // Show loading
         document.getElementById("loading").style.display = "block";
@@ -664,6 +632,7 @@
       setTimeout(() => {
         // Hide portfolio elements
         document.getElementById('back-btn').style.display = 'none';
+        document.getElementById('about-btn').style.display = 'inline-block';
         document.getElementById('load-more-btn').classList.remove('visible');
         document.getElementById('organize-btn').classList.remove('visible');
         
