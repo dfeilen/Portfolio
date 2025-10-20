@@ -84,8 +84,7 @@
     body.category-view #df-logo,
     body.category-view #results,
     body.category-view #loading,
-    body.category-view #back-btn,
-    body.category-view #mobile-welcome {
+    body.category-view #back-btn {
       display: none;
     }
 
@@ -431,61 +430,10 @@
       display: none;
     }
 
-    /* Mobile welcome popup */
-    #mobile-welcome {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 2000;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-      box-sizing: border-box;
-    }
-
-    #mobile-welcome-content {
-      background: #fff;
-      padding: 24px;
-      border-radius: 16px;
-      max-width: 340px;
-      width: 100%;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
-      text-align: center;
-    }
-
-    #mobile-welcome-content p {
-      margin: 0 0 20px 0;
-      font-size: 15px;
-      line-height: 1.5;
-      color: #333;
-    }
-
-    #mobile-welcome-btn {
-      background: rgba(0, 0, 0, 0.8);
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 20px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      width: 100%;
-    }
-
-    #mobile-welcome-btn:active {
-      background: rgba(0, 0, 0, 0.9);
-    }
-
     /* Mobile gallery view */
     @media (max-width: 768px) {
       body {
-        background: #fff;
+        background: #fafafa;
       }
 
       .category-btn {
@@ -499,50 +447,24 @@
       }
 
       #results {
-        display: flex;
-        flex-direction: column;
-        overflow-x: hidden;
-        overflow-y: scroll;
-        scroll-snap-type: y mandatory;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-        background: #fff;
+        width: 100%;
         height: 100vh;
-        scroll-behavior: smooth;
+        position: relative;
+        overflow: hidden;
       }
 
-      #results::-webkit-scrollbar {
-        display: none;
+      .image-wrapper {
+        position: absolute;
       }
 
       #results img {
-        position: relative;
-        flex-shrink: 0;
-        width: 100vw;
-        height: 100vh;
-        max-width: 100vw;
-        object-fit: contain;
-        scroll-snap-align: start;
-        scroll-snap-stop: always;
-        box-sizing: border-box;
+        position: absolute;
         cursor: default;
-        left: auto !important;
-        top: auto !important;
-        animation: none;
-        opacity: 1;
-        box-shadow: none;
-        padding: 20px;
+        pointer-events: auto;
       }
 
-      #results.zoomed {
-        overflow: hidden;
-        scroll-snap-type: none;
-      }
-
-      #results img.zoomed {
-        object-fit: cover;
-        cursor: zoom-out;
-        z-index: 1000;
+      .resize-handle {
+        display: none;
       }
 
       #mobile-indicator {
@@ -600,6 +522,10 @@
         font-size: 15px;
         border-radius: 18px;
         z-index: 1001;
+        position: fixed;
+        top: auto;
+        left: auto;
+        transform: none;
       }
 
       #organize-btn {
@@ -637,13 +563,6 @@
     <img id="lightbox-img" alt="" />
   </div>
 
-  <div id="mobile-welcome">
-    <div id="mobile-welcome-content">
-      <p>Hi! This portfolio is best experienced on a desktop or a screen larger than the one you're viewing it on. This is a simplified mobile version, but still gives you random images as you scroll.</p>
-      <button id="mobile-welcome-btn">Got it!</button>
-    </div>
-  </div>
-
   <script>
     let allPhotos = [];
     let photoQueue = [];
@@ -652,7 +571,7 @@
     const topBuffer = 60;
     let loadedCount = 0;
     const isMobileDevice = window.innerWidth <= 768;
-    const initialLoadCount = isMobileDevice ? 5 : 10;
+    const initialLoadCount = isMobileDevice ? 4 : 10;
     let isLoadingMore = false;
     let isOrganized = false;
     let currentCategory = null;
@@ -750,12 +669,6 @@
         zIndexCounter = 1;
         isOrganized = false;
         
-        // Close mobile welcome if open
-        const mobileWelcome = document.getElementById('mobile-welcome');
-        if (mobileWelcome) {
-          mobileWelcome.style.display = 'none';
-        }
-        
         // Reset and show category screen
         const categoryScreen = document.getElementById('category-screen');
         categoryScreen.classList.remove('fade-out');
@@ -766,9 +679,6 @@
         document.getElementById('organize-btn').textContent = 'Organize';
       }, 800);
     }
-
-    // Remove the old auto-load fetch
-    // fetch("photos.json")...
 
     function resetQueue() {
       photoQueue = shuffleArray([...allPhotos]);
@@ -786,8 +696,7 @@
       
       const isMobile = window.innerWidth <= 768;
       if (isMobile) {
-        showMobileWelcome();
-        // Show More button on mobile after category selection
+        // Show More button on mobile
         document.getElementById("load-more-btn").classList.add("visible");
       } else {
         document.getElementById("load-more-btn").classList.add("visible");
@@ -796,23 +705,6 @@
       
       const batch = getNextBatch(initialLoadCount);
       addImages(batch);
-    }
-
-    function showMobileWelcome() {
-      const welcomePopup = document.getElementById("mobile-welcome");
-      const welcomeBtn = document.getElementById("mobile-welcome-btn");
-      
-      welcomePopup.style.display = "flex";
-      
-      welcomeBtn.onclick = () => {
-        welcomePopup.style.display = "none";
-      };
-      
-      welcomePopup.onclick = (e) => {
-        if (e.target === welcomePopup) {
-          welcomePopup.style.display = "none";
-        }
-      };
     }
 
     function addImages(selected) {
@@ -825,12 +717,7 @@
           const img = new Image();
           img.src = src;
           img.alt = `Photography by Devin Feilen`;
-          // Don't use lazy loading for desktop since images are absolutely positioned
-          if (isMobile) {
-            img.loading = "lazy";
-          } else {
-            img.loading = "eager";
-          }
+          img.loading = "eager";
           img.tabIndex = 0;
           img.setAttribute('role', 'img');
           
@@ -840,51 +727,50 @@
             loadedCount++;
             console.log(`✓ Image ${loadedCount} loaded successfully`);
 
+            const wrapper = document.createElement('div');
+            wrapper.className = 'image-wrapper';
+            
             if (!isMobile) {
-              const wrapper = document.createElement('div');
-              wrapper.className = 'image-wrapper';
-              
               const resizeHandle = document.createElement('div');
               resizeHandle.className = 'resize-handle';
-
-              const maxDim = Math.min(window.innerWidth * 0.8, window.innerHeight * 0.8, 500);
-              let scale = Math.min(maxDim / img.naturalWidth, maxDim / img.naturalHeight, 1);
-              
-              const width = img.naturalWidth * scale;
-              const height = img.naturalHeight * scale;
-              
-              img.style.width = width + "px";
-              img.style.height = height + "px";
-              wrapper.style.width = width + "px";
-              wrapper.style.height = height + "px";
-
-              const maxX = window.innerWidth - width;
-              const maxY = window.innerHeight - height - topBuffer;
-              const x = Math.random() * maxX;
-              const y = Math.random() * maxY + topBuffer;
-              
-              wrapper.style.left = x + "px";
-              wrapper.style.top = y + "px";
-              wrapper.style.zIndex = zIndexCounter++;
-
-              wrapper.appendChild(img);
               wrapper.appendChild(resizeHandle);
-
-              makeDraggable(wrapper, img);
               makeResizable(wrapper, img, resizeHandle);
-              makeExpandable(img);
-              
-              resultsDiv.appendChild(wrapper);
-
-              imagesData.push({wrapper, img, width, height, relX: x / maxX, relY: (y - topBuffer) / maxY});
-            } else {
-              resultsDiv.appendChild(img);
             }
 
-            if (isMobile && !resultsDiv.hasAttribute('data-scroll-setup')) {
-              setupMobileInfiniteScroll();
-              resultsDiv.setAttribute('data-scroll-setup', 'true');
+            // Scale images appropriately for mobile vs desktop
+            const maxDim = isMobile ? 
+              Math.min(window.innerWidth * 0.7, window.innerHeight * 0.5, 300) :
+              Math.min(window.innerWidth * 0.8, window.innerHeight * 0.8, 500);
+            
+            let scale = Math.min(maxDim / img.naturalWidth, maxDim / img.naturalHeight, 1);
+            
+            const width = img.naturalWidth * scale;
+            const height = img.naturalHeight * scale;
+            
+            img.style.width = width + "px";
+            img.style.height = height + "px";
+            wrapper.style.width = width + "px";
+            wrapper.style.height = height + "px";
+
+            const maxX = window.innerWidth - width;
+            const maxY = window.innerHeight - height - topBuffer;
+            const x = Math.random() * maxX;
+            const y = Math.random() * maxY + topBuffer;
+            
+            wrapper.style.left = x + "px";
+            wrapper.style.top = y + "px";
+            wrapper.style.zIndex = zIndexCounter++;
+
+            wrapper.appendChild(img);
+
+            if (!isMobile) {
+              makeDraggable(wrapper, img);
             }
+            makeExpandable(img);
+            
+            resultsDiv.appendChild(wrapper);
+
+            imagesData.push({wrapper, img, width, height, relX: x / maxX, relY: (y - topBuffer) / maxY});
           };
 
           img.onerror = (e) => {
@@ -937,6 +823,7 @@
       const loadMoreBtn = document.getElementById("load-more-btn");
       const organizeBtn = document.getElementById("organize-btn");
       const resultsDiv = document.getElementById("results");
+      const isMobile = window.innerWidth <= 768;
       
       loadMoreBtn.disabled = true;
       loadMoreBtn.textContent = "...";
@@ -944,9 +831,11 @@
       // Fade out
       resultsDiv.classList.remove('fade-in');
       
-      // Reset organize state
-      isOrganized = false;
-      organizeBtn.textContent = "Organize";
+      // Reset organize state if desktop
+      if (!isMobile) {
+        isOrganized = false;
+        organizeBtn.textContent = "Organize";
+      }
       
       setTimeout(() => {
         resultsDiv.innerHTML = "";
@@ -954,7 +843,8 @@
         loadedCount = 0;
         zIndexCounter = 1;
         
-        const batch = getNextBatch(10);
+        const batchSize = isMobile ? 4 : 10;
+        const batch = getNextBatch(batchSize);
         addImages(batch);
         
         setTimeout(() => {
@@ -963,70 +853,6 @@
           loadMoreBtn.textContent = "More";
         }, 300);
       }, 800);
-    }
-
-    function setupMobileInfiniteScroll() {
-      const resultsDiv = document.getElementById("results");
-      
-      resultsDiv.addEventListener('scroll', () => {
-        const scrollTop = resultsDiv.scrollTop;
-        const scrollHeight = resultsDiv.scrollHeight;
-        const clientHeight = resultsDiv.clientHeight;
-        
-        if (scrollTop + clientHeight >= scrollHeight - (clientHeight * 2)) {
-          loadMoreMobileImages();
-        }
-      });
-    }
-
-    function loadMoreMobileImages() {
-      if (isLoadingMore) return;
-      isLoadingMore = true;
-      
-      const batch = getNextBatch(2);
-      const resultsDiv = document.getElementById("results");
-      
-      batch.forEach((src, index) => {
-        setTimeout(() => {
-          const img = new Image();
-          img.src = src;
-          img.alt = `Photography by Devin Feilen`;
-          img.loading = "lazy";
-          img.tabIndex = 0;
-          img.setAttribute('role', 'img');
-          
-          console.log(`🔄 Loading mobile image:`, src);
-          
-          img.onload = () => {
-            loadedCount++;
-            resultsDiv.appendChild(img);
-            console.log(`✓ Mobile image ${loadedCount} loaded successfully`);
-          };
-
-          img.onerror = (e) => {
-            console.error("❌ Failed to load mobile image:", src);
-            console.error("Error event:", e);
-            
-            // Mark for retry
-            img.dataset.retryCount = img.dataset.retryCount ? parseInt(img.dataset.retryCount) + 1 : 1;
-            
-            // Retry up to 2 times
-            if (img.dataset.retryCount <= 2) {
-              const retryDelay = img.dataset.retryCount * 3000;
-              console.log(`⏳ Mobile retry attempt ${img.dataset.retryCount} in ${retryDelay}ms`);
-              
-              setTimeout(() => {
-                console.log(`🔄 Retrying mobile image (attempt ${img.dataset.retryCount}):`, src);
-                img.src = src;
-              }, retryDelay);
-            } else {
-              console.error("⚠️ Mobile image failed after 2 retries:", src);
-            }
-          };
-        }, index * 500);
-      });
-      
-      setTimeout(() => { isLoadingMore = false; }, 1500);
     }
 
     function makeDraggable(wrapper, img) {
@@ -1153,8 +979,12 @@
       const lightbox = document.getElementById("lightbox");
       const lightboxImg = document.getElementById("lightbox-img");
       const lightboxClose = document.getElementById("lightbox-close");
+      const isMobile = window.innerWidth <= 768;
 
-      img.addEventListener("dblclick", () => {
+      // Desktop: double-click, Mobile: single tap
+      const eventType = isMobile ? "click" : "dblclick";
+      
+      img.addEventListener(eventType, () => {
         lightboxImg.src = img.src;
         lightboxImg.alt = img.alt;
         lightbox.style.display = "flex";
