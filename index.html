@@ -31,7 +31,7 @@
       justify-content: center;
       align-items: center;
       z-index: 5000;
-      gap: 20px;
+      gap: 30px;
       opacity: 1;
       transition: opacity 0.8s ease;
     }
@@ -53,24 +53,23 @@
     }
 
     .category-btn {
-      padding: 20px 50px;
+      padding: 14px 36px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
       font-weight: 600;
-      font-size: 24px;
-      background: rgba(0, 0, 0, 0.9);
-      color: white;
-      border: none;
+      font-size: 18px;
+      background: transparent;
+      color: #000;
+      border: 2px solid #000;
       cursor: pointer;
       border-radius: 30px;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      transition: all 0.2s ease;
-      min-width: 250px;
+      transition: all 0.3s ease;
+      min-width: 200px;
     }
 
     .category-btn:hover {
-      background: rgba(0, 0, 0, 1);
-      transform: scale(1.05);
+      background: #000;
+      color: #fff;
+      transform: scale(1.02);
     }
 
     .category-btn:focus {
@@ -347,33 +346,41 @@
       body {
         background: #fafafa;
         overflow: hidden;
-        position: fixed;
         width: 100%;
         height: 100vh;
       }
 
       .category-btn {
-        font-size: 20px;
-        padding: 16px 40px;
-        min-width: 200px;
+        font-size: 16px;
+        padding: 12px 32px;
+        min-width: 180px;
+      }
+
+      #category-screen {
+        gap: 24px;
       }
 
       #category-screen h1 {
         font-size: 36px;
       }
 
+      #category-screen {
+        gap: 24px;
+      }
+
       #results {
         width: 100%;
         height: 100vh;
         position: relative;
-        overflow-x: auto;
-        overflow-y: hidden;
+        overflow-x: hidden;
+        overflow-y: auto;
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
         flex-wrap: wrap;
         align-content: flex-start;
+        justify-content: center;
         gap: 8px;
-        padding: 60px 20px 20px 20px;
+        padding: 60px 8px 60px 8px;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
       }
@@ -386,7 +393,7 @@
         position: relative;
         flex-shrink: 0;
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: center;
       }
 
@@ -397,7 +404,6 @@
         display: block;
         border-radius: 6px;
         box-shadow: 0 3px 12px rgba(0,0,0,0.2);
-        object-fit: cover;
         opacity: 0;
         animation: fadeIn 0.3s ease forwards;
       }
@@ -632,7 +638,7 @@
       const isMobile = window.innerWidth <= 768;
       if (isMobile) {
         // Don't show More button on mobile - using infinite scroll
-        setupMobileHorizontalScroll();
+        setupMobileVerticalScroll();
       } else {
         document.getElementById("load-more-btn").classList.add("visible");
         document.getElementById("organize-btn").classList.add("visible");
@@ -646,18 +652,17 @@
       const resultsDiv = document.getElementById("results");
       const isMobile = window.innerWidth <= 768;
       
-      // For mobile: use varying heights to create mosaic effect with larger images
-      // Heights range from 180px to full viewport height minus padding
-      const viewportHeight = window.innerHeight - 120; // Account for top/bottom padding
-      const mobileHeights = [
-        viewportHeight * 0.35,  // Small
-        viewportHeight * 0.5,   // Medium
-        viewportHeight * 0.65,  // Large
-        viewportHeight * 0.45,  // Medium-small
-        viewportHeight * 0.7,   // Extra large
-        viewportHeight * 0.4,   // Small-medium
-        viewportHeight * 0.6,   // Large-medium
-        viewportHeight * 0.55   // Medium-large
+      // For mobile vertical scrolling: use varying widths to create mosaic effect
+      // Widths are percentages of viewport width
+      const mobileWidths = [
+        window.innerWidth * 0.45,  // Small
+        window.innerWidth * 0.6,   // Medium
+        window.innerWidth * 0.55,  // Medium-small
+        window.innerWidth * 0.48,  // Small-medium
+        window.innerWidth * 0.65,  // Large
+        window.innerWidth * 0.52,  // Medium
+        window.innerWidth * 0.58,  // Medium-large
+        window.innerWidth * 0.50   // Medium
       ];
       
       selected.forEach((src, index) => {
@@ -681,15 +686,15 @@
             wrapper.className = 'image-wrapper';
             
             if (isMobile) {
-              // Mobile: horizontal mosaic with varying heights in multiple rows
-              const height = mobileHeights[index % mobileHeights.length];
+              // Mobile: vertical scrolling mosaic with varying widths
+              const width = mobileWidths[index % mobileWidths.length];
               const aspectRatio = img.naturalWidth / img.naturalHeight;
-              const width = height * aspectRatio;
+              const height = width / aspectRatio;
               
-              img.style.height = height + "px";
               img.style.width = width + "px";
-              wrapper.style.height = height + "px";
+              img.style.height = height + "px";
               wrapper.style.width = width + "px";
+              wrapper.style.height = height + "px";
               
               wrapper.appendChild(img);
               makeExpandable(img);
@@ -807,19 +812,19 @@
       }, 800);
     }
 
-    function setupMobileHorizontalScroll() {
+    function setupMobileVerticalScroll() {
       if (mobileScrollSetup) return;
       mobileScrollSetup = true;
       
       const resultsDiv = document.getElementById("results");
       
       resultsDiv.addEventListener('scroll', () => {
-        const scrollLeft = resultsDiv.scrollLeft;
-        const scrollWidth = resultsDiv.scrollWidth;
-        const clientWidth = resultsDiv.clientWidth;
+        const scrollTop = resultsDiv.scrollTop;
+        const scrollHeight = resultsDiv.scrollHeight;
+        const clientHeight = resultsDiv.clientHeight;
         
-        // Load more when within 800px of the right edge (increased from 500px for larger images)
-        if (scrollLeft + clientWidth >= scrollWidth - 800) {
+        // Load more when within 800px of the bottom
+        if (scrollTop + clientHeight >= scrollHeight - 800) {
           loadMoreMobileImages();
         }
       });
