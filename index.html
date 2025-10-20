@@ -191,53 +191,6 @@
       cursor: not-allowed;
     }
 
-    /* Mobile - separate positioning */
-    @media (max-width: 768px) {
-      #button-container {
-        position: static;
-        transform: none;
-        display: block;
-      }
-
-      #about-btn,
-      #back-btn {
-        position: fixed;
-        top: 12px;
-        left: 12px;
-        z-index: 1001;
-        padding: 8px 16px;
-        font-size: 15px;
-        border-radius: 18px;
-        background: rgba(0, 0, 0, 0.75);
-      }
-
-      body:not(.category-view) #about-btn {
-        display: none;
-      }
-
-      #back-btn {
-        display: none;
-      }
-
-      body:not(.category-view) #back-btn {
-        display: block;
-      }
-
-      #load-more-btn {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        padding: 8px 16px;
-        font-size: 15px;
-        border-radius: 18px;
-        z-index: 1001;
-      }
-
-      #organize-btn {
-        display: none !important;
-      }
-    }
-
     .image-wrapper {
       transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     }
@@ -413,18 +366,35 @@
         width: 100%;
         height: 100vh;
         position: relative;
-        overflow: hidden;
-        touch-action: none;
+        overflow-x: auto;
+        overflow-y: hidden;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 12px;
+        padding: 0 20px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+      }
+
+      #results::-webkit-scrollbar {
+        display: none;
       }
 
       .image-wrapper {
-        position: absolute;
+        position: relative;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
       }
 
       #results img {
-        position: absolute;
+        position: relative;
         cursor: default;
         pointer-events: auto;
+        display: block;
+        border-radius: 4px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
       }
 
       .resize-handle {
@@ -435,65 +405,49 @@
         display: none;
       }
       
-      #about-btn {
-        padding: 8px 16px;
-        font-size: 15px;
+      /* Mobile - separate positioning */
+      #button-container {
+        position: static;
+        transform: none;
+        display: block;
+      }
+
+      #about-btn,
+      #back-btn {
+        position: fixed;
         top: 12px;
         left: 12px;
-        background: rgba(0, 0, 0, 0.75);
-        color: white;
         z-index: 1001;
+        padding: 8px 16px;
+        font-size: 15px;
         border-radius: 18px;
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
+        background: rgba(0, 0, 0, 0.75);
       }
 
-      #about-btn:hover {
-        background: rgba(0, 0, 0, 0.85);
-      }
-
-      #about-btn:focus {
-        outline: none;
+      body:not(.category-view) #about-btn {
+        display: none;
       }
 
       #back-btn {
-        padding: 8px 16px;
-        font-size: 15px;
-        top: 12px;
-        left: 12px;
-        background: rgba(0, 0, 0, 0.75);
-        color: white;
-        z-index: 1001;
-        border-radius: 18px;
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
+        display: none;
       }
 
-      #back-btn:hover {
-        background: rgba(0, 0, 0, 0.85);
+      body:not(.category-view) #back-btn {
+        display: block;
+      }
+
+      #load-more-btn {
+        display: none !important;
+      }
+
+      #organize-btn {
+        display: none !important;
       }
 
       #df-logo {
         top: 12px;
         right: 12px;
         font-size: 28px;
-      }
-
-      #load-more-btn {
-        bottom: 20px;
-        right: 20px;
-        padding: 8px 16px;
-        font-size: 15px;
-        border-radius: 18px;
-        z-index: 1001;
-        position: fixed;
-        top: auto;
-        left: auto;
-        transform: none;
-      }
-
-      #organize-btn {
-        display: none !important;
       }
     }
   </style>
@@ -537,10 +491,11 @@
     const topBuffer = 60;
     let loadedCount = 0;
     const isMobileDevice = window.innerWidth <= 768;
-    const initialLoadCount = isMobileDevice ? 4 : 10;
+    const initialLoadCount = isMobileDevice ? 8 : 10;
     let isLoadingMore = false;
     let isOrganized = false;
     let currentCategory = null;
+    let mobileScrollSetup = false;
 
     // Category selection
     document.addEventListener('DOMContentLoaded', () => {
@@ -642,6 +597,7 @@
         loadedCount = 0;
         zIndexCounter = 1;
         isOrganized = false;
+        mobileScrollSetup = false; // Reset mobile scroll setup
         
         // Reset and show category screen
         const categoryScreen = document.getElementById('category-screen');
@@ -670,8 +626,8 @@
       
       const isMobile = window.innerWidth <= 768;
       if (isMobile) {
-        // Show More button on mobile
-        document.getElementById("load-more-btn").classList.add("visible");
+        // Don't show More button on mobile - using infinite scroll
+        setupMobileHorizontalScroll();
       } else {
         document.getElementById("load-more-btn").classList.add("visible");
         document.getElementById("organize-btn").classList.add("visible");
@@ -685,33 +641,12 @@
       const resultsDiv = document.getElementById("results");
       const isMobile = window.innerWidth <= 768;
       
-      // Calculate grid layout for mobile
-      let gridPositions = [];
-      if (isMobile) {
-        const numImages = selected.length;
-        const cols = 2; // 2x2 grid for 4 images
-        const rows = Math.ceil(numImages / cols);
-        
-        const availableWidth = window.innerWidth - 40;
-        const availableHeight = window.innerHeight - topBuffer - 100;
-        
-        const cellWidth = availableWidth / cols;
-        const cellHeight = availableHeight / rows;
-        
-        for (let i = 0; i < numImages; i++) {
-          const col = i % cols;
-          const row = Math.floor(i / cols);
-          gridPositions.push({
-            cellX: 20 + (col * cellWidth),
-            cellY: topBuffer + 20 + (row * cellHeight),
-            cellWidth,
-            cellHeight
-          });
-        }
-      }
+      // For mobile: use varying heights to create mosaic effect
+      const mobileHeights = [200, 280, 240, 220, 260, 250, 230, 270];
       
       selected.forEach((src, index) => {
-        // Stagger each image load by 300ms to prevent overwhelming Cloudflare
+        // Stagger each image load by 200ms for mobile, 300ms for desktop
+        const staggerDelay = isMobile ? 200 : 300;
         setTimeout(() => {
           const img = new Image();
           img.src = src;
@@ -729,87 +664,70 @@
             const wrapper = document.createElement('div');
             wrapper.className = 'image-wrapper';
             
-            if (!isMobile) {
+            if (isMobile) {
+              // Mobile: horizontal mosaic with varying heights
+              const height = mobileHeights[index % mobileHeights.length];
+              const aspectRatio = img.naturalWidth / img.naturalHeight;
+              const width = height * aspectRatio;
+              
+              img.style.height = height + "px";
+              img.style.width = width + "px";
+              wrapper.style.height = height + "px";
+              wrapper.style.width = width + "px";
+              
+              wrapper.appendChild(img);
+              makeExpandable(img);
+              resultsDiv.appendChild(wrapper);
+              
+              imagesData.push({wrapper, img, width, height});
+            } else {
+              // Desktop: random scattered layout
               const resizeHandle = document.createElement('div');
               resizeHandle.className = 'resize-handle';
               wrapper.appendChild(resizeHandle);
               makeResizable(wrapper, img, resizeHandle);
-            }
 
-            let width, height, x, y;
-            
-            if (isMobile) {
-              // Grid layout for mobile
-              const grid = gridPositions[index];
-              
-              // Scale image to fit cell while maintaining aspect ratio
-              const imgAspect = img.naturalWidth / img.naturalHeight;
-              const cellAspect = grid.cellWidth / grid.cellHeight;
-              
-              if (imgAspect > cellAspect) {
-                // Image is wider than cell
-                width = grid.cellWidth * 0.85;
-                height = width / imgAspect;
-              } else {
-                // Image is taller than cell
-                height = grid.cellHeight * 0.85;
-                width = height * imgAspect;
-              }
-              
-              // Center image in cell
-              x = grid.cellX + (grid.cellWidth - width) / 2;
-              y = grid.cellY + (grid.cellHeight - height) / 2;
-            } else {
-              // Random layout for desktop
               const maxDim = Math.min(window.innerWidth * 0.8, window.innerHeight * 0.8, 500);
               let scale = Math.min(maxDim / img.naturalWidth, maxDim / img.naturalHeight, 1);
               
-              width = img.naturalWidth * scale;
-              height = img.naturalHeight * scale;
+              const width = img.naturalWidth * scale;
+              const height = img.naturalHeight * scale;
+              
+              img.style.width = width + "px";
+              img.style.height = height + "px";
+              wrapper.style.width = width + "px";
+              wrapper.style.height = height + "px";
               
               const maxX = window.innerWidth - width;
               const maxY = window.innerHeight - height - topBuffer;
-              x = Math.random() * maxX;
-              y = Math.random() * maxY + topBuffer;
-            }
-            
-            img.style.width = width + "px";
-            img.style.height = height + "px";
-            wrapper.style.width = width + "px";
-            wrapper.style.height = height + "px";
-            wrapper.style.left = x + "px";
-            wrapper.style.top = y + "px";
-            wrapper.style.zIndex = zIndexCounter++;
+              const x = Math.random() * maxX;
+              const y = Math.random() * maxY + topBuffer;
+              
+              wrapper.style.left = x + "px";
+              wrapper.style.top = y + "px";
+              wrapper.style.zIndex = zIndexCounter++;
 
-            wrapper.appendChild(img);
-
-            if (!isMobile) {
+              wrapper.appendChild(img);
               makeDraggable(wrapper, img);
-            }
-            makeExpandable(img);
-            
-            resultsDiv.appendChild(wrapper);
+              makeExpandable(img);
+              resultsDiv.appendChild(wrapper);
 
-            const maxX = window.innerWidth - width;
-            const maxY = window.innerHeight - height - topBuffer;
-            imagesData.push({wrapper, img, width, height, relX: x / maxX, relY: (y - topBuffer) / maxY});
+              imagesData.push({wrapper, img, width, height, relX: x / maxX, relY: (y - topBuffer) / maxY});
+            }
           };
 
           img.onerror = (e) => {
             console.error("❌ Failed to load image:", src);
             console.error("Error event:", e);
             
-            // Mark for retry
             img.dataset.retryCount = img.dataset.retryCount ? parseInt(img.dataset.retryCount) + 1 : 1;
             
-            // Retry up to 2 times with longer delays
             if (img.dataset.retryCount <= 2) {
-              const retryDelay = img.dataset.retryCount * 3000; // 3s, 6s
+              const retryDelay = img.dataset.retryCount * 3000;
               console.log(`⏳ Retry attempt ${img.dataset.retryCount} in ${retryDelay}ms`);
               
               setTimeout(() => {
                 console.log(`🔄 Retrying image load (attempt ${img.dataset.retryCount}):`, src);
-                // Force reload
                 const timestamp = new Date().getTime();
                 img.src = src + '?t=' + timestamp;
               }, retryDelay);
@@ -819,25 +737,21 @@
             }
           };
           
-          // Add timeout detection - starts AFTER the stagger delay
-          // Give it 30 seconds from when loading actually starts
           const timeoutDuration = 30000;
           const timeoutId = setTimeout(() => {
             if (!img.complete || img.naturalWidth === 0) {
               console.warn("⏱️ Image loading timeout (" + timeoutDuration/1000 + "s):", src);
               console.warn("Image may be too large or Cloudflare may be rate limiting");
-              // Trigger error handler to retry
               img.onerror(new Error('Timeout'));
             }
           }, timeoutDuration);
           
-          // Clear timeout if image loads successfully
           const originalOnLoad = img.onload;
           img.onload = function() {
             clearTimeout(timeoutId);
             originalOnLoad.call(this);
           };
-        }, index * 300);
+        }, index * staggerDelay);
       });
     }
 
@@ -865,7 +779,7 @@
         loadedCount = 0;
         zIndexCounter = 1;
         
-        const batchSize = isMobile ? 4 : 10;
+        const batchSize = isMobile ? 8 : 10;
         const batch = getNextBatch(batchSize);
         addImages(batch);
         
@@ -875,6 +789,39 @@
           loadMoreBtn.textContent = "More";
         }, 300);
       }, 800);
+    }
+
+    function setupMobileHorizontalScroll() {
+      if (mobileScrollSetup) return;
+      mobileScrollSetup = true;
+      
+      const resultsDiv = document.getElementById("results");
+      
+      resultsDiv.addEventListener('scroll', () => {
+        const scrollLeft = resultsDiv.scrollLeft;
+        const scrollWidth = resultsDiv.scrollWidth;
+        const clientWidth = resultsDiv.clientWidth;
+        
+        // Load more when within 500px of the right edge
+        if (scrollLeft + clientWidth >= scrollWidth - 500) {
+          loadMoreMobileImages();
+        }
+      });
+    }
+
+    function loadMoreMobileImages() {
+      if (isLoadingMore) return;
+      isLoadingMore = true;
+      
+      console.log('📱 Loading more mobile images...');
+      
+      const batch = getNextBatch(4);
+      addImages(batch);
+      
+      // Reset loading flag after images start loading
+      setTimeout(() => { 
+        isLoadingMore = false; 
+      }, 1000);
     }
 
     function makeDraggable(wrapper, img) {
