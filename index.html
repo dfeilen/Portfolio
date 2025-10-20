@@ -77,7 +77,7 @@
     }
 
     #category-about-btn {
-      position: absolute;
+      position: fixed;
       bottom: 30px;
       left: 50%;
       transform: translateX(-50%);
@@ -93,6 +93,7 @@
       transition: all 0.3s ease;
       text-decoration: none;
       display: inline-block;
+      z-index: 5001;
     }
 
     #category-about-btn:hover {
@@ -143,6 +144,10 @@
 
     body.category-view #category-about-btn {
       display: inline-block;
+    }
+
+    body:not(.category-view) #category-about-btn {
+      display: none;
     }
 
     #results {
