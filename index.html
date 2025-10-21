@@ -342,8 +342,8 @@
         flex-wrap: wrap;
         align-content: flex-start;
         justify-content: flex-start;
-        gap: 4px;
-        padding: 50px 4px 60px 4px;
+        gap: 2px;
+        padding: 50px 2px 60px 2px;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
         scroll-behavior: smooth;
@@ -368,7 +368,7 @@
         pointer-events: auto;
         display: block;
         border-radius: 0;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+        box-shadow: none;
         opacity: 0;
         animation: fadeIn 0.3s ease forwards;
       }
@@ -682,8 +682,7 @@
   <div id="category-screen">
     <h1>DEVIN<br>FEILEN</h1>
     <button class="category-btn" data-category="cycling">Cycling</button>
-    <button class="category-btn" data-category="street">Street</button>
-    <button class="category-btn" data-category="life">Life</button>
+    <button class="category-btn" data-category="gr">GR</button>
     <button class="category-btn" data-category="shuffle">Shuffle</button>
   </div>
 
@@ -719,7 +718,7 @@
     const topBuffer = 55;
     let loadedCount = 0;
     const isMobileDevice = window.innerWidth <= 1024;
-    const initialLoadCount = isMobileDevice ? 15 : 10;
+    const initialLoadCount = isMobileDevice ? 20 : 10;
     let isLoadingMore = false;
     let isOrganized = false;
     let currentCategory = null;
@@ -774,8 +773,7 @@
         
         let jsonFile = 'photos.json';
         if (category === 'cycling') jsonFile = 'cycling.json';
-        else if (category === 'street') jsonFile = 'street.json';
-        else if (category === 'life') jsonFile = 'life.json';
+        else if (category === 'gr') jsonFile = 'gr.json';
         else if (category === 'shuffle') jsonFile = 'photos.json';
         
         fetch(jsonFile)
@@ -853,16 +851,16 @@
       const isMobile = window.innerWidth <= 768;
       
       const mobileWidths = [
-        window.innerWidth * 0.96,
-        window.innerWidth * 0.62,
         window.innerWidth * 0.48,
-        window.innerWidth * 0.96,
-        window.innerWidth * 0.52,
-        window.innerWidth * 0.44,
-        window.innerWidth * 0.96,
-        window.innerWidth * 0.58,
-        window.innerWidth * 0.38,
-        window.innerWidth * 0.96,
+        window.innerWidth * 0.48,
+        window.innerWidth * 0.48,
+        window.innerWidth * 0.48,
+        window.innerWidth * 0.48,
+        window.innerWidth * 0.48,
+        window.innerWidth * 0.48,
+        window.innerWidth * 0.48,
+        window.innerWidth * 0.48,
+        window.innerWidth * 0.48,
         window.innerWidth * 0.48,
         window.innerWidth * 0.48
       ];
@@ -984,7 +982,7 @@
         loadedCount = 0;
         zIndexCounter = 1;
         
-        const batchSize = isMobile ? 15 : 10;
+        const batchSize = isMobile ? 20 : 10;
         const batch = getNextBatch(batchSize);
         addImages(batch);
         
@@ -1039,7 +1037,7 @@
       if (isLoadingMore) return;
       isLoadingMore = true;
       
-      const batch = getNextBatch(8);
+      const batch = getNextBatch(10);
       addImages(batch);
       
       setTimeout(() => { 
