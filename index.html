@@ -18,16 +18,6 @@
       position: relative;
     }
 
-    body::after {
-      content: 'DESKTOP';
-      position: fixed;
-      bottom: 5px;
-      left: 5px;
-      font-size: 10px;
-      color: red;
-      z-index: 99999;
-    }
-
     #category-screen {
       position: fixed;
       top: 0;
@@ -600,7 +590,7 @@
     let imagesData = [];
     const topBuffer = 55;
     let loadedCount = 0;
-    const isMobileDevice = window.innerWidth <= 768;
+    const isMobileDevice = window.innerWidth <= 1024;
     const initialLoadCount = isMobileDevice ? 18 : 10;
     let isLoadingMore = false;
     let isOrganized = false;
@@ -643,7 +633,7 @@
         categoryScreen.classList.add('hidden');
         document.body.classList.remove('category-view');
         
-        const isMobile = window.innerWidth <= 768;
+        const isMobile = window.innerWidth <= 1024;
         if (!isMobile) {
           document.getElementById('back-btn').style.display = 'block';
           document.getElementById('about-btn').style.display = 'none';
@@ -930,7 +920,7 @@
     }
 
     function makeDraggable(wrapper, img) {
-      if (window.innerWidth <= 768) return;
+      if (window.innerWidth <= 1024) return;
 
       let offsetX, offsetY, isDragging = false;
       if (img) img.ondragstart = () => false;
