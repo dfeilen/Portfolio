@@ -308,9 +308,10 @@
       }
       
       #category-screen h1 {
-        font-size: 54px !important;
+        font-size: 48px !important;
         letter-spacing: 2px;
         line-height: 0.9;
+        margin-bottom: 40px !important;
       }
       
       #df-logo {
@@ -328,6 +329,94 @@
       #category-about-btn {
         font-size: 13px;
         padding: 8px 24px;
+      }
+      
+      #results {
+        width: 100%;
+        height: 100vh;
+        position: relative;
+        overflow-x: hidden;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-content: flex-start;
+        justify-content: flex-start;
+        gap: 4px;
+        padding: 50px 4px 60px 4px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        scroll-behavior: smooth;
+        overscroll-behavior-y: contain;
+      }
+
+      #results::-webkit-scrollbar {
+        display: none;
+      }
+
+      .image-wrapper {
+        position: relative;
+        flex-shrink: 0;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+      }
+
+      #results img {
+        position: relative;
+        cursor: default;
+        pointer-events: auto;
+        display: block;
+        border-radius: 0;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+        opacity: 0;
+        animation: fadeIn 0.3s ease forwards;
+      }
+
+      .resize-handle {
+        display: none;
+      }
+
+      #mobile-indicator {
+        display: none;
+      }
+      
+      #button-container {
+        position: static;
+        transform: none;
+        display: block;
+      }
+
+      #about-btn,
+      #back-btn {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 1001;
+        padding: 7px 14px;
+        font-size: 14px;
+        border-radius: 18px;
+        background: rgba(0, 0, 0, 0.75);
+      }
+
+      body:not(.category-view) #about-btn {
+        display: none;
+      }
+
+      #back-btn {
+        display: none;
+      }
+
+      body:not(.category-view) #back-btn {
+        display: block;
+      }
+
+      #load-more-btn {
+        display: none !important;
+      }
+
+      #organize-btn {
+        display: none !important;
       }
     }
 
@@ -630,7 +719,7 @@
     const topBuffer = 55;
     let loadedCount = 0;
     const isMobileDevice = window.innerWidth <= 1024;
-    const initialLoadCount = isMobileDevice ? 18 : 10;
+    const initialLoadCount = isMobileDevice ? 15 : 10;
     let isLoadingMore = false;
     let isOrganized = false;
     let currentCategory = null;
@@ -764,18 +853,18 @@
       const isMobile = window.innerWidth <= 768;
       
       const mobileWidths = [
-        window.innerWidth * 0.32,
+        window.innerWidth * 0.96,
+        window.innerWidth * 0.62,
         window.innerWidth * 0.48,
-        window.innerWidth * 0.38,
-        window.innerWidth * 0.30,
+        window.innerWidth * 0.96,
         window.innerWidth * 0.52,
-        window.innerWidth * 0.42,
-        window.innerWidth * 0.35,
-        window.innerWidth * 0.45,
-        window.innerWidth * 0.40,
-        window.innerWidth * 0.33,
-        window.innerWidth * 0.50,
-        window.innerWidth * 0.36
+        window.innerWidth * 0.44,
+        window.innerWidth * 0.96,
+        window.innerWidth * 0.58,
+        window.innerWidth * 0.38,
+        window.innerWidth * 0.96,
+        window.innerWidth * 0.48,
+        window.innerWidth * 0.48
       ];
       
       selected.forEach((src, index) => {
@@ -895,7 +984,7 @@
         loadedCount = 0;
         zIndexCounter = 1;
         
-        const batchSize = isMobile ? 18 : 10;
+        const batchSize = isMobile ? 15 : 10;
         const batch = getNextBatch(batchSize);
         addImages(batch);
         
@@ -929,7 +1018,7 @@
           isScrolling = false;
         }, 150);
         
-        if (scrollTop + clientHeight >= scrollHeight - 1000) {
+        if (scrollTop + clientHeight >= scrollHeight - 800) {
           loadMoreMobileImages();
         }
       });
@@ -950,7 +1039,7 @@
       if (isLoadingMore) return;
       isLoadingMore = true;
       
-      const batch = getNextBatch(9);
+      const batch = getNextBatch(8);
       addImages(batch);
       
       setTimeout(() => { 
