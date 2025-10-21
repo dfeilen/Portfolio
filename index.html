@@ -18,6 +18,16 @@
       position: relative;
     }
 
+    body::after {
+      content: 'DESKTOP';
+      position: fixed;
+      bottom: 5px;
+      left: 5px;
+      font-size: 10px;
+      color: red;
+      z-index: 99999;
+    }
+
     #category-screen {
       position: fixed;
       top: 0;
