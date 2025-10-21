@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DF</title>
+  <title>DEVIN FEILEN</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@700&family=Archivo+Black&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Courier New', monospace;
@@ -33,7 +33,7 @@
       gap: 24px;
       opacity: 1;
       transition: opacity 0.8s ease;
-      padding-bottom: 120px;
+      padding-bottom: 140px;
     }
 
     #category-screen.fade-out {
@@ -45,11 +45,14 @@
     }
 
     #category-screen h1 {
-      font-family: 'Archivo Black', sans-serif;
-      font-weight: 900;
-      font-size: 48px;
+      font-family: 'VT323', monospace;
+      font-weight: 400;
+      font-size: 40px;
       margin-bottom: 20px;
-      letter-spacing: -2px;
+      letter-spacing: 2px;
+      line-height: 1;
+      text-align: center;
+      text-transform: uppercase;
     }
 
     .category-btn {
@@ -276,14 +279,17 @@
 
     #df-logo {
       position: fixed;
-      top: 25px;
-      right: 25px;
-      font-family: 'Archivo Black', sans-serif;
-      font-weight: 900;
-      font-size: 28px;
+      top: 20px;
+      right: 20px;
+      font-family: 'VT323', monospace;
+      font-weight: 400;
+      font-size: 18px;
       color: #000;
       z-index: 300;
-      letter-spacing: -1px;
+      letter-spacing: 1px;
+      line-height: 0.9;
+      text-align: right;
+      text-transform: uppercase;
     }
 
     #results {
@@ -420,13 +426,14 @@
       }
 
       #category-screen h1 {
-        font-size: 36px;
+        font-size: 18px;
         margin-bottom: 10px;
+        letter-spacing: 1px;
       }
 
       #category-screen {
         gap: 18px;
-        padding-bottom: 100px;
+        padding-bottom: 160px;
         padding-top: 0;
       }
 
@@ -536,14 +543,15 @@
       #df-logo {
         top: 12px;
         right: 12px;
-        font-size: 24px;
+        font-size: 8px;
+        letter-spacing: 0.5px;
       }
     }
   </style>
 </head>
 <body class="category-view">
   <div id="category-screen">
-    <h1>DF</h1>
+    <h1>DEVIN<br>FEILEN</h1>
     <button class="category-btn" data-category="cycling">Cycling</button>
     <button class="category-btn" data-category="street">Street</button>
     <button class="category-btn" data-category="life">Life</button>
@@ -558,7 +566,7 @@
     <button id="organize-btn" aria-label="Organize photos">Organize</button>
     <button id="load-more-btn" aria-label="Load more photos">More</button>
   </div>
-  <div id="df-logo">DF</div>
+  <div id="df-logo">DEVIN<br>FEILEN</div>
 
   <div id="loading" role="status" aria-live="polite">
     <div id="loading-spinner" aria-hidden="true"></div>
