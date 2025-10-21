@@ -33,7 +33,7 @@
       gap: 24px;
       opacity: 1;
       transition: opacity 0.8s ease;
-      padding-bottom: 100px;
+      padding-bottom: 120px;
     }
 
     #category-screen.fade-out {
@@ -90,23 +90,15 @@
       border: 2px solid #666;
       cursor: pointer;
       border-radius: 30px;
-      transition: all 0.3s ease;
+      transition: background 0.3s ease, color 0.3s ease;
       text-decoration: none;
       display: inline-block;
       z-index: 5001;
     }
 
-    @media (min-width: 769px) {
-      #category-about-btn {
-        position: fixed;
-        bottom: 30px;
-      }
-    }
-
     #category-about-btn:hover {
       background: #666;
       color: #fff;
-      transform: translateX(-50%) scale(1.02);
     }
 
     #category-about-btn:focus {
@@ -433,19 +425,18 @@
       }
 
       #category-screen {
-        gap: 20px;
-        padding-bottom: 0;
+        gap: 18px;
+        padding-bottom: 100px;
         padding-top: 0;
       }
 
       #category-about-btn {
-        position: relative;
+        position: fixed;
         font-size: 13px;
         padding: 8px 24px;
-        bottom: auto;
-        left: auto;
-        transform: none;
-        margin-top: 10px;
+        bottom: 25px;
+        left: 50%;
+        transform: translateX(-50%);
       }
 
       #category-about-btn {
@@ -557,8 +548,9 @@
     <button class="category-btn" data-category="street">Street</button>
     <button class="category-btn" data-category="life">Life</button>
     <button class="category-btn" data-category="shuffle">Shuffle</button>
-    <a href="about.html" id="category-about-btn">About</a>
   </div>
+
+  <a href="about.html" id="category-about-btn">About</a>
 
   <div id="button-container">
     <button id="back-btn" aria-label="Back to categories">← Back</button>
