@@ -2,43 +2,187 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>About - DF</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>DEVIN FEILEN</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+      font-family: 'Courier New', monospace;
       margin: 0;
       padding: 0;
       min-height: 100vh;
+      overflow: hidden;
+      background: #fafafa;
+      position: relative;
+    }
+
+    #category-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
       background: #fff;
       display: flex;
-      align-items: center;
+      flex-direction: column;
       justify-content: center;
+      align-items: center;
+      z-index: 5000;
+      gap: 24px;
+      opacity: 1;
+      transition: opacity 0.8s ease;
+      padding-bottom: 160px;
     }
 
-    .container {
-      max-width: 700px;
-      width: 90%;
-      padding: 40px;
+    #category-screen.fade-out {
+      opacity: 0;
     }
 
-    /* Back button */
-    #back-btn {
-      position: fixed;
-      top: 20px;
-      left: 20px;
-      padding: 10px 20px;
-      z-index: 300;
+    #category-screen.hidden {
+      display: none;
+    }
+
+    #category-screen h1 {
+      font-family: 'VT323', monospace;
+      font-weight: 400;
+      font-size: 64px;
+      margin-bottom: 20px;
+      letter-spacing: 2px;
+      line-height: 1;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .category-btn {
+      padding: 12px 32px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
       font-weight: 600;
       font-size: 16px;
+      background: transparent;
+      color: #000;
+      border: 2px solid #000;
+      cursor: pointer;
+      border-radius: 30px;
+      transition: all 0.3s ease;
+      min-width: 180px;
+    }
+
+    .category-btn:hover {
+      background: #000;
+      color: #fff;
+      transform: scale(1.02);
+    }
+
+    .category-btn:focus {
+      outline: none;
+    }
+
+    #category-about-btn {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 28px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      background: transparent;
+      color: #666;
+      border: 2px solid #666;
+      cursor: pointer;
+      border-radius: 30px;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-block;
+      z-index: 5001;
+    }
+
+    #category-about-btn:hover {
+      background: #666;
+      color: #fff;
+      transform: translateX(-50%) scale(1.02);
+    }
+
+    #category-about-btn:focus {
+      outline: none;
+    }
+
+    body.category-view {
+      overflow: hidden;
+      position: fixed;
+      width: 100%;
+      height: 100vh;
+    }
+
+    body.category-view #button-container,
+    body.category-view #df-logo,
+    body.category-view #results,
+    body.category-view #loading {
+      display: none;
+    }
+
+    body.category-view #category-about-btn {
+      display: inline-block;
+    }
+
+    body:not(.category-view) #category-about-btn {
+      display: none;
+    }
+
+    #results {
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+
+    #results.fade-in {
+      opacity: 1;
+    }
+
+    #loading {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      z-index: 1000;
+    }
+
+    #loading-spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #000;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 10px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    #button-container {
+      position: fixed;
+      top: 25px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 12px;
+      z-index: 300;
+      align-items: center;
+    }
+
+    #about-btn,
+    #back-btn,
+    #organize-btn,
+    #load-more-btn {
+      padding: 8px 18px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+      font-weight: 600;
+      font-size: 15px;
       background: rgba(0, 0, 0, 0.8);
       color: white;
       border: none;
@@ -46,93 +190,66 @@
       border-radius: 20px;
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
-      transition: background 0.2s ease;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    #about-btn {
       text-decoration: none;
       display: inline-block;
     }
 
-    #back-btn:hover {
+    #back-btn {
+      display: none;
+    }
+
+    #organize-btn,
+    #load-more-btn {
+      display: none;
+    }
+
+    #organize-btn.visible,
+    #load-more-btn.visible {
+      display: block;
+    }
+
+    #about-btn:hover,
+    #back-btn:hover,
+    #organize-btn:hover,
+    #load-more-btn:hover {
       background: rgba(0, 0, 0, 0.9);
     }
 
-    #back-btn:focus {
+    #about-btn:focus,
+    #back-btn:focus,
+    #organize-btn:focus,
+    #load-more-btn:focus {
       outline: 2px solid rgba(0, 0, 0, 0.5);
       outline-offset: 2px;
     }
 
-    /* DF Logo */
+    #load-more-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .image-wrapper {
+      transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    #about-modal {
+      display: none;
+    }
+
+    #about-content {
+      display: none;
+    }
+
+    #about-close {
+      display: none;
+    }
+
     #df-logo {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      font-family: 'VT323', sans-serif;
-      font-weight: 700;
-      font-size: 32px;
-      color: #000;
-      z-index: 300;
-      letter-spacing: -1px;
-    }
-
-    h1 {
-      font-size: 48px;
-      font-weight: 700;
-      margin: 0 0 30px 0;
-      color: #000;
-    }
-
-    p {
-      font-size: 18px;
-      line-height: 1.7;
-      color: #333;
-      margin: 0 0 25px 0;
-    }
-
-    a {
-      color: #000;
-      text-decoration: underline;
-      font-weight: 600;
-    }
-
-    a:hover {
-      color: #666;
-    }
-
-    /* Mobile adjustments */
-    @media (max-width: 768px) {
-      .container {
-        padding: 20px;
-        width: 85%;
-      }
-
-      h1 {
-        font-size: 36px;
-        margin-top: 60px;
-      }
-
-      p {
-        font-size: 16px;
-      }
-
-      #back-btn {
-        padding: 8px 16px;
-        font-size: 15px;
-        top: 12px;
-        left: 12px;
-        background: rgba(0, 0, 0, 0.75);
-        border-radius: 18px;
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-      }
-
-      #back-btn:hover {
-        background: rgba(0, 0, 0, 0.85);
-      }
-
-      #back-btn:focus {
-        outline: none;
-      }
-
-      #df-logo {
       position: fixed;
       top: 20px;
       right: 20px;
@@ -147,31 +264,1016 @@
       text-transform: uppercase;
     }
 
+    @media only screen and (max-width: 1024px) {
+      body {
+        background: #fafafa;
+        overflow: hidden;
+        width: 100%;
+        height: 100vh;
+      }
+      
+      #category-screen {
+        gap: 20px;
+        padding-bottom: 180px;
+        padding-top: 0;
+        justify-content: center;
+      }
+      
+      #category-screen h1 {
+        font-size: 48px !important;
+        letter-spacing: 2px;
+        line-height: 0.9;
+        margin-bottom: 40px !important;
+      }
+      
+      #df-logo {
+        font-size: 24px !important;
+        top: 10px;
+        right: 10px;
+      }
+      
+      .category-btn {
+        font-size: 15px;
+        padding: 10px 28px;
+        min-width: 160px;
+        border-radius: 30px;
+      }
+      
+      #category-about-btn {
+        font-size: 13px;
+        padding: 8px 24px;
+        border-radius: 30px;
+      }
+      
+      #results {
+        width: 100%;
+        height: 100vh;
+        position: relative;
+        overflow-x: hidden;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-content: flex-start;
+        justify-content: flex-start;
+        gap: 2px;
+        padding: 50px 2px 60px 2px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        scroll-behavior: smooth;
+        overscroll-behavior-y: contain;
+      }
+
+      #results::-webkit-scrollbar {
+        display: none;
+      }
+
+      .image-wrapper {
+        position: relative;
+        flex-shrink: 0;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+      }
+
+      #results img {
+        position: relative;
+        cursor: default;
+        pointer-events: auto;
+        display: block;
+        border-radius: 0;
+        box-shadow: none;
+        opacity: 0;
+        animation: fadeIn 0.3s ease forwards;
+      }
+
+      .resize-handle {
+        display: none;
+      }
+
+      #mobile-indicator {
+        display: none;
+      }
+      
+      #button-container {
+        position: static;
+        transform: none;
+        display: block;
+      }
+
+      #about-btn,
+      #back-btn {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 1001;
+        padding: 7px 14px;
+        font-size: 14px;
+        border-radius: 18px;
+        background: rgba(0, 0, 0, 0.75);
+      }
+
+      body:not(.category-view) #about-btn {
+        display: none;
+      }
+
+      #back-btn {
+        display: none;
+      }
+
+      body:not(.category-view) #back-btn {
+        display: block;
+      }
+
+      #load-more-btn {
+        display: none !important;
+      }
+
+      #organize-btn {
+        display: none !important;
+      }
+    }
+
+    #results {
+      width: 100%;
+      height: 100vh;
+      position: relative;
+      top: 0;
+      left: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    #results img {
+      position: absolute;
+      border-radius: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      transition: transform 0.2s ease;
+      cursor: grab;
+      height: auto;
+      opacity: 0;
+      animation: fadeIn 0.3s ease forwards;
+    }
+
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+
+    #results img:active {
+      cursor: grabbing;
+    }
+
+    #results img:focus {
+      outline: 3px solid #000;
+      outline-offset: 2px;
+    }
+
+    .resize-handle {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: #000;
+      border: 1.5px solid #fff;
+      border-radius: 50%;
+      bottom: -6px;
+      right: -6px;
+      cursor: nwse-resize;
+      z-index: 10;
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: auto;
+    }
+
+    .image-wrapper:hover .resize-handle {
+      opacity: 1;
+    }
+
+    .image-wrapper {
+      position: absolute;
+      line-height: 0;
+      display: inline-block;
+    }
+
+    .image-wrapper img {
+      display: block;
+    }
+    
+    .image-wrapper .resize-handle {
+      position: absolute;
+    }
+
+    #lightbox {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      cursor: zoom-out;
+    }
+
+    #lightbox img {
+      max-width: 90vw;
+      max-height: 90vh;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      box-shadow: 0 4px 20px rgba(255,255,255,0.1);
+      cursor: zoom-out;
+      position: relative;
+    }
+
+    #lightbox-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-size: 40px;
+      color: white;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 10px;
+      line-height: 1;
+      z-index: 1001;
+    }
+
+    #lightbox-close:hover {
+      color: #ccc;
+    }
+
+    #lightbox-close:focus {
+      outline: 2px solid #fff;
+      outline-offset: 2px;
+    }
+
+    #mobile-indicator {
+      display: none;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        background: #fafafa;
+        overflow: hidden;
+        width: 100%;
+        height: 100vh;
+      }
+
+      .category-btn {
+        font-size: 15px;
+        padding: 10px 28px;
+        min-width: 160px;
+        border-radius: 30px;
+      }
+
+      #category-screen h1 {
+        font-size: 18px;
+        margin-bottom: 10px;
+        letter-spacing: 1px;
+      }
+
+      #category-screen {
+        gap: 18px;
+        padding-bottom: 0;
+        padding-top: 80px;
+        justify-content: flex-start;
+      }
+
+      #category-about-btn {
+        position: fixed;
+        font-size: 13px;
+        padding: 8px 24px;
+        bottom: 25px;
+        left: 50%;
+        transform: translateX(-50%);
+        border-radius: 30px;
+      }
+
+      #results {
+        width: 100%;
+        height: 100vh;
+        position: relative;
+        overflow-x: hidden;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-content: flex-start;
+        justify-content: center;
+        gap: 6px;
+        padding: 55px 6px 60px 6px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        scroll-behavior: smooth;
+        overscroll-behavior-y: contain;
+      }
+
+      #results::-webkit-scrollbar {
+        display: none;
+      }
+
+      .image-wrapper {
+        position: relative;
+        flex-shrink: 0;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+      }
+
+      #results img {
+        position: relative;
+        cursor: default;
+        pointer-events: auto;
+        display: block;
+        border-radius: 4px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        opacity: 0;
+        animation: fadeIn 0.3s ease forwards;
+      }
+
+      .resize-handle {
+        display: none;
+      }
+
+      #mobile-indicator {
+        display: none;
+      }
+      
+      #button-container {
+        position: static;
+        transform: none;
+        display: block;
+      }
+
+      #about-btn,
+      #back-btn {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 1001;
+        padding: 7px 14px;
+        font-size: 14px;
+        border-radius: 18px;
+        background: rgba(0, 0, 0, 0.75);
+      }
+
+      body:not(.category-view) #about-btn {
+        display: none;
+      }
+
+      #back-btn {
+        display: none;
+      }
+
+      body:not(.category-view) #back-btn {
+        display: block;
+      }
+
+      #load-more-btn {
+        display: none !important;
+      }
+
+      #organize-btn {
+        display: none !important;
+      }
+
+      #df-logo {
+        top: 12px;
+        right: 12px;
+        font-size: 8px;
+        letter-spacing: 0.5px;
+      }
     }
   </style>
 </head>
-<body>
-  <a href="index.html" id="back-btn" aria-label="Back to portfolio">← Back</a>
+<body class="category-view">
+  <div id="category-screen">
+    <h1>DEVIN<br>FEILEN</h1>
+    <button class="category-btn" data-category="cycling">Cycling</button>
+    <button class="category-btn" data-category="gr">GR</button>
+    <button class="category-btn" data-category="shuffle">Shuffle</button>
+  </div>
+
+  <a href="about.html" id="category-about-btn">About</a>
+
+  <div id="button-container">
+    <button id="back-btn" aria-label="Back to categories">← Back</button>
+    <a href="about.html" id="about-btn" aria-label="About this portfolio">About</a>
+    <button id="organize-btn" aria-label="Organize photos">Organize</button>
+    <button id="load-more-btn" aria-label="Load more photos">More</button>
+  </div>
   <div id="df-logo">DEVIN<br>FEILEN</div>
 
-  <div class="container">
-    <h1>About</h1>
-    
-    <p>
-      My name is Devin Feilen, and this is my ongoing photography portfolio.
-    </p>
-    
-    <p>
-      Squarespace sites are cool, but I made this myself and I feel that it provides a more intriguing representation of my work instead of your "typical" photography portfolio. Whether you're viewing this on desktop or mobile, it gives you random images from my portfolio so no visit is ever the same (probably).
-    </p>
-    
-    <p>
-      If you'd like to support me, you can do so at <a href="https://buymeacoffee.com/devinfeilen" target="_blank" rel="noopener noreferrer">buymeacoffee.com/devinfeilen</a>
-    </p>
-
-    <p>
-      Please contact me directly via Instagram or at dfeeilen@gmail.com to discuss any professional usage. 
-    </p>
+  <div id="loading" role="status" aria-live="polite">
+    <div id="loading-spinner" aria-hidden="true"></div>
+    <p>Loading photos...</p>
   </div>
+
+  <div id="results" role="main" aria-label="Photo gallery"></div>
+
+  <div id="mobile-indicator"></div>
+
+  <div id="lightbox" role="dialog" aria-labelledby="lightbox-img" aria-modal="true">
+    <button id="lightbox-close" aria-label="Close fullscreen view">&times;</button>
+    <img id="lightbox-img" alt="" />
+  </div>
+
+  <script>
+    let allPhotos = [];
+    let photoQueue = [];
+    let zIndexCounter = 1;
+    let imagesData = [];
+    const topBuffer = 55;
+    let loadedCount = 0;
+    const isMobileDevice = window.innerWidth <= 1024;
+    const initialLoadCount = isMobileDevice ? 20 : 10;
+    let isLoadingMore = false;
+    let isOrganized = false;
+    let currentCategory = null;
+    let mobileScrollSetup = false;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const categoryButtons = document.querySelectorAll('.category-btn');
+      
+      categoryButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const category = btn.dataset.category;
+          loadCategory(category);
+        });
+      });
+
+      const loadMoreBtn = document.getElementById("load-more-btn");
+      if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', loadMorePhotos);
+      }
+      
+      const organizeBtn = document.getElementById("organize-btn");
+      if (organizeBtn) {
+        organizeBtn.addEventListener('click', toggleOrganize);
+      }
+
+      const backBtn = document.getElementById("back-btn");
+      if (backBtn) {
+        backBtn.addEventListener('click', backToCategories);
+      }
+    });
+
+    function loadCategory(category) {
+      currentCategory = category;
+      
+      const categoryScreen = document.getElementById('category-screen');
+      categoryScreen.classList.add('fade-out');
+      
+      setTimeout(() => {
+        categoryScreen.classList.add('hidden');
+        document.body.classList.remove('category-view');
+        
+        const isMobile = window.innerWidth <= 1024;
+        if (!isMobile) {
+          document.getElementById('back-btn').style.display = 'block';
+          document.getElementById('about-btn').style.display = 'none';
+        } else {
+          document.getElementById('back-btn').style.display = 'block';
+          document.getElementById('about-btn').style.display = 'none';
+        }
+        
+        document.getElementById("loading").style.display = "block";
+        
+        let jsonFile = 'photos.json';
+        if (category === 'cycling') jsonFile = 'cycling.json';
+        else if (category === 'gr') jsonFile = 'gr.json';
+        else if (category === 'shuffle') jsonFile = 'photos.json';
+        
+        fetch(jsonFile)
+          .then(res => res.json())
+          .then(data => {
+            allPhotos = data;
+            resetQueue();
+            loadInitialPhotos();
+            
+            setTimeout(() => {
+              document.getElementById('results').classList.add('fade-in');
+            }, 100);
+          })
+          .catch(err => {
+            document.getElementById("loading").innerHTML = `<p>Error loading ${category} photos. Please refresh the page.</p>`;
+          });
+      }, 800);
+    }
+
+    function backToCategories() {
+      const resultsDiv = document.getElementById('results');
+      
+      resultsDiv.classList.remove('fade-in');
+      
+      setTimeout(() => {
+        document.getElementById('back-btn').style.display = 'none';
+        document.getElementById('about-btn').style.display = 'inline-block';
+        document.getElementById('load-more-btn').classList.remove('visible');
+        document.getElementById('organize-btn').classList.remove('visible');
+        
+        resultsDiv.innerHTML = '';
+        imagesData = [];
+        loadedCount = 0;
+        zIndexCounter = 1;
+        isOrganized = false;
+        mobileScrollSetup = false;
+        
+        const categoryScreen = document.getElementById('category-screen');
+        categoryScreen.classList.remove('fade-out');
+        categoryScreen.classList.remove('hidden');
+        document.body.classList.add('category-view');
+        
+        document.getElementById('organize-btn').textContent = 'Organize';
+      }, 800);
+    }
+
+    function resetQueue() {
+      photoQueue = shuffleArray([...allPhotos]);
+    }
+
+    function getNextBatch(count) {
+      if (photoQueue.length < count) {
+        resetQueue();
+      }
+      return photoQueue.splice(0, count);
+    }
+
+    function loadInitialPhotos() {
+      document.getElementById("loading").style.display = "none";
+      
+      const isMobile = window.innerWidth <= 768;
+      if (isMobile) {
+        setupMobileVerticalScroll();
+      } else {
+        document.getElementById("load-more-btn").classList.add("visible");
+        document.getElementById("organize-btn").classList.add("visible");
+      }
+      
+      const batch = getNextBatch(initialLoadCount);
+      addImages(batch);
+    }
+
+    function addImages(selected) {
+      const resultsDiv = document.getElementById("results");
+      const isMobile = window.innerWidth <= 768;
+      
+      const mobileWidths = [
+        window.innerWidth * 0.48,
+        window.innerWidth * 0.48,
+        window.innerWidth * 0.98,
+        window.innerWidth * 0.65,
+        window.innerWidth * 0.32,
+        window.innerWidth * 0.48,
+        window.innerWidth * 0.48,
+        window.innerWidth * 0.98,
+        window.innerWidth * 0.40,
+        window.innerWidth * 0.57,
+        window.innerWidth * 0.48,
+        window.innerWidth * 0.48,
+        window.innerWidth * 0.73,
+        window.innerWidth * 0.25,
+        window.innerWidth * 0.98,
+        window.innerWidth * 0.48,
+        window.innerWidth * 0.48,
+        window.innerWidth * 0.35,
+        window.innerWidth * 0.62,
+        window.innerWidth * 0.98
+      ];
+      
+      selected.forEach((src, index) => {
+        const staggerDelay = isMobile ? 200 : 300;
+        setTimeout(() => {
+          const img = new Image();
+          img.src = src;
+          img.alt = `Photography by Devin Feilen`;
+          img.loading = "eager";
+          img.tabIndex = 0;
+          img.setAttribute('role', 'img');
+
+          img.onload = () => {
+            loadedCount++;
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'image-wrapper';
+            
+            if (isMobile) {
+              const width = mobileWidths[index % mobileWidths.length];
+              const aspectRatio = img.naturalWidth / img.naturalHeight;
+              const height = width / aspectRatio;
+              
+              img.style.width = width + "px";
+              img.style.height = height + "px";
+              wrapper.style.width = width + "px";
+              wrapper.style.height = height + "px";
+              
+              wrapper.appendChild(img);
+              makeExpandable(img);
+              resultsDiv.appendChild(wrapper);
+              
+              imagesData.push({wrapper, img, width, height});
+            } else {
+              const resizeHandle = document.createElement('div');
+              resizeHandle.className = 'resize-handle';
+              wrapper.appendChild(resizeHandle);
+              makeResizable(wrapper, img, resizeHandle);
+
+              const maxDim = Math.min(window.innerWidth * 0.8, window.innerHeight * 0.8, 500);
+              let scale = Math.min(maxDim / img.naturalWidth, maxDim / img.naturalHeight, 1);
+              
+              const width = img.naturalWidth * scale;
+              const height = img.naturalHeight * scale;
+              
+              img.style.width = width + "px";
+              img.style.height = height + "px";
+              wrapper.style.width = width + "px";
+              wrapper.style.height = height + "px";
+              
+              const maxX = window.innerWidth - width;
+              const maxY = window.innerHeight - height - topBuffer;
+              const x = Math.random() * maxX;
+              const y = Math.random() * maxY + topBuffer;
+              
+              wrapper.style.left = x + "px";
+              wrapper.style.top = y + "px";
+              wrapper.style.zIndex = zIndexCounter++;
+
+              wrapper.appendChild(img);
+              makeDraggable(wrapper, img);
+              makeExpandable(img);
+              resultsDiv.appendChild(wrapper);
+
+              imagesData.push({wrapper, img, width, height, relX: x / maxX, relY: (y - topBuffer) / maxY});
+            }
+          };
+
+          img.onerror = (e) => {
+            img.dataset.retryCount = img.dataset.retryCount ? parseInt(img.dataset.retryCount) + 1 : 1;
+            
+            if (img.dataset.retryCount <= 2) {
+              const retryDelay = img.dataset.retryCount * 3000;
+              
+              setTimeout(() => {
+                const timestamp = new Date().getTime();
+                img.src = src + '?t=' + timestamp;
+              }, retryDelay);
+            }
+          };
+          
+          const timeoutDuration = 30000;
+          const timeoutId = setTimeout(() => {
+            if (!img.complete || img.naturalWidth === 0) {
+              img.onerror(new Error('Timeout'));
+            }
+          }, timeoutDuration);
+          
+          const originalOnLoad = img.onload;
+          img.onload = function() {
+            clearTimeout(timeoutId);
+            originalOnLoad.call(this);
+          };
+        }, index * staggerDelay);
+      });
+    }
+
+    function loadMorePhotos() {
+      const loadMoreBtn = document.getElementById("load-more-btn");
+      const organizeBtn = document.getElementById("organize-btn");
+      const resultsDiv = document.getElementById("results");
+      const isMobile = window.innerWidth <= 768;
+      
+      loadMoreBtn.disabled = true;
+      loadMoreBtn.textContent = "...";
+      
+      resultsDiv.classList.remove('fade-in');
+      
+      if (!isMobile) {
+        isOrganized = false;
+        organizeBtn.textContent = "Organize";
+      }
+      
+      setTimeout(() => {
+        resultsDiv.innerHTML = "";
+        imagesData = [];
+        loadedCount = 0;
+        zIndexCounter = 1;
+        
+        const batchSize = isMobile ? 20 : 10;
+        const batch = getNextBatch(batchSize);
+        addImages(batch);
+        
+        setTimeout(() => {
+          resultsDiv.classList.add('fade-in');
+          loadMoreBtn.disabled = false;
+          loadMoreBtn.textContent = "More";
+        }, 300);
+      }, 800);
+    }
+
+    function setupMobileVerticalScroll() {
+      if (mobileScrollSetup) return;
+      mobileScrollSetup = true;
+      
+      const resultsDiv = document.getElementById("results");
+      
+      let isScrolling = false;
+      let scrollTimeout;
+      
+      resultsDiv.addEventListener('scroll', () => {
+        const scrollTop = resultsDiv.scrollTop;
+        const scrollHeight = resultsDiv.scrollHeight;
+        const clientHeight = resultsDiv.clientHeight;
+        
+        clearTimeout(scrollTimeout);
+        
+        isScrolling = true;
+        
+        scrollTimeout = setTimeout(() => {
+          isScrolling = false;
+        }, 150);
+        
+        if (scrollTop + clientHeight >= scrollHeight - 800) {
+          loadMoreMobileImages();
+        }
+      });
+      
+      let startY = 0;
+      let currentY = 0;
+      
+      resultsDiv.addEventListener('touchstart', (e) => {
+        startY = e.touches[0].clientY;
+      }, { passive: true });
+      
+      resultsDiv.addEventListener('touchmove', (e) => {
+        currentY = e.touches[0].clientY;
+      }, { passive: true });
+    }
+
+    function loadMoreMobileImages() {
+      if (isLoadingMore) return;
+      isLoadingMore = true;
+      
+      const batch = getNextBatch(10);
+      addImages(batch);
+      
+      setTimeout(() => { 
+        isLoadingMore = false; 
+      }, 1000);
+    }
+
+    function makeDraggable(wrapper, img) {
+      if (window.innerWidth <= 1024) return;
+
+      let offsetX, offsetY, isDragging = false;
+      if (img) img.ondragstart = () => false;
+
+      if (img) {
+        img.addEventListener("mousedown", e => {
+          e.preventDefault();
+          startDrag(e.clientX, e.clientY);
+        });
+
+        img.addEventListener("keydown", e => {
+          const step = e.shiftKey ? 50 : 10;
+          let newLeft = wrapper.offsetLeft;
+          let newTop = wrapper.offsetTop;
+
+          switch(e.key) {
+            case "ArrowLeft": newLeft -= step; e.preventDefault(); break;
+            case "ArrowRight": newLeft += step; e.preventDefault(); break;
+            case "ArrowUp": newTop -= step; e.preventDefault(); break;
+            case "ArrowDown": newTop += step; e.preventDefault(); break;
+            default: return;
+          }
+
+          if (newTop < topBuffer) newTop = topBuffer;
+          wrapper.style.left = newLeft + "px";
+          wrapper.style.top = newTop + "px";
+          wrapper.style.zIndex = zIndexCounter++;
+        });
+      }
+
+      function startDrag(clientX, clientY) {
+        if (isDragging) return;
+        isDragging = true;
+        offsetX = clientX - wrapper.offsetLeft;
+        offsetY = clientY - wrapper.offsetTop;
+        wrapper.style.zIndex = zIndexCounter++;
+        wrapper.style.transition = "none";
+        if (img) img.style.cursor = "grabbing";
+
+        function onMove(clientX, clientY) {
+          let newLeft = clientX - offsetX;
+          let newTop = clientY - offsetY;
+          if (newTop < topBuffer) newTop = topBuffer;
+          wrapper.style.left = newLeft + "px";
+          wrapper.style.top = newTop + "px";
+        }
+
+        function onMouseMove(e) {
+          onMove(e.clientX, e.clientY);
+        }
+
+        function stopDrag() {
+          isDragging = false;
+          wrapper.style.transition = "transform 0.2s ease";
+          if (img) img.style.cursor = "grab";
+          document.removeEventListener("mousemove", onMouseMove);
+          document.removeEventListener("mouseup", stopDrag);
+        }
+
+        document.addEventListener("mousemove", onMouseMove);
+        document.addEventListener("mouseup", stopDrag);
+      }
+    }
+
+    function makeResizable(wrapper, img, handle) {
+      let isResizing = false;
+      let startWidth, startHeight, startX, startY;
+      let aspectRatio = img.naturalWidth / img.naturalHeight;
+
+      handle.addEventListener("mousedown", e => {
+        e.preventDefault();
+        e.stopPropagation();
+        startResize(e.clientX, e.clientY);
+      });
+
+      function startResize(clientX, clientY) {
+        isResizing = true;
+        startWidth = img.offsetWidth;
+        startHeight = img.offsetHeight;
+        startX = clientX;
+        startY = clientY;
+        wrapper.style.zIndex = zIndexCounter++;
+
+        function onMouseMove(e) {
+          if (!isResizing) return;
+          const delta = Math.max(e.clientX - startX, e.clientY - startY);
+          
+          let newWidth = startWidth + delta;
+          let newHeight = newWidth / aspectRatio;
+
+          if (newWidth < 100) {
+            newWidth = 100;
+            newHeight = newWidth / aspectRatio;
+          }
+
+          img.style.width = newWidth + "px";
+          img.style.height = newHeight + "px";
+          wrapper.style.width = newWidth + "px";
+          wrapper.style.height = newHeight + "px";
+
+          const data = imagesData.find(d => d.img === img);
+          if (data) {
+            data.width = newWidth;
+            data.height = newHeight;
+          }
+        }
+
+        function stopResize() {
+          isResizing = false;
+          document.removeEventListener("mousemove", onMouseMove);
+          document.removeEventListener("mouseup", stopResize);
+        }
+
+        document.addEventListener("mousemove", onMouseMove);
+        document.addEventListener("mouseup", stopResize);
+      }
+    }
+
+    function makeExpandable(img) {
+      const lightbox = document.getElementById("lightbox");
+      const lightboxImg = document.getElementById("lightbox-img");
+      const lightboxClose = document.getElementById("lightbox-close");
+      const isMobile = window.innerWidth <= 768;
+
+      const eventType = isMobile ? "click" : "dblclick";
+      
+      img.addEventListener(eventType, () => {
+        lightboxImg.src = img.src;
+        lightboxImg.alt = img.alt;
+        lightbox.style.display = "flex";
+        lightboxClose.focus();
+      });
+
+      lightboxClose.addEventListener("click", () => {
+        lightbox.style.display = "none";
+        img.focus();
+      });
+
+      lightbox.addEventListener("click", e => {
+        if (e.target === lightbox || e.target === lightboxImg) {
+          lightbox.style.display = "none";
+          img.focus();
+        }
+      });
+
+      lightbox.addEventListener("keydown", e => {
+        if (e.key === "Escape") {
+          lightbox.style.display = "none";
+          img.focus();
+        }
+      });
+    }
+
+    let resizeTimeout;
+    window.addEventListener("resize", () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        imagesData.forEach(data => {
+          if (data.wrapper) {
+            const maxX = window.innerWidth - data.width;
+            const maxY = window.innerHeight - data.height - topBuffer;
+            data.wrapper.style.left = data.relX * maxX + "px";
+            data.wrapper.style.top = data.relY * maxY + topBuffer + "px";
+          }
+        });
+      }, 250);
+    });
+
+    function toggleOrganize() {
+      const organizeBtn = document.getElementById("organize-btn");
+      
+      if (isOrganized) {
+        organizeBtn.textContent = "Organize";
+        explodeImages();
+        isOrganized = false;
+      } else {
+        organizeBtn.textContent = "Explode";
+        organizeImages();
+        isOrganized = true;
+      }
+    }
+
+    function organizeImages() {
+      const numImages = imagesData.length;
+      const cols = Math.ceil(Math.sqrt(numImages));
+      const rows = Math.ceil(numImages / cols);
+      
+      const availableWidth = window.innerWidth - 100;
+      const availableHeight = window.innerHeight - 100;
+      
+      const cellWidth = availableWidth / cols;
+      const cellHeight = availableHeight / rows;
+      
+      imagesData.forEach((data, index) => {
+        const col = index % cols;
+        const row = Math.floor(index / cols);
+        
+        const cellX = 50 + (col * cellWidth);
+        const cellY = 50 + (row * cellHeight);
+        
+        const imgAspect = data.img.naturalWidth / data.img.naturalHeight;
+        const cellAspect = cellWidth / cellHeight;
+        
+        let newWidth, newHeight;
+        if (imgAspect > cellAspect) {
+          newWidth = cellWidth * 0.9;
+          newHeight = newWidth / imgAspect;
+        } else {
+          newHeight = cellHeight * 0.9;
+          newWidth = newHeight * imgAspect;
+        }
+        
+        const x = cellX + (cellWidth - newWidth) / 2;
+        const y = cellY + (cellHeight - newHeight) / 2;
+        
+        if (!data.originalLeft) {
+          data.originalLeft = data.wrapper.style.left;
+          data.originalTop = data.wrapper.style.top;
+          data.originalWidth = data.img.style.width;
+          data.originalHeight = data.img.style.height;
+        }
+        
+        data.wrapper.style.left = x + "px";
+        data.wrapper.style.top = y + "px";
+        data.wrapper.style.width = newWidth + "px";
+        data.wrapper.style.height = newHeight + "px";
+        data.img.style.width = newWidth + "px";
+        data.img.style.height = newHeight + "px";
+      });
+    }
+
+    function explodeImages() {
+      imagesData.forEach(data => {
+        if (data.originalLeft) {
+          data.wrapper.style.left = data.originalLeft;
+          data.wrapper.style.top = data.originalTop;
+          data.wrapper.style.width = data.originalWidth;
+          data.wrapper.style.height = data.originalHeight;
+          data.img.style.width = data.originalWidth;
+          data.img.style.height = data.originalHeight;
+        }
+      });
+    }
+
+    function shuffleArray(array) {
+      return array.map(v => ({v, sort: Math.random()}))
+        .sort((a, b) => a.sort - b.sort)
+        .map(({v}) => v);
+    }
+  </script>
 </body>
 </html>
