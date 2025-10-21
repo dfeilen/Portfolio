@@ -65,6 +65,7 @@
       border: 2px solid #000;
       cursor: pointer;
       border-radius: 30px;
+      -webkit-border-radius: 30px;
       transition: all 0.3s ease;
       min-width: 180px;
     }
@@ -76,35 +77,6 @@
     }
 
     .category-btn:focus {
-      outline: none;
-    }
-
-    #category-about-btn {
-      position: fixed;
-      bottom: 30px;
-      left: 50%;
-      transform: translateX(-50%);
-      padding: 10px 28px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
-      font-weight: 600;
-      font-size: 14px;
-      background: transparent;
-      color: #666;
-      border: 2px solid #666;
-      cursor: pointer;
-      border-radius: 30px;
-      transition: background 0.3s ease, color 0.3s ease;
-      text-decoration: none;
-      display: inline-block;
-      z-index: 5001;
-    }
-
-    #category-about-btn:hover {
-      background: #666;
-      color: #fff;
-    }
-
-    #category-about-btn:focus {
       outline: none;
     }
 
@@ -122,9 +94,11 @@
       border: 2px solid #666;
       cursor: pointer;
       border-radius: 30px;
+      -webkit-border-radius: 30px;
       transition: all 0.3s ease;
       text-decoration: none;
       display: inline-block;
+      z-index: 5001;
     }
 
     #category-about-btn:hover {
@@ -324,13 +298,15 @@
         font-size: 15px;
         padding: 10px 28px;
         min-width: 160px;
-        border-radius: 0;
+        border-radius: 30px;
+        -webkit-border-radius: 30px;
       }
       
       #category-about-btn {
         font-size: 13px;
         padding: 8px 24px;
-        border-radius: 0;
+        border-radius: 30px;
+        -webkit-border-radius: 30px;
       }
       
       #results {
@@ -553,6 +529,8 @@
         font-size: 15px;
         padding: 10px 28px;
         min-width: 160px;
+        border-radius: 30px;
+        -webkit-border-radius: 30px;
       }
 
       #category-screen h1 {
@@ -575,12 +553,8 @@
         bottom: 25px;
         left: 50%;
         transform: translateX(-50%);
-      }
-
-      #category-about-btn {
-        font-size: 13px;
-        padding: 8px 24px;
-        bottom: 25px;
+        border-radius: 30px;
+        -webkit-border-radius: 30px;
       }
 
       #results {
@@ -684,7 +658,7 @@
   <div id="category-screen">
     <h1>DEVIN<br>FEILEN</h1>
     <button class="category-btn" data-category="cycling">Cycling</button>
-    <button class="category-btn" data-category="gr">GR</button>
+    <button class="category-btn" data-category="life">Life</button>
     <button class="category-btn" data-category="shuffle">Shuffle</button>
   </div>
 
@@ -694,7 +668,7 @@
     <button id="back-btn" aria-label="Back to categories">← Back</button>
     <a href="about.html" id="about-btn" aria-label="About this portfolio">About</a>
     <button id="organize-btn" aria-label="Organize photos">Organize</button>
-    <button id="load-more-btn" aria-label="Load more photos">More</button>
+    <button id="load-more-btn" aria-label="Load more photos">See More</button>
   </div>
   <div id="df-logo">DEVIN<br>FEILEN</div>
 
@@ -720,7 +694,7 @@
     const topBuffer = 55;
     let loadedCount = 0;
     const isMobileDevice = window.innerWidth <= 1024;
-    const initialLoadCount = isMobileDevice ? 20 : 10;
+    const initialLoadCount = isMobileDevice ? 20 : 12;
     let isLoadingMore = false;
     let isOrganized = false;
     let currentCategory = null;
@@ -775,7 +749,7 @@
         
         let jsonFile = 'photos.json';
         if (category === 'cycling') jsonFile = 'cycling.json';
-        else if (category === 'gr') jsonFile = 'gr.json';
+        else if (category === 'life') jsonFile = 'life.json';
         else if (category === 'shuffle') jsonFile = 'photos.json';
         
         fetch(jsonFile)
@@ -992,14 +966,14 @@
         loadedCount = 0;
         zIndexCounter = 1;
         
-        const batchSize = isMobile ? 20 : 10;
+        const batchSize = isMobile ? 20 : 12;
         const batch = getNextBatch(batchSize);
         addImages(batch);
         
         setTimeout(() => {
           resultsDiv.classList.add('fade-in');
           loadMoreBtn.disabled = false;
-          loadMoreBtn.textContent = "More";
+          loadMoreBtn.textContent = "See More";
         }, 300);
       }, 800);
     }
