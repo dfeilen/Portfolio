@@ -491,19 +491,31 @@
       align-items: center;
       padding: 40px;
       text-align: center;
+      transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     #mobile-detection-screen.active {
       display: flex;
     }
 
+    #mobile-detection-screen.swipe-up {
+      transform: translateY(-100%);
+    }
+
+    #mobile-detection-screen .content-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
     #mobile-detection-screen p {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
-      font-size: 18px;
-      line-height: 1.6;
+      font-family: 'VT323', monospace;
+      font-size: 24px;
+      line-height: 1.4;
       color: #000;
       max-width: 400px;
-      margin-bottom: 60px;
+      margin: 0 0 60px 0;
     }
 
     #swipe-arrow {
@@ -520,6 +532,22 @@
         overflow: hidden;
         width: 100%;
         height: 100vh;
+      }
+
+      #mobile-detection-screen {
+        padding: 20px;
+      }
+
+      #mobile-detection-screen p {
+        font-size: 20px;
+        max-width: 320px;
+        margin: 0 0 50px 0;
+      }
+
+      #swipe-arrow {
+        border-left: 18px solid transparent;
+        border-right: 18px solid transparent;
+        border-bottom: 26px solid #000;
       }
 
       .category-btn {
@@ -642,8 +670,10 @@
 </head>
 <body class="category-view">
   <div id="mobile-detection-screen">
-    <p>Hi, it looks like you're on your phone. This site was designed to be viewed on a desktop, but swipe up to view the mobile version.</p>
-    <div id="swipe-arrow"></div>
+    <div class="content-wrapper">
+      <p>Hi, it looks like you're on your phone. This site was designed to be viewed on a desktop, but swipe up to view the mobile version.</p>
+      <div id="swipe-arrow"></div>
+    </div>
   </div>
 
   <div id="category-screen">
@@ -701,7 +731,13 @@
         
         // Swipe up detected (threshold of 50px)
         if (swipeDistance > 50) {
-          window.location.href = '/mobile/';
+          // Add swipe up animation class
+          mobileScreen.classList.add('swipe-up');
+          
+          // Wait for animation to complete, then redirect
+          setTimeout(() => {
+            window.location.href = 'mobile.html';
+          }, 600);
         }
       }
     }
