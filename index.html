@@ -498,8 +498,28 @@
       display: flex;
     }
 
+    #mobile-detection-screen.active ~ #category-screen,
+    #mobile-detection-screen.active ~ #button-container,
+    #mobile-detection-screen.active ~ #df-logo,
+    #mobile-detection-screen.active ~ #results,
+    #mobile-detection-screen.active ~ #loading,
+    #mobile-detection-screen.active ~ #lightbox {
+      display: none !important;
+    }
+
     #mobile-detection-screen.swipe-up {
       transform: translateY(-100%);
+    }
+
+    #mobile-detection-screen.swipe-up::after {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      background: #fff;
+      z-index: 9999;
     }
 
     #mobile-detection-screen .content-wrapper {
@@ -507,6 +527,8 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      width: 100%;
+      max-width: 450px;
     }
 
     #mobile-detection-screen p {
@@ -516,6 +538,8 @@
       color: #000;
       max-width: 400px;
       margin: 0 0 60px 0;
+      text-align: center;
+      padding: 0 20px;
     }
 
     #swipe-arrow {
@@ -542,6 +566,8 @@
         font-size: 20px;
         max-width: 320px;
         margin: 0 0 50px 0;
+        text-align: center;
+        padding: 0 15px;
       }
 
       #swipe-arrow {
@@ -671,7 +697,7 @@
 <body class="category-view">
   <div id="mobile-detection-screen">
     <div class="content-wrapper">
-      <p>Hi, it looks like you're on your phone. This site was designed to be viewed on a desktop, but swipe up to view the mobile version.</p>
+      <p>It looks like you're on your phone.<br><br>I designed this portfolio to be viewed on a desktop screen, but you can swipe up to view a different version for a smaller screen.<br><br>Thanks for visiting.</p>
       <div id="swipe-arrow"></div>
     </div>
   </div>
