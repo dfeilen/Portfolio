@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>DEVIN FEILEN - Mobile</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background: #fafafa;
+      overflow: hidden;
+      width: 100%;
+      height: 100vh;
+    }
+
+    #category-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      z-index: 5000;
+      gap: 18px;
+      opacity: 1;
+      transition: opacity 0.8s ease;
+      padding-top: 80px;
+    }
+
+    #category-screen.fade-out {
+      opacity: 0;
+    }
+
+    #category-screen.hidden {
+      display: none;
+    }
+
+    #category-screen h1 {
+      font-family: 'VT323', monospace;
+      font-weight: 400;
+      font-size: 56px;
+      margin-bottom: 50px;
+      letter-spacing: 2px;
+      line-height: 0.9;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .category-btn {
+      padding: 10px 28px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+      font-weight: 600;
+      font-size: 15px;
+      background: transparent;
+      color: #000;
+      border: 2px solid #000;
+      cursor: pointer;
+      border-radius: 30px;
+      transition: all 0.3s ease;
+      min-width: 160px;
+      text-decoration: none;
+      display: inline-block;
+      text-align: center;
+      box-sizing: border-box;
+      line-height: 1.5;
+    }
+
+    .category-btn:active {
+      background: #000;
+      color: #fff;
+      transform: scale(0.98);
+    }
+
+    body.category-view {
+      overflow: hidden;
+    }
+
+    body.category-view #back-btn,
+    body.category-view #df-logo,
+    body.category-view #results,
+    body.category-view #loading {
+      display: none;
+    }
+
+    #results {
+      width: 100%;
+      height: 100vh;
+      position: relative;
+      overflow-x: auto;
+      overflow-y: hidden;
+      display: flex;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      align-content: stretch;
+      align-items: center;
+      gap: 8px;
+      padding: 0 8px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      scroll-behavior: smooth;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+
+    #results.fade-in {
+      opacity: 1;
+    }
+
+    #results::-webkit-scrollbar {
+      display: none;
+    }
+
+    .image-wrapper {
+      position: relative;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #results img {
+      position: relative;
+      cursor: pointer;
+      pointer-events: auto;
+      display: block;
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      opacity: 0;
+      animation: fadeIn 0.3s ease forwards;
+      width: auto;
+      height: auto;
+    }
+
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+
+    #loading {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      z-index: 1000;
+    }
+
+    #loading-spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #000;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 10px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    #back-btn {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 1001;
+      padding: 10px 18px;
+      font-size: 15px;
+      border-radius: 20px;
+      background: rgba(0, 0, 0, 0.85);
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+      font-weight: 600;
+      display: none;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    #back-btn:active {
+      background: rgba(0, 0, 0, 0.95);
+    }
+
+    body:not(.category-view) #back-btn {
+      display: block;
+    }
+
+    #df-logo {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      font-family: 'VT323', monospace;
+      font-weight: 400;
+      font-size: 28px;
+      color: #000;
+      z-index: 1001;
+      letter-spacing: 1px;
+      line-height: 0.9;
+      text-align: right;
+      text-transform: uppercase;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 8px 12px;
+      border-radius: 8px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    #lightbox {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 10000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #lightbox img {
+      max-width: 90vw;
+      max-height: 90vh;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+    }
+
+    #lightbox-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-size: 40px;
+      color: white;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 10px;
+      line-height: 1;
+      z-index: 10001;
+    }
+  </style>
+</head>
+<body class="category-view">
+  <div id="category-screen">
+    <h1>DEVIN<br>FEILEN</h1>
+    <button class="category-btn" data-category="cycling">Cycling</button>
+    <button class="category-btn" data-category="life">Life</button>
+    <a href="about.html" class="category-btn">About</a>
+  </div>
+
+  <button id="back-btn" aria-label="Back to categories">← Back</button>
+  <div id="df-logo">DEVIN<br>FEILEN</div>
+
+  <div id="loading" role="status" aria-live="polite">
+    <div id="loading-spinner" aria-hidden="true"></div>
+    <p>Loading photos...</p>
+  </div>
+
+  <div id="results" role="main" aria-label="Photo gallery"></div>
+
+  <div id="lightbox" role="dialog" aria-labelledby="lightbox-img" aria-modal="true">
+    <button id="lightbox-close" aria-label="Close fullscreen view">&times;</button>
+    <img id="lightbox-img" alt="" />
+  </div>
+
+  <script>
+    let allPhotos = [];
+    let photoQueue = [];
+    let loadedCount = 0;
+    let isLoadingMore = false;
+    let currentCategory = null;
+    let mobileScrollSetup = false;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const categoryButtons = document.querySelectorAll('.category-btn');
+      
+      categoryButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const category = btn.dataset.category;
+          if (category) {
+            loadCategory(category);
+          }
+        });
+      });
+
+      const backBtn = document.getElementById("back-btn");
+      if (backBtn) {
+        backBtn.addEventListener('click', backToCategories);
+      }
+    });
+
+    function loadCategory(category) {
+      currentCategory = category;
+      
+      const categoryScreen = document.getElementById('category-screen');
+      categoryScreen.classList.add('fade-out');
+      
+      setTimeout(() => {
+        categoryScreen.classList.add('hidden');
+        document.body.classList.remove('category-view');
+        
+        document.getElementById("loading").style.display = "block";
+        
+        let jsonFile = 'photos.json';
+        if (category === 'cycling') jsonFile = 'cycling.json';
+        else if (category === 'life') jsonFile = 'life.json';
+        
+        fetch(jsonFile)
+          .then(res => res.json())
+          .then(data => {
+            allPhotos = data;
+            resetQueue();
+            loadInitialPhotos();
+            
+            setTimeout(() => {
+              document.getElementById('results').classList.add('fade-in');
+            }, 100);
+          })
+          .catch(err => {
+            document.getElementById("loading").innerHTML = `<p>Error loading ${category} photos. Please refresh the page.</p>`;
+          });
+      }, 800);
+    }
+
+    function backToCategories() {
+      const resultsDiv = document.getElementById('results');
+      
+      resultsDiv.classList.remove('fade-in');
+      
+      setTimeout(() => {
+        resultsDiv.innerHTML = '';
+        loadedCount = 0;
+        mobileScrollSetup = false;
+        
+        const categoryScreen = document.getElementById('category-screen');
+        categoryScreen.classList.remove('fade-out');
+        categoryScreen.classList.remove('hidden');
+        document.body.classList.add('category-view');
+      }, 500);
+    }
+
+    function resetQueue() {
+      photoQueue = shuffleArray([...allPhotos]);
+    }
+
+    function getNextBatch(count) {
+      if (photoQueue.length < count) {
+        resetQueue();
+      }
+      return photoQueue.splice(0, count);
+    }
+
+    function loadInitialPhotos() {
+      document.getElementById("loading").style.display = "none";
+      setupMobileHorizontalScroll();
+      
+      const batch = getNextBatch(15);
+      addImages(batch);
+    }
+
+    function addImages(selected) {
+      const resultsDiv = document.getElementById("results");
+      
+      // Array of varied heights for collage effect (as percentage of viewport height)
+      const heightVariations = [0.65, 0.50, 0.75, 0.55, 0.80, 0.45, 0.70, 0.60, 0.85, 0.48, 0.72, 0.58, 0.68, 0.52, 0.78];
+      
+      selected.forEach((src, index) => {
+        setTimeout(() => {
+          const img = new Image();
+          img.src = src;
+          img.alt = `Photography by Devin Feilen`;
+          img.loading = "eager";
+
+          img.onload = () => {
+            loadedCount++;
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'image-wrapper';
+            
+            // Get varied height from the array
+            const heightPercentage = heightVariations[loadedCount % heightVariations.length];
+            const height = window.innerHeight * heightPercentage;
+            
+            // Calculate width based on aspect ratio to maintain the varied height
+            const aspectRatio = img.naturalWidth / img.naturalHeight;
+            const width = height * aspectRatio;
+            
+            img.style.height = height + "px";
+            img.style.width = width + "px";
+            wrapper.style.height = height + "px";
+            wrapper.style.width = width + "px";
+            
+            wrapper.appendChild(img);
+            makeExpandable(img);
+            resultsDiv.appendChild(wrapper);
+          };
+
+          img.onerror = (e) => {
+            img.dataset.retryCount = img.dataset.retryCount ? parseInt(img.dataset.retryCount) + 1 : 1;
+            
+            if (img.dataset.retryCount <= 2) {
+              const retryDelay = img.dataset.retryCount * 3000;
+              
+              setTimeout(() => {
+                const timestamp = new Date().getTime();
+                img.src = src + '?t=' + timestamp;
+              }, retryDelay);
+            }
+          };
+        }, index * 100);
+      });
+    }
+
+    function setupMobileHorizontalScroll() {
+      if (mobileScrollSetup) return;
+      mobileScrollSetup = true;
+      
+      const resultsDiv = document.getElementById("results");
+      
+      resultsDiv.addEventListener('scroll', () => {
+        const scrollLeft = resultsDiv.scrollLeft;
+        const scrollWidth = resultsDiv.scrollWidth;
+        const clientWidth = resultsDiv.clientWidth;
+        
+        // Load more when scrolled near the right edge
+        if (scrollLeft + clientWidth >= scrollWidth - 1000) {
+          loadMoreMobileImages();
+        }
+      });
+    }
+
+    function loadMoreMobileImages() {
+      if (isLoadingMore) return;
+      isLoadingMore = true;
+      
+      const batch = getNextBatch(10);
+      addImages(batch);
+      
+      setTimeout(() => { 
+        isLoadingMore = false; 
+      }, 1000);
+    }
+
+    function makeExpandable(img) {
+      const lightbox = document.getElementById("lightbox");
+      const lightboxImg = document.getElementById("lightbox-img");
+      const lightboxClose = document.getElementById("lightbox-close");
+      
+      img.addEventListener('click', () => {
+        lightboxImg.src = img.src;
+        lightboxImg.alt = img.alt;
+        lightbox.style.display = "flex";
+      });
+
+      lightboxClose.addEventListener("click", () => {
+        lightbox.style.display = "none";
+      });
+
+      lightbox.addEventListener("click", e => {
+        if (e.target === lightbox || e.target === lightboxImg) {
+          lightbox.style.display = "none";
+        }
+      });
+    }
+
+    function shuffleArray(array) {
+      return array.map(v => ({v, sort: Math.random()}))
+        .sort((a, b) => a.sort - b.sort)
+        .map(({v}) => v);
+    }
+  </script>
+</body>
+</html>
