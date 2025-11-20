@@ -489,7 +489,8 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      padding: 40px;
+      padding: 0;
+      margin: 0;
       text-align: center;
       transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     }
@@ -529,6 +530,8 @@
       justify-content: center;
       width: 100%;
       max-width: 450px;
+      padding: 0 40px;
+      margin: 0;
     }
 
     #mobile-detection-screen p {
@@ -536,10 +539,11 @@
       font-size: 24px;
       line-height: 1.4;
       color: #000;
-      max-width: 400px;
+      max-width: 100%;
       margin: 0 0 60px 0;
       text-align: center;
-      padding: 0 20px;
+      padding: 0;
+      width: 100%;
     }
 
     #swipe-arrow {
@@ -559,15 +563,20 @@
       }
 
       #mobile-detection-screen {
-        padding: 20px;
+        padding: 0;
+      }
+
+      #mobile-detection-screen .content-wrapper {
+        padding: 0 20px;
       }
 
       #mobile-detection-screen p {
         font-size: 20px;
-        max-width: 320px;
+        max-width: 100%;
         margin: 0 0 50px 0;
         text-align: center;
-        padding: 0 15px;
+        padding: 0;
+        width: 100%;
       }
 
       #swipe-arrow {
@@ -697,7 +706,7 @@
 <body class="category-view">
   <div id="mobile-detection-screen">
     <div class="content-wrapper">
-      <p>It looks like you're on your phone.<br><br>I designed this portfolio to be viewed on a desktop screen, but you can swipe up to view a different version for a smaller screen.<br><br>Thanks for visiting.</p>
+      <p>Hi :)<br><br>It looks like you're viewing this on a phone. Please visit on a desktop browser for different experience!<br><br>In the mean time, swipe up to view the mobile version.<br><br>Thanks for visiting.</p>
       <div id="swipe-arrow"></div>
     </div>
   </div>
