@@ -98,16 +98,17 @@
     }
 
     #results {
-      width: 300vw;
-      height: 300vh;
+      width: 200vw;
+      height: 200vh;
       position: absolute;
       top: 0;
       left: 0;
       background: #fafafa;
       opacity: 0;
-      transition: opacity 0.5s ease, width 0.8s ease, height 0.8s ease;
+      transition: opacity 0.5s ease;
       touch-action: none;
       will-change: transform;
+      transform: translateZ(0);
     }
 
     #results-viewport {
@@ -133,6 +134,8 @@
       justify-content: center;
       transition: transform 0.3s ease;
       cursor: pointer;
+      transform: translateZ(0);
+      will-change: transform;
     }
 
     #results img {
@@ -314,7 +317,7 @@
     <div id="results" role="main" aria-label="Photo gallery"></div>
   </div>
 
-  <div id="pan-instructions">Drag to explore • Pinch to zoom • New photos load continuously</div>
+  <div id="pan-instructions">Drag to explore • Pinch to zoom • Zoom in to see more photos</div>
 
   <div id="lightbox" role="dialog" aria-labelledby="lightbox-img" aria-modal="true">
     <button id="lightbox-close" aria-label="Close fullscreen view">&times;</button>
@@ -345,14 +348,24 @@
     let initialScale = 1;
 
     const canvas = {
-      width: window.innerWidth * 3,
-      height: window.innerHeight * 3,
-      expandBy: window.innerWidth * 0.5  // Expand by this amount when needed
+      width: window.innerWidth * 2,  // Start smaller (2x instead of 3x)
+      height: window.innerHeight * 2
     };
 
     // Track placed images for collision detection
     let placedImages = [];
-    let autoLoadInterval = null;
+    
+    // Spatial grid for fast collision detection
+    const gridCellSize = 300;
+    let spatialGrid = {};
+    
+    // Zoom-based loading
+    let lastLoadZoomLevel = 1;
+    let imagesPerZoomLevel = 30;
+    
+    // Performance optimization
+    let animationFrameId = null;
+    let isTransformPending = false;
 
     document.addEventListener('DOMContentLoaded', () => {
       const categoryButtons = document.querySelectorAll('.category-btn');
@@ -408,11 +421,6 @@
     function backToCategories() {
       const resultsDiv = document.getElementById('results');
       
-      if (autoLoadInterval) {
-        clearInterval(autoLoadInterval);
-        autoLoadInterval = null;
-      }
-      
       resultsDiv.classList.remove('fade-in');
       
       setTimeout(() => {
@@ -422,10 +430,12 @@
         posX = 0;
         posY = 0;
         placedImages = [];
+        spatialGrid = {};
+        lastLoadZoomLevel = 1;
         
         // Reset canvas size
-        canvas.width = window.innerWidth * 3;
-        canvas.height = window.innerHeight * 3;
+        canvas.width = window.innerWidth * 2;
+        canvas.height = window.innerHeight * 2;
         
         const categoryScreen = document.getElementById('category-screen');
         categoryScreen.classList.remove('fade-out');
@@ -460,50 +470,10 @@
       const batch = getNextBatch(30);
       addImages(batch);
       
-      // Start continuous auto-loading
-      autoLoadInterval = setInterval(() => {
-        if (photoQueue.length > 0 && !isLoadingMore) {
-          const moreBatch = getNextBatch(8);
-          addImages(moreBatch);
-          
-          // Gradually expand canvas
-          expandCanvas();
-        } else if (photoQueue.length === 0) {
-          // All photos loaded, stop auto-loading
-          clearInterval(autoLoadInterval);
-          autoLoadInterval = null;
-        }
-      }, 4000);
-      
       // Hide instructions after 5 seconds
       setTimeout(() => {
         document.getElementById('pan-instructions').classList.add('hidden');
       }, 5000);
-    }
-
-    function expandCanvas() {
-      const oldWidth = canvas.width;
-      const oldHeight = canvas.height;
-      
-      // Expand canvas dimensions
-      canvas.width += canvas.expandBy;
-      canvas.height += canvas.expandBy;
-      
-      // Update results div size
-      const resultsDiv = document.getElementById('results');
-      resultsDiv.style.width = canvas.width + 'px';
-      resultsDiv.style.height = canvas.height + 'px';
-      
-      // Adjust pan position to maintain user's view (expand from center)
-      const widthDiff = canvas.width - oldWidth;
-      const heightDiff = canvas.height - oldHeight;
-      
-      posX -= widthDiff / 2;
-      posY -= heightDiff / 2;
-      
-      // Constrain after expansion
-      constrainPan();
-      updateTransform();
     }
 
     function addImages(selected) {
@@ -543,22 +513,15 @@
               width = size * aspectRatio;
             }
             
-            // Find position with NO overlap
-            const position = findBestPosition(width, height);
+            // Find position with NO overlap using spatial grid
+            const position = findBestPositionOptimized(width, height);
             
             if (!position) {
-              // If no position found, expand canvas and try again
-              expandCanvas();
-              const newPosition = findBestPosition(width, height);
-              if (!newPosition) return; // Skip this image if still can't place
-              
-              wrapper.style.left = newPosition.x + "px";
-              wrapper.style.top = newPosition.y + "px";
-            } else {
-              wrapper.style.left = position.x + "px";
-              wrapper.style.top = position.y + "px";
+              return; // Skip this image if can't place
             }
             
+            wrapper.style.left = position.x + "px";
+            wrapper.style.top = position.y + "px";
             wrapper.style.width = width + "px";
             wrapper.style.height = height + "px";
             wrapper.style.zIndex = loadedCount;
@@ -566,13 +529,17 @@
             img.style.width = width + "px";
             img.style.height = height + "px";
             
-            // Store this image's bounds for future collision detection
-            placedImages.push({
-              x: parseFloat(wrapper.style.left),
-              y: parseFloat(wrapper.style.top),
+            // Store in placedImages and spatial grid
+            const imageData = {
+              x: position.x,
+              y: position.y,
               width: width,
-              height: height
-            });
+              height: height,
+              element: wrapper
+            };
+            
+            placedImages.push(imageData);
+            addToSpatialGrid(imageData);
             
             wrapper.appendChild(img);
             makeExpandable(img);
@@ -591,24 +558,68 @@
               }, retryDelay);
             }
           };
-        }, index * 100);
+        }, index * 50); // Reduced from 100ms for faster loading
       });
     }
 
-    function findBestPosition(width, height) {
+    // Spatial grid functions for fast collision detection
+    function getGridKey(x, y) {
+      const gridX = Math.floor(x / gridCellSize);
+      const gridY = Math.floor(y / gridCellSize);
+      return `${gridX},${gridY}`;
+    }
+    
+    function addToSpatialGrid(imageData) {
+      // Add image to all grid cells it overlaps
+      const minX = Math.floor(imageData.x / gridCellSize);
+      const maxX = Math.floor((imageData.x + imageData.width) / gridCellSize);
+      const minY = Math.floor(imageData.y / gridCellSize);
+      const maxY = Math.floor((imageData.y + imageData.height) / gridCellSize);
+      
+      for (let gx = minX; gx <= maxX; gx++) {
+        for (let gy = minY; gy <= maxY; gy++) {
+          const key = `${gx},${gy}`;
+          if (!spatialGrid[key]) {
+            spatialGrid[key] = [];
+          }
+          spatialGrid[key].push(imageData);
+        }
+      }
+    }
+    
+    function getNearbyImages(x, y, width, height) {
+      const minX = Math.floor(x / gridCellSize);
+      const maxX = Math.floor((x + width) / gridCellSize);
+      const minY = Math.floor(y / gridCellSize);
+      const maxY = Math.floor((y + height) / gridCellSize);
+      
+      const nearbyImages = new Set();
+      
+      for (let gx = minX; gx <= maxX; gx++) {
+        for (let gy = minY; gy <= maxY; gy++) {
+          const key = `${gx},${gy}`;
+          if (spatialGrid[key]) {
+            spatialGrid[key].forEach(img => nearbyImages.add(img));
+          }
+        }
+      }
+      
+      return Array.from(nearbyImages);
+    }
+
+    function findBestPositionOptimized(width, height) {
       const padding = 30;
       const maxX = canvas.width - width - padding;
       const maxY = canvas.height - height - padding;
-      const maxAttempts = 50; // Increased attempts for strict no-overlap
+      const maxAttempts = 20; // Reduced from 50 for performance
       
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
-        // Generate random position with grid-based tendency for better distribution
         let x, y;
         
-        if (attempt < 25) {
-          // First half: use grid-based positioning with randomness
-          const cols = 8;
-          const rows = 8;
+        if (attempt < 10) {
+          // Grid-based positioning
+          const cols = 6;
+          const rows = 6;
           const cellWidth = canvas.width / cols;
           const cellHeight = canvas.height / rows;
           
@@ -618,27 +629,27 @@
           x = col * cellWidth + Math.random() * (cellWidth - width);
           y = row * cellHeight + Math.random() * (cellHeight - height);
         } else {
-          // Second half: completely random
+          // Random positioning
           x = padding + Math.random() * maxX;
           y = padding + Math.random() * maxY;
         }
         
-        // Ensure within bounds
         x = Math.max(padding, Math.min(x, maxX));
         y = Math.max(padding, Math.min(y, maxY));
         
-        // Check if this position has NO overlap with existing images
-        if (!hasOverlap(x, y, width, height)) {
+        // Only check nearby images using spatial grid
+        if (!hasOverlapOptimized(x, y, width, height)) {
           return { x, y };
         }
       }
       
-      // No non-overlapping position found
       return null;
     }
 
-    function hasOverlap(x, y, width, height) {
-      for (const placed of placedImages) {
+    function hasOverlapOptimized(x, y, width, height) {
+      const nearbyImages = getNearbyImages(x, y, width, height);
+      
+      for (const placed of nearbyImages) {
         if (rectanglesOverlap(
           x, y, width, height,
           placed.x, placed.y, placed.width, placed.height
@@ -650,40 +661,7 @@
     }
 
     function rectanglesOverlap(x1, y1, w1, h1, x2, y2, w2, h2) {
-      // Check if rectangles overlap
       return !(x1 + w1 <= x2 || x2 + w2 <= x1 || y1 + h1 <= y2 || y2 + h2 <= y1);
-    }
-
-    function calculateTotalOverlap(x, y, width, height) {
-      let totalOverlap = 0;
-      
-      for (const placed of placedImages) {
-        const overlap = calculateOverlap(
-          x, y, width, height,
-          placed.x, placed.y, placed.width, placed.height
-        );
-        totalOverlap += overlap;
-      }
-      
-      return totalOverlap;
-    }
-
-    function calculateOverlap(x1, y1, w1, h1, x2, y2, w2, h2) {
-      // Calculate intersection rectangle
-      const left = Math.max(x1, x2);
-      const right = Math.min(x1 + w1, x2 + w2);
-      const top = Math.max(y1, y2);
-      const bottom = Math.min(y1 + h1, y2 + h2);
-      
-      // If no overlap, return 0
-      if (left >= right || top >= bottom) {
-        return 0;
-      }
-      
-      // Calculate overlap area
-      const overlapWidth = right - left;
-      const overlapHeight = bottom - top;
-      return overlapWidth * overlapHeight;
     }
 
     function setupPanAndZoom() {
@@ -724,9 +702,8 @@
           posX = e.touches[0].clientX - startX;
           posY = e.touches[0].clientY - startY;
           
-          // Constrain panning
-          constrainPan();
-          updateTransform();
+          // Request update on next animation frame
+          requestTransformUpdate();
         } else if (e.touches.length === 2) {
           // Pinch zoom
           e.preventDefault();
@@ -753,9 +730,8 @@
           
           scale = constrainedScale;
           
-          // Constrain pan after zoom
-          constrainPan();
-          updateTransform();
+          // Request update on next animation frame
+          requestTransformUpdate();
         }
       }, { passive: false });
       
@@ -764,6 +740,9 @@
         if (e.touches.length < 2) {
           isDragging = false;
           initialDistance = 0;
+          
+          // Check if we should load more images based on zoom level
+          checkZoomBasedLoading();
         }
         if (e.touches.length === 1) {
           // Continue panning with remaining finger
@@ -772,6 +751,43 @@
           startY = e.touches[0].clientY - posY;
         }
       }, { passive: true });
+    }
+    
+    function requestTransformUpdate() {
+      if (!isTransformPending) {
+        isTransformPending = true;
+        
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+        }
+        
+        animationFrameId = requestAnimationFrame(() => {
+          constrainPan();
+          updateTransform();
+          isTransformPending = false;
+        });
+      }
+    }
+    
+    function checkZoomBasedLoading() {
+      // Load more images when zooming in past certain thresholds
+      const zoomThresholds = [1.2, 1.5, 1.8, 2.1, 2.4, 2.7, 3.0];
+      
+      for (const threshold of zoomThresholds) {
+        if (scale >= threshold && lastLoadZoomLevel < threshold && photoQueue.length > 0) {
+          lastLoadZoomLevel = threshold;
+          
+          // Load more images - more detail at higher zoom
+          const batchSize = Math.floor(imagesPerZoomLevel * (scale / threshold));
+          const batch = getNextBatch(Math.min(batchSize, photoQueue.length));
+          
+          if (batch.length > 0) {
+            addImages(batch);
+          }
+          
+          break;
+        }
+      }
     }
     
     function getDistance(touch1, touch2) {
@@ -793,23 +809,22 @@
     
     function updateTransform() {
       const resultsDiv = document.getElementById('results');
-      resultsDiv.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
+      resultsDiv.style.transform = `translate3d(${posX}px, ${posY}px, 0) scale(${scale})`;
       resultsDiv.style.transformOrigin = '0 0';
     }
 
     function loadMoreMobileImages() {
-      // This function is kept for compatibility but auto-loading is now handled in loadInitialPhotos
-      if (isLoadingMore) return;
-      if (loadedCount >= allPhotos.length) return;
+      // Manual load more (if needed for fallback)
+      if (isLoadingMore || photoQueue.length === 0) return;
       
       isLoadingMore = true;
       
-      const batch = getNextBatch(8);
+      const batch = getNextBatch(10);
       addImages(batch);
       
       setTimeout(() => { 
         isLoadingMore = false; 
-      }, 1000);
+      }, 500);
     }
 
     function makeExpandable(img) {
