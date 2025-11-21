@@ -89,7 +89,7 @@
     }
 
     body.category-view #back-btn,
-    body.category-view #df-logo,
+    body.category-view #background-text,
     body.category-view #results-viewport,
     body.category-view #results,
     body.category-view #loading,
@@ -224,25 +224,23 @@
       display: block;
     }
 
-    #df-logo {
+    #background-text {
       position: fixed;
-      top: 20px;
-      right: 20px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
       font-family: 'VT323', monospace;
+      font-size: 120px;
       font-weight: 400;
-      font-size: 28px;
-      color: #000;
-      z-index: 2000;
-      letter-spacing: 1px;
-      line-height: 0.9;
-      text-align: right;
+      color: rgba(0, 0, 0, 0.03);
       text-transform: uppercase;
-      background: rgba(255, 255, 255, 0.9);
-      padding: 8px 12px;
-      border-radius: 8px;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      letter-spacing: 8px;
+      line-height: 1.2;
+      text-align: center;
+      z-index: 1;
       pointer-events: none;
+      user-select: none;
+      white-space: nowrap;
     }
 
     #lightbox {
@@ -279,6 +277,20 @@
       line-height: 1;
       z-index: 10001;
     }
+
+    @media (max-width: 768px) {
+      #background-text {
+        font-size: 80px;
+        letter-spacing: 4px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      #background-text {
+        font-size: 60px;
+        letter-spacing: 2px;
+      }
+    }
   </style>
 </head>
 <body class="category-view">
@@ -290,7 +302,7 @@
   </div>
 
   <button id="back-btn" aria-label="Back to categories">← Back</button>
-  <div id="df-logo">DEVIN<br>FEILEN</div>
+  <div id="background-text">DEVIN<br>FEILEN</div>
 
   <div id="loading" role="status" aria-live="polite">
     <div id="loading-spinner" aria-hidden="true"></div>
@@ -335,6 +347,9 @@
       width: window.innerWidth * 3,
       height: window.innerHeight * 3
     };
+
+    // Track placed images for collision detection
+    let placedImages = [];
 
     document.addEventListener('DOMContentLoaded', () => {
       const categoryButtons = document.querySelectorAll('.category-btn');
@@ -398,6 +413,7 @@
         scale = 1;
         posX = 0;
         posY = 0;
+        placedImages = [];
         
         const categoryScreen = document.getElementById('category-screen');
         categoryScreen.classList.remove('fade-out');
@@ -482,20 +498,25 @@
               width = size * aspectRatio;
             }
             
-            // Random position within canvas
-            const maxX = canvas.width - width - 20;
-            const maxY = canvas.height - height - 20;
-            const x = 10 + Math.random() * maxX;
-            const y = 10 + Math.random() * maxY;
+            // Find best position with minimal overlap
+            const position = findBestPosition(width, height);
             
-            wrapper.style.left = x + "px";
-            wrapper.style.top = y + "px";
+            wrapper.style.left = position.x + "px";
+            wrapper.style.top = position.y + "px";
             wrapper.style.width = width + "px";
             wrapper.style.height = height + "px";
             wrapper.style.zIndex = loadedCount;
             
             img.style.width = width + "px";
             img.style.height = height + "px";
+            
+            // Store this image's bounds for future collision detection
+            placedImages.push({
+              x: position.x,
+              y: position.y,
+              width: width,
+              height: height
+            });
             
             wrapper.appendChild(img);
             makeExpandable(img);
@@ -518,9 +539,103 @@
       });
     }
 
+    function findBestPosition(width, height) {
+      const padding = 20;
+      const maxX = canvas.width - width - padding;
+      const maxY = canvas.height - height - padding;
+      const maxAttempts = 30;
+      
+      let bestPosition = null;
+      let minOverlap = Infinity;
+      
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        // Generate random position with grid-based tendency for better distribution
+        let x, y;
+        
+        if (attempt < 15) {
+          // First half: use grid-based positioning with randomness
+          const cols = 6;
+          const rows = 6;
+          const cellWidth = canvas.width / cols;
+          const cellHeight = canvas.height / rows;
+          
+          const col = Math.floor(Math.random() * cols);
+          const row = Math.floor(Math.random() * rows);
+          
+          x = col * cellWidth + Math.random() * (cellWidth - width);
+          y = row * cellHeight + Math.random() * (cellHeight - height);
+        } else {
+          // Second half: completely random
+          x = padding + Math.random() * maxX;
+          y = padding + Math.random() * maxY;
+        }
+        
+        // Ensure within bounds
+        x = Math.max(padding, Math.min(x, maxX));
+        y = Math.max(padding, Math.min(y, maxY));
+        
+        // Calculate overlap with existing images
+        const overlapArea = calculateTotalOverlap(x, y, width, height);
+        
+        // If no overlap, use this position immediately
+        if (overlapArea === 0) {
+          return { x, y };
+        }
+        
+        // Track best position with minimal overlap
+        if (overlapArea < minOverlap) {
+          minOverlap = overlapArea;
+          bestPosition = { x, y };
+        }
+      }
+      
+      // Return best position found (may have some overlap)
+      return bestPosition || { 
+        x: padding + Math.random() * maxX, 
+        y: padding + Math.random() * maxY 
+      };
+    }
+
+    function calculateTotalOverlap(x, y, width, height) {
+      let totalOverlap = 0;
+      
+      for (const placed of placedImages) {
+        const overlap = calculateOverlap(
+          x, y, width, height,
+          placed.x, placed.y, placed.width, placed.height
+        );
+        totalOverlap += overlap;
+      }
+      
+      return totalOverlap;
+    }
+
+    function calculateOverlap(x1, y1, w1, h1, x2, y2, w2, h2) {
+      // Calculate intersection rectangle
+      const left = Math.max(x1, x2);
+      const right = Math.min(x1 + w1, x2 + w2);
+      const top = Math.max(y1, y2);
+      const bottom = Math.min(y1 + h1, y2 + h2);
+      
+      // If no overlap, return 0
+      if (left >= right || top >= bottom) {
+        return 0;
+      }
+      
+      // Calculate overlap area
+      const overlapWidth = right - left;
+      const overlapHeight = bottom - top;
+      return overlapWidth * overlapHeight;
+    }
+
     function setupPanAndZoom() {
       const resultsDiv = document.getElementById('results');
       const viewport = document.getElementById('results-viewport');
+      
+      let lastTouchX = 0;
+      let lastTouchY = 0;
+      let pinchCenterX = 0;
+      let pinchCenterY = 0;
       
       // Touch start
       viewport.addEventListener('touchstart', (e) => {
@@ -529,9 +644,16 @@
           isDragging = true;
           startX = e.touches[0].clientX - posX;
           startY = e.touches[0].clientY - posY;
+          lastTouchX = e.touches[0].clientX;
+          lastTouchY = e.touches[0].clientY;
         } else if (e.touches.length === 2) {
           // Two fingers - pinch zoom
           isDragging = false;
+          
+          // Calculate pinch center point
+          pinchCenterX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+          pinchCenterY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+          
           initialDistance = getDistance(e.touches[0], e.touches[1]);
           initialScale = scale;
         }
@@ -550,12 +672,31 @@
         } else if (e.touches.length === 2) {
           // Pinch zoom
           e.preventDefault();
+          
           const currentDistance = getDistance(e.touches[0], e.touches[1]);
-          scale = initialScale * (currentDistance / initialDistance);
+          const newScale = initialScale * (currentDistance / initialDistance);
+          
+          // Calculate new pinch center
+          const currentPinchCenterX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+          const currentPinchCenterY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
           
           // Constrain zoom
-          scale = Math.max(minScale, Math.min(maxScale, scale));
+          const constrainedScale = Math.max(minScale, Math.min(maxScale, newScale));
           
+          // Calculate zoom adjustment to keep pinch center fixed
+          const scaleChange = constrainedScale / scale;
+          
+          // Adjust position to zoom towards pinch center
+          const deltaX = currentPinchCenterX - posX;
+          const deltaY = currentPinchCenterY - posY;
+          
+          posX = currentPinchCenterX - deltaX * scaleChange;
+          posY = currentPinchCenterY - deltaY * scaleChange;
+          
+          scale = constrainedScale;
+          
+          // Constrain pan after zoom
+          constrainPan();
           updateTransform();
         }
       }, { passive: false });
@@ -564,6 +705,13 @@
       viewport.addEventListener('touchend', (e) => {
         if (e.touches.length < 2) {
           isDragging = false;
+          initialDistance = 0;
+        }
+        if (e.touches.length === 1) {
+          // Continue panning with remaining finger
+          isDragging = true;
+          startX = e.touches[0].clientX - posX;
+          startY = e.touches[0].clientY - posY;
         }
       }, { passive: true });
     }
