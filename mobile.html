@@ -105,7 +105,7 @@
       left: 0;
       background: #fafafa;
       opacity: 0;
-      transition: opacity 0.5s ease;
+      transition: opacity 0.5s ease, width 0.8s ease, height 0.8s ease;
       touch-action: none;
       will-change: transform;
     }
@@ -118,6 +118,7 @@
       left: 0;
       overflow: hidden;
       background: #fafafa;
+      z-index: 5;
     }
 
     #results.fade-in {
@@ -232,12 +233,12 @@
       font-family: 'VT323', monospace;
       font-size: 120px;
       font-weight: 400;
-      color: rgba(0, 0, 0, 0.03);
+      color: #e8e8e8;
       text-transform: uppercase;
       letter-spacing: 8px;
       line-height: 1.2;
       text-align: center;
-      z-index: 1;
+      z-index: 0;
       pointer-events: none;
       user-select: none;
       white-space: nowrap;
@@ -313,7 +314,7 @@
     <div id="results" role="main" aria-label="Photo gallery"></div>
   </div>
 
-  <div id="pan-instructions">Drag to explore • Pinch to zoom • Tap to expand</div>
+  <div id="pan-instructions">Drag to explore • Pinch to zoom • New photos load continuously</div>
 
   <div id="lightbox" role="dialog" aria-labelledby="lightbox-img" aria-modal="true">
     <button id="lightbox-close" aria-label="Close fullscreen view">&times;</button>
@@ -345,11 +346,13 @@
 
     const canvas = {
       width: window.innerWidth * 3,
-      height: window.innerHeight * 3
+      height: window.innerHeight * 3,
+      expandBy: window.innerWidth * 0.5  // Expand by this amount when needed
     };
 
     // Track placed images for collision detection
     let placedImages = [];
+    let autoLoadInterval = null;
 
     document.addEventListener('DOMContentLoaded', () => {
       const categoryButtons = document.querySelectorAll('.category-btn');
@@ -405,6 +408,11 @@
     function backToCategories() {
       const resultsDiv = document.getElementById('results');
       
+      if (autoLoadInterval) {
+        clearInterval(autoLoadInterval);
+        autoLoadInterval = null;
+      }
+      
       resultsDiv.classList.remove('fade-in');
       
       setTimeout(() => {
@@ -414,6 +422,10 @@
         posX = 0;
         posY = 0;
         placedImages = [];
+        
+        // Reset canvas size
+        canvas.width = window.innerWidth * 3;
+        canvas.height = window.innerHeight * 3;
         
         const categoryScreen = document.getElementById('category-screen');
         categoryScreen.classList.remove('fade-out');
@@ -444,16 +456,24 @@
       
       setupPanAndZoom();
       
-      // Load more images to fill the canvas
-      const batch = getNextBatch(40);
+      // Load initial batch
+      const batch = getNextBatch(30);
       addImages(batch);
       
-      // Load more after initial batch
-      setTimeout(() => {
-        if (photoQueue.length > 0) {
-          loadMoreMobileImages();
+      // Start continuous auto-loading
+      autoLoadInterval = setInterval(() => {
+        if (photoQueue.length > 0 && !isLoadingMore) {
+          const moreBatch = getNextBatch(8);
+          addImages(moreBatch);
+          
+          // Gradually expand canvas
+          expandCanvas();
+        } else if (photoQueue.length === 0) {
+          // All photos loaded, stop auto-loading
+          clearInterval(autoLoadInterval);
+          autoLoadInterval = null;
         }
-      }, 3000);
+      }, 4000);
       
       // Hide instructions after 5 seconds
       setTimeout(() => {
@@ -461,11 +481,36 @@
       }, 5000);
     }
 
+    function expandCanvas() {
+      const oldWidth = canvas.width;
+      const oldHeight = canvas.height;
+      
+      // Expand canvas dimensions
+      canvas.width += canvas.expandBy;
+      canvas.height += canvas.expandBy;
+      
+      // Update results div size
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.style.width = canvas.width + 'px';
+      resultsDiv.style.height = canvas.height + 'px';
+      
+      // Adjust pan position to maintain user's view (expand from center)
+      const widthDiff = canvas.width - oldWidth;
+      const heightDiff = canvas.height - oldHeight;
+      
+      posX -= widthDiff / 2;
+      posY -= heightDiff / 2;
+      
+      // Constrain after expansion
+      constrainPan();
+      updateTransform();
+    }
+
     function addImages(selected) {
       const resultsDiv = document.getElementById("results");
       
-      // Size variations (percentage of viewport width)
-      const sizeVariations = [0.35, 0.45, 0.55, 0.40, 0.50, 0.38, 0.48, 0.42, 0.52, 0.36];
+      // Larger size variations (percentage of viewport width)
+      const sizeVariations = [0.45, 0.55, 0.65, 0.50, 0.60, 0.48, 0.58, 0.52, 0.62, 0.46];
       
       selected.forEach((src, index) => {
         setTimeout(() => {
@@ -480,7 +525,7 @@
             const wrapper = document.createElement('div');
             wrapper.className = 'image-wrapper';
             
-            // Random size
+            // Random larger size
             const sizePercent = sizeVariations[loadedCount % sizeVariations.length];
             const size = window.innerWidth * sizePercent;
             
@@ -498,11 +543,22 @@
               width = size * aspectRatio;
             }
             
-            // Find best position with minimal overlap
+            // Find position with NO overlap
             const position = findBestPosition(width, height);
             
-            wrapper.style.left = position.x + "px";
-            wrapper.style.top = position.y + "px";
+            if (!position) {
+              // If no position found, expand canvas and try again
+              expandCanvas();
+              const newPosition = findBestPosition(width, height);
+              if (!newPosition) return; // Skip this image if still can't place
+              
+              wrapper.style.left = newPosition.x + "px";
+              wrapper.style.top = newPosition.y + "px";
+            } else {
+              wrapper.style.left = position.x + "px";
+              wrapper.style.top = position.y + "px";
+            }
+            
             wrapper.style.width = width + "px";
             wrapper.style.height = height + "px";
             wrapper.style.zIndex = loadedCount;
@@ -512,8 +568,8 @@
             
             // Store this image's bounds for future collision detection
             placedImages.push({
-              x: position.x,
-              y: position.y,
+              x: parseFloat(wrapper.style.left),
+              y: parseFloat(wrapper.style.top),
               width: width,
               height: height
             });
@@ -540,22 +596,19 @@
     }
 
     function findBestPosition(width, height) {
-      const padding = 20;
+      const padding = 30;
       const maxX = canvas.width - width - padding;
       const maxY = canvas.height - height - padding;
-      const maxAttempts = 30;
-      
-      let bestPosition = null;
-      let minOverlap = Infinity;
+      const maxAttempts = 50; // Increased attempts for strict no-overlap
       
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
         // Generate random position with grid-based tendency for better distribution
         let x, y;
         
-        if (attempt < 15) {
+        if (attempt < 25) {
           // First half: use grid-based positioning with randomness
-          const cols = 6;
-          const rows = 6;
+          const cols = 8;
+          const rows = 8;
           const cellWidth = canvas.width / cols;
           const cellHeight = canvas.height / rows;
           
@@ -574,26 +627,31 @@
         x = Math.max(padding, Math.min(x, maxX));
         y = Math.max(padding, Math.min(y, maxY));
         
-        // Calculate overlap with existing images
-        const overlapArea = calculateTotalOverlap(x, y, width, height);
-        
-        // If no overlap, use this position immediately
-        if (overlapArea === 0) {
+        // Check if this position has NO overlap with existing images
+        if (!hasOverlap(x, y, width, height)) {
           return { x, y };
-        }
-        
-        // Track best position with minimal overlap
-        if (overlapArea < minOverlap) {
-          minOverlap = overlapArea;
-          bestPosition = { x, y };
         }
       }
       
-      // Return best position found (may have some overlap)
-      return bestPosition || { 
-        x: padding + Math.random() * maxX, 
-        y: padding + Math.random() * maxY 
-      };
+      // No non-overlapping position found
+      return null;
+    }
+
+    function hasOverlap(x, y, width, height) {
+      for (const placed of placedImages) {
+        if (rectanglesOverlap(
+          x, y, width, height,
+          placed.x, placed.y, placed.width, placed.height
+        )) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function rectanglesOverlap(x1, y1, w1, h1, x2, y2, w2, h2) {
+      // Check if rectangles overlap
+      return !(x1 + w1 <= x2 || x2 + w2 <= x1 || y1 + h1 <= y2 || y2 + h2 <= y1);
     }
 
     function calculateTotalOverlap(x, y, width, height) {
@@ -740,12 +798,13 @@
     }
 
     function loadMoreMobileImages() {
+      // This function is kept for compatibility but auto-loading is now handled in loadInitialPhotos
       if (isLoadingMore) return;
-      if (loadedCount >= allPhotos.length) return; // All photos loaded
+      if (loadedCount >= allPhotos.length) return;
       
       isLoadingMore = true;
       
-      const batch = getNextBatch(15);
+      const batch = getNextBatch(8);
       addImages(batch);
       
       setTimeout(() => { 
