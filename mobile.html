@@ -90,45 +90,48 @@
 
     body.category-view #back-btn,
     body.category-view #df-logo,
+    body.category-view #results-viewport,
     body.category-view #results,
-    body.category-view #loading {
+    body.category-view #loading,
+    body.category-view #pan-instructions {
       display: none;
     }
 
     #results {
-      width: 100%;
-      height: 100vh;
-      position: relative;
-      overflow-x: auto;
-      overflow-y: hidden;
-      display: flex;
-      flex-direction: row;
-      flex-wrap: nowrap;
-      align-content: stretch;
-      align-items: center;
-      gap: 8px;
-      padding: 0 8px;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-      scroll-behavior: smooth;
+      width: 300vw;
+      height: 300vh;
+      position: absolute;
+      top: 0;
+      left: 0;
+      background: #fafafa;
       opacity: 0;
       transition: opacity 0.5s ease;
+      touch-action: none;
+      will-change: transform;
+    }
+
+    #results-viewport {
+      width: 100%;
+      height: 100vh;
+      position: fixed;
+      top: 0;
+      left: 0;
+      overflow: hidden;
+      background: #fafafa;
     }
 
     #results.fade-in {
       opacity: 1;
     }
 
-    #results::-webkit-scrollbar {
-      display: none;
-    }
-
     .image-wrapper {
-      position: relative;
+      position: absolute;
       flex-shrink: 0;
       display: flex;
       align-items: center;
       justify-content: center;
+      transition: transform 0.3s ease;
+      cursor: pointer;
     }
 
     #results img {
@@ -137,15 +140,37 @@
       pointer-events: auto;
       display: block;
       border-radius: 4px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
       opacity: 0;
-      animation: fadeIn 0.3s ease forwards;
-      width: auto;
-      height: auto;
+      animation: fadeIn 0.5s ease forwards;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
     @keyframes fadeIn {
       to { opacity: 1; }
+    }
+
+    #pan-instructions {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.75);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+      z-index: 1500;
+      opacity: 1;
+      transition: opacity 0.5s ease;
+      pointer-events: none;
+    }
+
+    #pan-instructions.hidden {
+      opacity: 0;
     }
 
     #loading {
@@ -176,7 +201,7 @@
       position: fixed;
       top: 20px;
       left: 20px;
-      z-index: 1001;
+      z-index: 2000;
       padding: 10px 18px;
       font-size: 15px;
       border-radius: 20px;
@@ -207,7 +232,7 @@
       font-weight: 400;
       font-size: 28px;
       color: #000;
-      z-index: 1001;
+      z-index: 2000;
       letter-spacing: 1px;
       line-height: 0.9;
       text-align: right;
@@ -217,6 +242,7 @@
       border-radius: 8px;
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
+      pointer-events: none;
     }
 
     #lightbox {
@@ -271,7 +297,11 @@
     <p>Loading photos...</p>
   </div>
 
-  <div id="results" role="main" aria-label="Photo gallery"></div>
+  <div id="results-viewport">
+    <div id="results" role="main" aria-label="Photo gallery"></div>
+  </div>
+
+  <div id="pan-instructions">Drag to explore • Pinch to zoom • Tap to expand</div>
 
   <div id="lightbox" role="dialog" aria-labelledby="lightbox-img" aria-modal="true">
     <button id="lightbox-close" aria-label="Close fullscreen view">&times;</button>
@@ -284,7 +314,27 @@
     let loadedCount = 0;
     let isLoadingMore = false;
     let currentCategory = null;
-    let mobileScrollSetup = false;
+
+    // Pan and zoom state
+    let scale = 1;
+    let minScale = 0.5;
+    let maxScale = 3;
+    let posX = 0;
+    let posY = 0;
+    let lastPosX = 0;
+    let lastPosY = 0;
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    
+    // Pinch zoom
+    let initialDistance = 0;
+    let initialScale = 1;
+
+    const canvas = {
+      width: window.innerWidth * 3,
+      height: window.innerHeight * 3
+    };
 
     document.addEventListener('DOMContentLoaded', () => {
       const categoryButtons = document.querySelectorAll('.category-btn');
@@ -345,7 +395,9 @@
       setTimeout(() => {
         resultsDiv.innerHTML = '';
         loadedCount = 0;
-        mobileScrollSetup = false;
+        scale = 1;
+        posX = 0;
+        posY = 0;
         
         const categoryScreen = document.getElementById('category-screen');
         categoryScreen.classList.remove('fade-out');
@@ -367,17 +419,37 @@
 
     function loadInitialPhotos() {
       document.getElementById("loading").style.display = "none";
-      setupMobileHorizontalScroll();
       
-      const batch = getNextBatch(15);
+      // Center the canvas initially
+      const resultsDiv = document.getElementById('results');
+      posX = -(canvas.width - window.innerWidth) / 2;
+      posY = -(canvas.height - window.innerHeight) / 2;
+      updateTransform();
+      
+      setupPanAndZoom();
+      
+      // Load more images to fill the canvas
+      const batch = getNextBatch(40);
       addImages(batch);
+      
+      // Load more after initial batch
+      setTimeout(() => {
+        if (photoQueue.length > 0) {
+          loadMoreMobileImages();
+        }
+      }, 3000);
+      
+      // Hide instructions after 5 seconds
+      setTimeout(() => {
+        document.getElementById('pan-instructions').classList.add('hidden');
+      }, 5000);
     }
 
     function addImages(selected) {
       const resultsDiv = document.getElementById("results");
       
-      // Array of varied heights for collage effect (as percentage of viewport height)
-      const heightVariations = [0.65, 0.50, 0.75, 0.55, 0.80, 0.45, 0.70, 0.60, 0.85, 0.48, 0.72, 0.58, 0.68, 0.52, 0.78];
+      // Size variations (percentage of viewport width)
+      const sizeVariations = [0.35, 0.45, 0.55, 0.40, 0.50, 0.38, 0.48, 0.42, 0.52, 0.36];
       
       selected.forEach((src, index) => {
         setTimeout(() => {
@@ -392,18 +464,38 @@
             const wrapper = document.createElement('div');
             wrapper.className = 'image-wrapper';
             
-            // Get varied height from the array
-            const heightPercentage = heightVariations[loadedCount % heightVariations.length];
-            const height = window.innerHeight * heightPercentage;
+            // Random size
+            const sizePercent = sizeVariations[loadedCount % sizeVariations.length];
+            const size = window.innerWidth * sizePercent;
             
-            // Calculate width based on aspect ratio to maintain the varied height
+            // Calculate dimensions maintaining aspect ratio
             const aspectRatio = img.naturalWidth / img.naturalHeight;
-            const width = height * aspectRatio;
+            let width, height;
             
-            img.style.height = height + "px";
-            img.style.width = width + "px";
-            wrapper.style.height = height + "px";
+            if (aspectRatio > 1) {
+              // Landscape
+              width = size;
+              height = size / aspectRatio;
+            } else {
+              // Portrait
+              height = size;
+              width = size * aspectRatio;
+            }
+            
+            // Random position within canvas
+            const maxX = canvas.width - width - 20;
+            const maxY = canvas.height - height - 20;
+            const x = 10 + Math.random() * maxX;
+            const y = 10 + Math.random() * maxY;
+            
+            wrapper.style.left = x + "px";
+            wrapper.style.top = y + "px";
             wrapper.style.width = width + "px";
+            wrapper.style.height = height + "px";
+            wrapper.style.zIndex = loadedCount;
+            
+            img.style.width = width + "px";
+            img.style.height = height + "px";
             
             wrapper.appendChild(img);
             makeExpandable(img);
@@ -426,29 +518,86 @@
       });
     }
 
-    function setupMobileHorizontalScroll() {
-      if (mobileScrollSetup) return;
-      mobileScrollSetup = true;
+    function setupPanAndZoom() {
+      const resultsDiv = document.getElementById('results');
+      const viewport = document.getElementById('results-viewport');
       
-      const resultsDiv = document.getElementById("results");
-      
-      resultsDiv.addEventListener('scroll', () => {
-        const scrollLeft = resultsDiv.scrollLeft;
-        const scrollWidth = resultsDiv.scrollWidth;
-        const clientWidth = resultsDiv.clientWidth;
-        
-        // Load more when scrolled near the right edge
-        if (scrollLeft + clientWidth >= scrollWidth - 1000) {
-          loadMoreMobileImages();
+      // Touch start
+      viewport.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+          // Single touch - pan
+          isDragging = true;
+          startX = e.touches[0].clientX - posX;
+          startY = e.touches[0].clientY - posY;
+        } else if (e.touches.length === 2) {
+          // Two fingers - pinch zoom
+          isDragging = false;
+          initialDistance = getDistance(e.touches[0], e.touches[1]);
+          initialScale = scale;
         }
-      });
+      }, { passive: true });
+      
+      // Touch move
+      viewport.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 1 && isDragging) {
+          // Pan
+          posX = e.touches[0].clientX - startX;
+          posY = e.touches[0].clientY - startY;
+          
+          // Constrain panning
+          constrainPan();
+          updateTransform();
+        } else if (e.touches.length === 2) {
+          // Pinch zoom
+          e.preventDefault();
+          const currentDistance = getDistance(e.touches[0], e.touches[1]);
+          scale = initialScale * (currentDistance / initialDistance);
+          
+          // Constrain zoom
+          scale = Math.max(minScale, Math.min(maxScale, scale));
+          
+          updateTransform();
+        }
+      }, { passive: false });
+      
+      // Touch end
+      viewport.addEventListener('touchend', (e) => {
+        if (e.touches.length < 2) {
+          isDragging = false;
+        }
+      }, { passive: true });
+    }
+    
+    function getDistance(touch1, touch2) {
+      const dx = touch1.clientX - touch2.clientX;
+      const dy = touch1.clientY - touch2.clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+    
+    function constrainPan() {
+      const scaledWidth = canvas.width * scale;
+      const scaledHeight = canvas.height * scale;
+      
+      const minX = window.innerWidth - scaledWidth;
+      const minY = window.innerHeight - scaledHeight;
+      
+      posX = Math.max(Math.min(posX, 0), minX);
+      posY = Math.max(Math.min(posY, 0), minY);
+    }
+    
+    function updateTransform() {
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
+      resultsDiv.style.transformOrigin = '0 0';
     }
 
     function loadMoreMobileImages() {
       if (isLoadingMore) return;
+      if (loadedCount >= allPhotos.length) return; // All photos loaded
+      
       isLoadingMore = true;
       
-      const batch = getNextBatch(10);
+      const batch = getNextBatch(15);
       addImages(batch);
       
       setTimeout(() => { 
@@ -461,11 +610,31 @@
       const lightboxImg = document.getElementById("lightbox-img");
       const lightboxClose = document.getElementById("lightbox-close");
       
-      img.addEventListener('click', () => {
-        lightboxImg.src = img.src;
-        lightboxImg.alt = img.alt;
-        lightbox.style.display = "flex";
-      });
+      let touchStartTime = 0;
+      let touchStartPos = { x: 0, y: 0 };
+      
+      img.addEventListener('touchstart', (e) => {
+        touchStartTime = Date.now();
+        touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      }, { passive: true });
+      
+      img.addEventListener('touchend', (e) => {
+        const touchEndTime = Date.now();
+        const touchEndPos = { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+        
+        // Calculate distance moved
+        const distance = Math.sqrt(
+          Math.pow(touchEndPos.x - touchStartPos.x, 2) + 
+          Math.pow(touchEndPos.y - touchStartPos.y, 2)
+        );
+        
+        // Only open lightbox if it was a tap (short duration, minimal movement)
+        if (touchEndTime - touchStartTime < 300 && distance < 10) {
+          lightboxImg.src = img.src;
+          lightboxImg.alt = img.alt;
+          lightbox.style.display = "flex";
+        }
+      }, { passive: true });
 
       lightboxClose.addEventListener("click", () => {
         lightbox.style.display = "none";
