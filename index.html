@@ -475,6 +475,15 @@
     let lastTouchY = 0;
     let catchZone = window.innerHeight * 0.4; // Where images "catch"
     let maxPileSize = 12; // Max images in pile before cleanup
+    
+    // Mobile scroll smoothing
+    let velocity = 0;
+    let lastScrollTime = 0;
+    let isScrolling = false;
+    let scrollTimeout = null;
+    let lastSpawnScroll = 0;
+    let spawnThreshold = 200; // Pixels scrolled before spawning new image
+    let minVerticalGap = 80; // Minimum vertical gap between images
 
     // Elements
     const canvas = document.getElementById('canvas');
@@ -561,16 +570,17 @@
       canvas.innerHTML = '';
       mobileImages = [];
       mobileZIndex = 1;
+      totalScrolled = 0;
+      lastSpawnScroll = 0;
+      velocity = 0;
       
       // Show scroll hint
       if (scrollHint) {
         scrollHint.classList.remove('hidden');
       }
       
-      // Spawn initial images
-      for (let i = 0; i < 3; i++) {
-        setTimeout(() => spawnMobileImage(), i * 200);
-      }
+      // Spawn initial image
+      spawnMobileImage();
       
       // Touch handlers
       canvas.addEventListener('touchstart', handleTouchStart, { passive: true });
@@ -580,53 +590,104 @@
 
     function handleTouchStart(e) {
       lastTouchY = e.touches[0].clientY;
+      lastScrollTime = Date.now();
+      velocity = 0;
+      isScrolling = true;
+      
+      // Clear any existing scroll timeout
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
+      }
     }
 
     function handleTouchMove(e) {
       const currentY = e.touches[0].clientY;
+      const currentTime = Date.now();
       const deltaY = lastTouchY - currentY; // Positive = scrolling up
+      const deltaTime = currentTime - lastScrollTime;
+      
+      // Calculate velocity for momentum
+      if (deltaTime > 0) {
+        velocity = deltaY / deltaTime * 16; // Normalize to ~60fps
+      }
+      
       lastTouchY = currentY;
+      lastScrollTime = currentTime;
       
       if (deltaY > 0) {
-        // Scrolling up - move images and spawn new ones
-        totalScrolled += deltaY;
-        
-        // Hide scroll hint after first scroll
-        if (scrollHint && totalScrolled > 50) {
-          scrollHint.classList.add('hidden');
-        }
-        
-        // Move existing images up
-        mobileImages.forEach(imgData => {
-          if (!imgData.caught) {
-            imgData.y -= deltaY * 1.2;
-            
-            // Check if image should be caught
-            if (imgData.y <= catchZone + (Math.random() * 100 - 50)) {
-              imgData.caught = true;
-              imgData.wrapper.classList.add('caught');
-              // Add slight random offset when caught
-              imgData.y = catchZone + (Math.random() * 60 - 30);
-              imgData.x += (Math.random() * 40 - 20);
-            }
-            
-            imgData.wrapper.style.top = imgData.y + 'px';
-            imgData.wrapper.style.left = imgData.x + 'px';
-          }
-        });
-        
-        // Spawn new image periodically
-        if (totalScrolled % 150 < deltaY) {
-          spawnMobileImage();
-        }
-        
-        // Cleanup old images
-        cleanupMobileImages();
+        applyScroll(deltaY);
       }
+      
+      e.preventDefault();
     }
 
     function handleTouchEnd(e) {
-      // Optional: add momentum or settle animations
+      // Apply momentum scrolling
+      if (Math.abs(velocity) > 0.5) {
+        requestAnimationFrame(applyMomentum);
+      } else {
+        endScrolling();
+      }
+    }
+    
+    function applyMomentum() {
+      if (Math.abs(velocity) < 0.5) {
+        endScrolling();
+        return;
+      }
+      
+      // Apply friction
+      velocity *= 0.95;
+      
+      if (velocity > 0) {
+        applyScroll(velocity);
+      }
+      
+      requestAnimationFrame(applyMomentum);
+    }
+    
+    function endScrolling() {
+      // Delay before allowing taps again
+      scrollTimeout = setTimeout(() => {
+        isScrolling = false;
+      }, 150);
+    }
+    
+    function applyScroll(deltaY) {
+      totalScrolled += deltaY;
+      
+      // Hide scroll hint after first scroll
+      if (scrollHint && totalScrolled > 50) {
+        scrollHint.classList.add('hidden');
+      }
+      
+      // Move existing images up
+      mobileImages.forEach(imgData => {
+        if (!imgData.caught) {
+          imgData.y -= deltaY * 1.1;
+          
+          // Check if image should be caught
+          if (imgData.y <= catchZone + (Math.random() * 80 - 40)) {
+            imgData.caught = true;
+            imgData.wrapper.classList.add('caught');
+            // Add slight random offset when caught
+            imgData.y = catchZone + (Math.random() * 50 - 25);
+            imgData.x += (Math.random() * 30 - 15);
+          }
+          
+          imgData.wrapper.style.top = imgData.y + 'px';
+          imgData.wrapper.style.left = imgData.x + 'px';
+        }
+      });
+      
+      // Spawn new image when scrolled enough (one at a time)
+      if (totalScrolled - lastSpawnScroll >= spawnThreshold) {
+        spawnMobileImage();
+        lastSpawnScroll = totalScrolled;
+      }
+      
+      // Cleanup old images
+      cleanupMobileImages();
     }
 
     function spawnMobileImage() {
@@ -652,8 +713,16 @@
       const maxX = window.innerWidth - size - 10;
       const x = 10 + Math.random() * maxX;
       
-      // Start from below the screen
-      const y = window.innerHeight + 50;
+      // Start from below the screen with vertical gap
+      // Find the lowest uncaught image and add gap
+      let lowestY = window.innerHeight;
+      mobileImages.forEach(imgData => {
+        if (!imgData.caught && imgData.y > lowestY - 200) {
+          lowestY = Math.max(lowestY, imgData.y + minVerticalGap);
+        }
+      });
+      
+      const y = Math.max(window.innerHeight + 50, lowestY + minVerticalGap);
       
       wrapper.style.left = x + 'px';
       wrapper.style.top = y + 'px';
@@ -669,8 +738,13 @@
         });
       });
       
-      // Tap to open lightbox
+      // Tap to open lightbox (only if not scrolling)
       wrapper.addEventListener('click', (e) => {
+        if (isScrolling) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
         e.stopPropagation();
         openLightbox(src);
       });
@@ -744,41 +818,47 @@
       img.alt = 'Photography by Devin Feilen';
       img.loading = 'eager';
       
-      // Random size between 250-400px
-      const size = 250 + Math.random() * 150;
-      wrapper.style.width = size + 'px';
-      
-      // Random position with padding from edges
-      const padding = 80;
-      const maxX = window.innerWidth - size - padding;
-      const maxY = window.innerHeight - size - padding;
-      const x = padding + Math.random() * maxX;
-      const y = padding + Math.random() * maxY;
-      
-      wrapper.style.left = x + 'px';
-      wrapper.style.top = y + 'px';
-      wrapper.style.zIndex = index + 1;
+      // Random width between 300-500px
+      const targetWidth = 300 + Math.random() * 200;
+      wrapper.style.width = targetWidth + 'px';
       
       // Add resize handle
       const resizeHandle = document.createElement('div');
       resizeHandle.className = 'resize-handle';
       wrapper.appendChild(resizeHandle);
       
-      // Make draggable
-      makeDraggable(wrapper);
-      
-      // Make resizable
-      makeResizable(wrapper, img, resizeHandle);
-      
       wrapper.appendChild(img);
       canvas.appendChild(wrapper);
       
-      // Fade in
-      requestAnimationFrame(() => {
+      // Wait for image to load to get actual dimensions
+      img.onload = () => {
+        const aspectRatio = img.naturalWidth / img.naturalHeight;
+        const actualHeight = targetWidth / aspectRatio;
+        
+        // Random position with padding from edges, accounting for actual height
+        const padding = 60;
+        const maxX = Math.max(padding, window.innerWidth - targetWidth - padding);
+        const maxY = Math.max(padding, window.innerHeight - actualHeight - padding);
+        const x = padding + Math.random() * (maxX - padding);
+        const y = padding + Math.random() * (maxY - padding);
+        
+        wrapper.style.left = x + 'px';
+        wrapper.style.top = y + 'px';
+        wrapper.style.zIndex = index + 1;
+        
+        // Make draggable
+        makeDraggable(wrapper);
+        
+        // Make resizable
+        makeResizable(wrapper, img, resizeHandle);
+        
+        // Fade in after positioning
         requestAnimationFrame(() => {
-          wrapper.classList.add('visible');
+          requestAnimationFrame(() => {
+            wrapper.classList.add('visible');
+          });
         });
-      });
+      };
       
       // Double-click to open lightbox
       wrapper.addEventListener('dblclick', () => {
