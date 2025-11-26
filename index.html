@@ -39,7 +39,7 @@
       right: 32px;
       z-index: 100;
       display: flex;
-      gap: 24px;
+      gap: 16px;
       font-size: 12px;
       letter-spacing: 0.05em;
     }
@@ -309,9 +309,12 @@
       }
 
       .nav {
-        bottom: 20px;
+        top: 20px;
         right: 20px;
-        gap: 20px;
+        bottom: auto;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 12px;
         font-size: 11px;
       }
 
@@ -419,6 +422,9 @@
   <nav class="nav">
     <button class="category-btn active" data-category="cycling">Cycling</button>
     <button class="category-btn" data-category="life">Life</button>
+    <button class="category-btn" data-category="ab">A&B</button>
+    <button class="category-btn" data-category="people">People</button>
+    <button class="category-btn" data-category="walls">Walls</button>
     <a href="about.html" class="category-btn">Devin</a>
   </nav>
 
@@ -482,8 +488,9 @@
     let isScrolling = false;
     let scrollTimeout = null;
     let lastSpawnScroll = 0;
-    let spawnThreshold = 200; // Pixels scrolled before spawning new image
-    let minVerticalGap = 80; // Minimum vertical gap between images
+    let spawnThreshold = 400; // Pixels scrolled before spawning new image (increased)
+    let minVerticalGap = 120; // Minimum vertical gap between images
+    let horizontalBuffer = 30; // Buffer from screen edges
 
     // Elements
     const canvas = document.getElementById('canvas');
@@ -540,7 +547,7 @@
       totalScrolled = 0;
       loading.classList.remove('hidden');
       
-      const jsonFile = category === 'cycling' ? 'cycling.json' : 'life.json';
+      const jsonFile = category + '.json';
       
       fetch(jsonFile)
         .then(res => {
@@ -593,6 +600,11 @@
       lastScrollTime = Date.now();
       velocity = 0;
       isScrolling = true;
+      
+      // Disable pointer events on all images while scrolling
+      mobileImages.forEach(imgData => {
+        imgData.wrapper.style.pointerEvents = 'none';
+      });
       
       // Clear any existing scroll timeout
       if (scrollTimeout) {
@@ -647,10 +659,20 @@
     }
     
     function endScrolling() {
-      // Delay before allowing taps again
+      // Delay before allowing taps
       scrollTimeout = setTimeout(() => {
         isScrolling = false;
-      }, 150);
+        // Enable pointer events on all images
+        mobileImages.forEach(imgData => {
+          imgData.wrapper.style.pointerEvents = 'auto';
+        });
+      }, 300);
+    }
+    
+    function handleMobileTap(src) {
+      if (!isScrolling) {
+        openLightbox(src);
+      }
     }
     
     function applyScroll(deltaY) {
@@ -709,24 +731,27 @@
       const size = window.innerWidth * widthPercent;
       wrapper.style.width = size + 'px';
       
-      // Random horizontal position
-      const maxX = window.innerWidth - size - 10;
-      const x = 10 + Math.random() * maxX;
+      // Random horizontal position with buffer from edges
+      const maxX = window.innerWidth - size - horizontalBuffer;
+      const x = horizontalBuffer + Math.random() * (maxX - horizontalBuffer);
       
       // Start from below the screen with vertical gap
       // Find the lowest uncaught image and add gap
       let lowestY = window.innerHeight;
       mobileImages.forEach(imgData => {
-        if (!imgData.caught && imgData.y > lowestY - 200) {
+        if (!imgData.caught && imgData.y > lowestY - 300) {
           lowestY = Math.max(lowestY, imgData.y + minVerticalGap);
         }
       });
       
-      const y = Math.max(window.innerHeight + 50, lowestY + minVerticalGap);
+      const y = Math.max(window.innerHeight + 80, lowestY + minVerticalGap);
       
       wrapper.style.left = x + 'px';
       wrapper.style.top = y + 'px';
       wrapper.style.zIndex = mobileZIndex++;
+      
+      // Disable pointer events initially
+      wrapper.style.pointerEvents = 'none';
       
       wrapper.appendChild(img);
       canvas.appendChild(wrapper);
@@ -738,15 +763,9 @@
         });
       });
       
-      // Tap to open lightbox (only if not scrolling)
-      wrapper.addEventListener('click', (e) => {
-        if (isScrolling) {
-          e.preventDefault();
-          e.stopPropagation();
-          return;
-        }
-        e.stopPropagation();
-        openLightbox(src);
+      // Tap to open lightbox (only works when not scrolling)
+      wrapper.addEventListener('click', () => {
+        handleMobileTap(src);
       });
       
       const imgData = {
@@ -818,8 +837,8 @@
       img.alt = 'Photography by Devin Feilen';
       img.loading = 'eager';
       
-      // Random width between 300-500px
-      const targetWidth = 300 + Math.random() * 200;
+      // Random width between 250-400px
+      const targetWidth = 250 + Math.random() * 150;
       wrapper.style.width = targetWidth + 'px';
       
       // Add resize handle
