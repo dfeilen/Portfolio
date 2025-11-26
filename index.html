@@ -567,7 +567,7 @@
     <p>Devin Feilen is a photographer based in Portland, Oregon. He can typically be found at cyclocross races around the PNW or wandering around with a Ricoh GR.</p>
     <p>Site design by yours truly and never squarespace.</p>
     <p>You can support me at <a href="https://buymeacoffee.com/devinfeilen" target="_blank">buymeacoffee.com/devinfeilen</a></p>
-    <p>For usage/licensing or any questions, please contact me via Instagram <a href="https://instagram.com/devinfeilen" target="_blank">@devinfeilen</a> or via email at <a href="mailto:dfeeilen@gmail.com">dfeeilen@gmail.com</a></p>
+    <p>For usage/licensing or any questions, please contact me via Instagram <a href="https://instagram.com/devinfeilen" target="_blank">@devinfeilen</a> or via email at <a href="/cdn-cgi/l/email-protection#b7d3d1d2d2dedbd2d9f7d0dad6dedb99d4d8da"><span class="__cf_email__" data-cfemail="c7a3a1a2a2aeaba2a987a0aaa6aeabe9a4a8aa">[email&#160;protected]</span></a></p>
     <p>Thank you for visiting :)</p>
   </div>
 
@@ -596,7 +596,7 @@
     </button>
   </div>
 
-  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
     // State
     let allPhotos = [];
     let displayedPhotos = [];
@@ -1161,4 +1161,14 @@
     }
 
     // Handle resize
-    wind
+    window.addEventListener('resize', () => {
+      const wasMobile = isMobile;
+      isMobile = window.innerWidth <= 768;
+      
+      if (wasMobile !== isMobile) {
+        loadCategory(currentCategory);
+      }
+    });
+  </script>
+</body>
+</html>
