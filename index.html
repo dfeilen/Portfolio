@@ -869,9 +869,13 @@
       const shuffled = shuffleArray([...allPhotos]);
       
       // Calculate positions and spawn images
-      const spacing = window.innerHeight * 0.6;
+      const baseSpacing = 80; // Minimum gap between images
       const horizontalBuffer = 30;
       let currentY = 50;
+      
+      // Track image load completion for proper spacing
+      let loadedCount = 0;
+      const imageData = [];
       
       shuffled.forEach((src, index) => {
         const wrapper = document.createElement('div');
@@ -892,10 +896,18 @@
         const x = horizontalBuffer + Math.random() * (maxX - horizontalBuffer);
         
         wrapper.style.left = x + 'px';
-        wrapper.style.top = currentY + 'px';
+        wrapper.style.top = '0px'; // Temporary, will be set after layout
+        wrapper.style.visibility = 'hidden';
         
         wrapper.appendChild(img);
         scrollContainer.appendChild(wrapper);
+        
+        imageData.push({
+          wrapper,
+          src,
+          index,
+          size
+        });
         
         // Tap to open lightbox
         wrapper.addEventListener('click', (e) => {
@@ -910,13 +922,25 @@
         });
         
         displayedPhotos.push(src);
-        
-        // Add spacing for next image (with some randomness)
-        currentY += spacing + (Math.random() * 100 - 50);
       });
       
-      // Set container height
-      scrollContainer.style.height = (currentY + 200) + 'px';
+      // After a short delay, position all images based on their rendered heights
+      setTimeout(() => {
+        let yPos = 50;
+        
+        imageData.forEach((data, i) => {
+          const height = data.wrapper.offsetHeight || (data.size * 1.2); // Fallback estimate
+          
+          data.wrapper.style.top = yPos + 'px';
+          data.wrapper.style.visibility = 'visible';
+          
+          // Add image height plus spacing for next position
+          yPos += height + baseSpacing + (Math.random() * 40 - 20);
+        });
+        
+        // Set container height
+        scrollContainer.style.height = (yPos + 200) + 'px';
+      }, 100);
     }
 
     function openMobileLightbox(src, displayIndex) {
