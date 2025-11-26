@@ -2,1375 +2,938 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-  <title>DEVIN FEILEN</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Devin Feilen</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    body {
-      font-family: 'Courier New', monospace;
+    * {
       margin: 0;
       padding: 0;
-      min-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #f5f5f3;
+      --text: #111;
+      --text-muted: #888;
+      --border: #ddd;
+    }
+
+    html, body {
+      height: 100%;
       overflow: hidden;
-      background: #fafafa;
-      position: relative;
     }
 
-    #category-screen {
+    body {
+      font-family: 'Space Mono', monospace;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    /* Navigation */
+    .nav {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100vh;
-      background: #fff;
+      bottom: 24px;
+      right: 32px;
+      z-index: 100;
       display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      z-index: 5000;
       gap: 24px;
-      opacity: 1;
-      transition: opacity 0.8s ease;
-      padding-bottom: 160px;
-    }
-
-    #category-screen.fade-out {
-      opacity: 0;
-    }
-
-    #category-screen.hidden {
-      display: none;
-    }
-
-    #category-screen h1 {
-      font-family: 'VT323', monospace;
-      font-weight: 400;
-      font-size: 64px;
-      margin-bottom: 20px;
-      letter-spacing: 2px;
-      line-height: 1;
-      text-align: center;
-      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 0.05em;
     }
 
     .category-btn {
-      padding: 12px 32px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
-      font-weight: 600;
-      font-size: 16px;
-      background: transparent;
-      color: #000;
-      border: 2px solid #000;
+      background: none;
+      border: none;
+      font-family: inherit;
+      font-size: inherit;
+      letter-spacing: inherit;
+      color: var(--text);
       cursor: pointer;
-      border-radius: 30px;
-      -webkit-border-radius: 30px;
-      transition: all 0.3s ease;
-      min-width: 180px;
+      text-transform: uppercase;
+      padding: 0;
       text-decoration: none;
-      display: inline-block;
-      text-align: center;
-      box-sizing: border-box;
-      line-height: 1.5;
-      vertical-align: middle;
     }
 
     .category-btn:hover {
-      background: #000;
-      color: #fff;
-      transform: scale(1.02);
+      text-decoration: underline;
     }
 
-    .category-btn:focus {
-      outline: none;
+    .category-btn.active {
+      text-decoration: underline;
     }
 
-    body.category-view {
-      overflow: hidden;
+    /* Refresh Button */
+    .refresh-btn {
       position: fixed;
-      width: 100%;
-      height: 100vh;
+      bottom: 24px;
+      left: 32px;
+      z-index: 100;
+      background: none;
+      border: none;
+      font-family: inherit;
+      font-size: 12px;
+      letter-spacing: 0.05em;
+      color: var(--text);
+      cursor: pointer;
+      text-transform: uppercase;
+      padding: 0;
     }
 
-    body.category-view #button-container,
-    body.category-view #df-logo,
-    body.category-view #results,
-    body.category-view #loading {
-      display: none;
+    .refresh-btn:hover {
+      text-decoration: underline;
     }
 
-    #results {
+    /* Canvas Area */
+    .canvas {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+    }
+
+    /* Floating Images */
+    .float-img {
+      position: absolute;
       opacity: 0;
-      transition: opacity 0.5s ease;
+      transform: scale(0.9);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      pointer-events: auto;
+      cursor: grab;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
     }
 
-    #results.fade-in {
+    .float-img.visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .float-img.dragging {
+      cursor: grabbing;
+      transition: none;
+    }
+
+    .float-img img {
+      display: block;
+      height: auto;
+      max-width: 100%;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .float-img:hover {
+      z-index: 50 !important;
+    }
+
+    /* Resize Handle */
+    .resize-handle {
+      position: absolute;
+      bottom: -6px;
+      right: -6px;
+      width: 12px;
+      height: 12px;
+      background: var(--text);
+      border: 2px solid var(--bg);
+      border-radius: 50%;
+      cursor: nwse-resize;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      z-index: 10;
+    }
+
+    .float-img:hover .resize-handle {
       opacity: 1;
     }
 
-    #loading {
+    .resize-handle:hover {
+      transform: scale(1.2);
+    }
+
+    /* Loading */
+    .loading {
       position: fixed;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
       text-align: center;
-      z-index: 1000;
+      z-index: 50;
+      opacity: 1;
+      transition: opacity 0.4s ease;
     }
 
-    #loading-spinner {
-      border: 4px solid #f3f3f3;
-      border-top: 4px solid #000;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 10px;
+    .loading.hidden {
+      opacity: 0;
+      pointer-events: none;
     }
 
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    #button-container {
-      position: fixed;
-      top: 25px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 12px;
-      z-index: 300;
-      align-items: center;
-    }
-
-    #about-btn,
-    #back-btn,
-    #organize-btn,
-    #load-more-btn {
-      padding: 8px 18px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
-      font-weight: 600;
-      font-size: 15px;
-      background: rgba(0, 0, 0, 0.8);
-      color: white;
-      border: none;
-      cursor: pointer;
-      border-radius: 20px;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      transition: all 0.2s ease;
-      white-space: nowrap;
-    }
-
-    #about-btn {
-      text-decoration: none;
-      display: inline-block;
-    }
-
-    #back-btn {
-      display: none;
-    }
-
-    #organize-btn,
-    #load-more-btn {
-      display: none;
-    }
-
-    #organize-btn.visible,
-    #load-more-btn.visible {
-      display: block;
-    }
-
-    #about-btn:hover,
-    #back-btn:hover,
-    #organize-btn:hover,
-    #load-more-btn:hover {
-      background: rgba(0, 0, 0, 0.9);
-    }
-
-    #about-btn:focus,
-    #back-btn:focus,
-    #organize-btn:focus,
-    #load-more-btn:focus {
-      outline: 2px solid rgba(0, 0, 0, 0.5);
-      outline-offset: 2px;
-    }
-
-    #load-more-btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    .image-wrapper {
-      transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    #about-modal {
-      display: none;
-    }
-
-    #about-content {
-      display: none;
-    }
-
-    #about-close {
-      display: none;
-    }
-
-    #df-logo {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      font-family: 'VT323', monospace;
-      font-weight: 400;
-      font-size: 28px;
-      color: #000;
-      z-index: 300;
-      letter-spacing: 1px;
-      line-height: 0.9;
-      text-align: right;
+    .loading-text {
+      font-size: 11px;
+      letter-spacing: 0.15em;
       text-transform: uppercase;
+      color: var(--text-muted);
     }
 
-    @media only screen and (max-width: 1024px) {
-      body {
-        background: #fafafa;
-        overflow: hidden;
-        width: 100%;
-        height: 100vh;
-      }
-      
-      #category-screen {
-        gap: 20px;
-        padding-bottom: 180px;
-        padding-top: 0;
-        justify-content: center;
-      }
-      
-      #category-screen h1 {
-        font-size: 48px !important;
-        letter-spacing: 2px;
-        line-height: 0.9;
-        margin-bottom: 40px !important;
-      }
-      
-      #df-logo {
-        font-size: 24px !important;
-        top: 10px;
-        right: 10px;
-      }
-      
-      .category-btn {
-        font-size: 15px;
-        padding: 10px 28px;
-        min-width: 160px;
-        border-radius: 30px;
-        -webkit-border-radius: 30px;
-      }
-      
-      #results {
-        width: 100%;
-        height: 100vh;
-        position: relative;
-        overflow-x: hidden;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: row;
-        flex-wrap: wrap;
-        align-content: flex-start;
-        justify-content: flex-start;
-        gap: 2px;
-        padding: 50px 2px 60px 2px;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-        scroll-behavior: smooth;
-        overscroll-behavior-y: contain;
-      }
-
-      #results::-webkit-scrollbar {
-        display: none;
-      }
-
-      .image-wrapper {
-        position: relative;
-        flex-shrink: 0;
-        display: flex;
-        align-items: flex-start;
-        justify-content: center;
-      }
-
-      #results img {
-        position: relative;
-        cursor: default;
-        pointer-events: auto;
-        display: block;
-        border-radius: 0;
-        box-shadow: none;
-        opacity: 0;
-        animation: fadeIn 0.3s ease forwards;
-      }
-
-      .resize-handle {
-        display: none;
-      }
-
-      #mobile-indicator {
-        display: none;
-      }
-      
-      #button-container {
-        position: static;
-        transform: none;
-        display: block;
-      }
-
-      #about-btn,
-      #back-btn {
-        position: fixed;
-        top: 12px;
-        left: 12px;
-        z-index: 1001;
-        padding: 7px 14px;
-        font-size: 14px;
-        border-radius: 18px;
-        background: rgba(0, 0, 0, 0.75);
-      }
-
-      body:not(.category-view) #about-btn {
-        display: none;
-      }
-
-      #back-btn {
-        display: none;
-      }
-
-      body:not(.category-view) #back-btn {
-        display: block;
-      }
-
-      #load-more-btn {
-        display: none !important;
-      }
-
-      #organize-btn {
-        display: none !important;
-      }
-    }
-
-    #results {
-      width: 100%;
-      height: 100vh;
-      position: relative;
-      top: 0;
-      left: 0;
-      transition: opacity 0.3s ease;
-    }
-
-    #results img {
-      position: absolute;
-      border-radius: 0;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-      transition: transform 0.2s ease;
-      cursor: grab;
-      height: auto;
+    /* Lightbox */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 1000;
+      display: none;
+      flex-direction: column;
       opacity: 0;
-      animation: fadeIn 0.3s ease forwards;
+      transition: opacity 0.4s ease;
     }
 
-    @keyframes fadeIn {
-      to { opacity: 1; }
+    .lightbox.active {
+      display: flex;
     }
 
-    #results img:active {
-      cursor: grabbing;
-    }
-
-    #results img:focus {
-      outline: 3px solid #000;
-      outline-offset: 2px;
-    }
-
-    .resize-handle {
-      position: absolute;
-      width: 12px;
-      height: 12px;
-      background: #000;
-      border: 1.5px solid #fff;
-      border-radius: 50%;
-      bottom: -6px;
-      right: -6px;
-      cursor: nwse-resize;
-      z-index: 10;
-      opacity: 0;
-      transition: opacity 0.2s;
-      pointer-events: auto;
-    }
-
-    .image-wrapper:hover .resize-handle {
+    .lightbox.visible {
       opacity: 1;
     }
 
-    .image-wrapper {
+    .lightbox-header {
       position: absolute;
-      line-height: 0;
-      display: inline-block;
-    }
-
-    .image-wrapper img {
-      display: block;
-    }
-    
-    .image-wrapper .resize-handle {
-      position: absolute;
-    }
-
-    #lightbox {
-      display: none;
-      position: fixed;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.95);
-      z-index: 1000;
-      justify-content: center;
+      right: 0;
+      padding: 24px 32px;
+      display: flex;
+      justify-content: space-between;
       align-items: center;
-      cursor: zoom-out;
+      z-index: 10;
     }
 
-    #lightbox img {
-      max-width: 90vw;
-      max-height: 90vh;
-      width: auto;
-      height: auto;
-      object-fit: contain;
-      box-shadow: 0 4px 20px rgba(255,255,255,0.1);
-      cursor: zoom-out;
-      position: relative;
+    .lightbox-counter {
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      text-transform: uppercase;
     }
 
-    #lightbox-close {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      font-size: 40px;
-      color: white;
-      cursor: pointer;
+    .lightbox-close {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
       background: none;
-      border: none;
-      padding: 10px;
-      line-height: 1;
-      z-index: 1001;
+      border: 1px solid var(--border);
+      padding: 10px 20px;
+      cursor: pointer;
+      font-family: inherit;
+      color: var(--text);
+      transition: all 0.2s ease;
     }
 
-    #lightbox-close:hover {
-      color: #ccc;
+    .lightbox-close:hover {
+      border-color: var(--text);
+      background: var(--text);
+      color: var(--bg);
     }
 
-    #lightbox-close:focus {
-      outline: 2px solid #fff;
-      outline-offset: 2px;
-    }
-
-    #mobile-indicator {
-      display: none;
-    }
-
-    #mobile-detection-screen {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100vh;
-      background: #fff;
-      z-index: 10000;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      padding: 0;
-      margin: 0;
-      text-align: center;
-      transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    #mobile-detection-screen.active {
+    .lightbox-content {
+      flex: 1;
       display: flex;
-    }
-
-    #mobile-detection-screen.active ~ #category-screen,
-    #mobile-detection-screen.active ~ #button-container,
-    #mobile-detection-screen.active ~ #df-logo,
-    #mobile-detection-screen.active ~ #results,
-    #mobile-detection-screen.active ~ #loading,
-    #mobile-detection-screen.active ~ #lightbox {
-      display: none !important;
-    }
-
-    #mobile-detection-screen.swipe-up {
-      transform: translateY(-100%);
-    }
-
-    #mobile-detection-screen.swipe-up::after {
-      content: '';
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100vh;
-      background: #fff;
-      z-index: 9999;
-    }
-
-    #mobile-detection-screen .content-wrapper {
-      display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      width: 100%;
-      max-width: 450px;
-      padding: 0 40px;
-      margin: 0;
+      padding: 80px 100px;
     }
 
-    #mobile-detection-screen p {
-      font-family: 'VT323', monospace;
-      font-size: 24px;
-      line-height: 1.4;
-      color: #000;
+    .lightbox-content img {
       max-width: 100%;
-      margin: 0 0 60px 0;
-      text-align: center;
-      padding: 0;
-      width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.4s ease;
     }
 
-    #swipe-arrow {
-      width: 0;
-      height: 0;
-      border-left: 20px solid transparent;
-      border-right: 20px solid transparent;
-      border-bottom: 30px solid #000;
+    .lightbox.visible .lightbox-content img {
+      opacity: 1;
+      transform: translateY(0);
     }
 
+    .lightbox-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: 1px solid var(--border);
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .lightbox-nav:hover {
+      border-color: var(--text);
+      background: var(--text);
+    }
+
+    .lightbox-nav:hover svg {
+      stroke: var(--bg);
+    }
+
+    .lightbox-nav svg {
+      width: 20px;
+      height: 20px;
+      stroke: var(--text);
+      stroke-width: 1.5;
+      fill: none;
+    }
+
+    .lightbox-prev {
+      left: 32px;
+    }
+
+    .lightbox-next {
+      right: 32px;
+    }
+
+    /* Hide scroll hint on desktop */
+    .scroll-hint {
+      display: none;
+    }
+
+    /* Mobile Styles */
     @media (max-width: 768px) {
-      body {
-        background: #fafafa;
+      html, body {
+        height: 100%;
         overflow: hidden;
-        width: 100%;
-        height: 100vh;
+        touch-action: pan-y;
       }
 
-      #mobile-detection-screen {
-        padding: 0;
+      .nav {
+        bottom: 20px;
+        right: 20px;
+        gap: 20px;
+        font-size: 11px;
       }
 
-      #mobile-detection-screen .content-wrapper {
-        padding: 0 20px;
-      }
-
-      #mobile-detection-screen p {
-        font-size: 20px;
-        max-width: 100%;
-        margin: 0 0 50px 0;
-        text-align: center;
-        padding: 0;
-        width: 100%;
-      }
-
-      #swipe-arrow {
-        border-left: 18px solid transparent;
-        border-right: 18px solid transparent;
-        border-bottom: 26px solid #000;
-      }
-
-      .category-btn {
-        font-size: 15px;
-        padding: 10px 28px;
-        min-width: 160px;
-        border-radius: 30px;
-        -webkit-border-radius: 30px;
-      }
-
-      #category-screen h1 {
-        font-size: 18px;
-        margin-bottom: 10px;
-        letter-spacing: 1px;
-      }
-
-      #category-screen {
-        gap: 18px;
-        padding-bottom: 0;
-        padding-top: 80px;
-        justify-content: flex-start;
-      }
-
-      #results {
-        width: 100%;
-        height: 100vh;
-        position: relative;
-        overflow-x: hidden;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: row;
-        flex-wrap: wrap;
-        align-content: flex-start;
-        justify-content: center;
-        gap: 6px;
-        padding: 55px 6px 60px 6px;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-        scroll-behavior: smooth;
-        overscroll-behavior-y: contain;
-      }
-
-      #results::-webkit-scrollbar {
+      .refresh-btn {
         display: none;
       }
 
-      .image-wrapper {
-        position: relative;
-        flex-shrink: 0;
-        display: flex;
-        align-items: flex-start;
-        justify-content: center;
+      .canvas {
+        position: fixed;
+        inset: 0;
+        overflow: hidden;
       }
 
-      #results img {
-        position: relative;
-        cursor: default;
-        pointer-events: auto;
-        display: block;
-        border-radius: 4px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      .float-img {
+        position: absolute !important;
         opacity: 0;
-        animation: fadeIn 0.3s ease forwards;
+        transform: scale(0.95);
+        transition: opacity 0.4s ease, transform 0.4s ease;
+        cursor: pointer;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+      }
+
+      .float-img.visible {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      .float-img.caught {
+        transition: top 0.6s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.4s ease, transform 0.4s ease;
+      }
+
+      .float-img img {
+        width: 100%;
+        height: auto;
+        display: block;
+        pointer-events: none;
       }
 
       .resize-handle {
         display: none;
       }
 
-      #mobile-indicator {
-        display: none;
-      }
-      
-      #button-container {
-        position: static;
-        transform: none;
-        display: block;
+      .lightbox-content {
+        padding: 80px 20px;
       }
 
-      #about-btn,
-      #back-btn {
-        position: fixed;
-        top: 12px;
+      .lightbox-nav {
+        width: 40px;
+        height: 40px;
+      }
+
+      .lightbox-prev {
         left: 12px;
-        z-index: 1001;
-        padding: 7px 14px;
-        font-size: 14px;
-        border-radius: 18px;
-        background: rgba(0, 0, 0, 0.75);
       }
 
-      body:not(.category-view) #about-btn {
-        display: none;
-      }
-
-      #back-btn {
-        display: none;
-      }
-
-      body:not(.category-view) #back-btn {
-        display: block;
-      }
-
-      #load-more-btn {
-        display: none !important;
-      }
-
-      #organize-btn {
-        display: none !important;
-      }
-
-      #df-logo {
-        top: 12px;
+      .lightbox-next {
         right: 12px;
-        font-size: 8px;
-        letter-spacing: 0.5px;
+      }
+
+      /* Scroll hint */
+      .scroll-hint {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        z-index: 50;
+        opacity: 1;
+        transition: opacity 0.5s ease;
+        pointer-events: none;
+      }
+
+      .scroll-hint.hidden {
+        opacity: 0;
+      }
+
+      .scroll-hint-text {
+        font-size: 10px;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      .scroll-hint-arrow {
+        width: 20px;
+        height: 20px;
+        border-left: 1.5px solid var(--text-muted);
+        border-bottom: 1.5px solid var(--text-muted);
+        transform: rotate(-45deg);
+        animation: scrollBounce 1.5s ease-in-out infinite;
+      }
+
+      @keyframes scrollBounce {
+        0%, 100% { transform: rotate(-45deg) translateY(0); }
+        50% { transform: rotate(-45deg) translateY(5px); }
       }
     }
   </style>
 </head>
-<body class="category-view">
-  <div id="mobile-detection-screen">
-    <div class="content-wrapper">
-      <p>Hi :)<br><br>It looks like you're on a mobile device<br><br>There is a unique experience on both desktop and mobile browsers, and I'd ask that you check out both!<br><br>swipe up to continue</p>
-      <div id="swipe-arrow"></div>
-    </div>
-  </div>
-
-  <div id="category-screen">
-    <h1>DEVIN<br>FEILEN</h1>
-    <button class="category-btn" data-category="cycling">Cycling</button>
+<body>
+  <!-- Navigation -->
+  <nav class="nav">
+    <button class="category-btn active" data-category="cycling">Cycling</button>
     <button class="category-btn" data-category="life">Life</button>
-    <a href="about.html" class="category-btn">About</a>
+    <a href="about.html" class="category-btn">Devin</a>
+  </nav>
+
+  <!-- Refresh Button (desktop only) -->
+  <button class="refresh-btn" id="refresh-btn">Refresh</button>
+
+  <!-- Loading -->
+  <div class="loading" id="loading">
+    <p class="loading-text">Loading</p>
   </div>
 
-  <div id="button-container">
-    <button id="back-btn" aria-label="Back to categories">← Back</button>
-    <a href="about.html" id="about-btn" aria-label="About this portfolio">About</a>
-    <button id="organize-btn" aria-label="Organize photos">Organize</button>
-    <button id="load-more-btn" aria-label="Load more photos">See More</button>
-  </div>
-  <div id="df-logo">DEVIN<br>FEILEN</div>
+  <!-- Canvas -->
+  <div class="canvas" id="canvas"></div>
 
-  <div id="loading" role="status" aria-live="polite">
-    <div id="loading-spinner" aria-hidden="true"></div>
-    <p>Loading photos...</p>
+  <!-- Scroll Hint (mobile only) -->
+  <div class="scroll-hint" id="scroll-hint">
+    <span class="scroll-hint-text">Swipe up</span>
+    <div class="scroll-hint-arrow"></div>
   </div>
 
-  <div id="results" role="main" aria-label="Photo gallery"></div>
-
-  <div id="mobile-indicator"></div>
-
-  <div id="lightbox" role="dialog" aria-labelledby="lightbox-img" aria-modal="true">
-    <button id="lightbox-close" aria-label="Close fullscreen view">&times;</button>
-    <img id="lightbox-img" alt="" />
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox">
+    <div class="lightbox-header">
+      <span class="lightbox-counter">
+        <span id="lightbox-current">01</span> / <span id="lightbox-total">00</span>
+      </span>
+      <button class="lightbox-close" id="lightbox-close">Close</button>
+    </div>
+    <button class="lightbox-nav lightbox-prev" id="lightbox-prev">
+      <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <div class="lightbox-content">
+      <img id="lightbox-img" alt="Photography by Devin Feilen">
+    </div>
+    <button class="lightbox-nav lightbox-next" id="lightbox-next">
+      <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
   </div>
 
   <script>
-    // Mobile detection and redirect
-    const isMobileBrowser = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
-    
-    if (isMobileBrowser) {
-      const mobileScreen = document.getElementById('mobile-detection-screen');
-      mobileScreen.classList.add('active');
-      document.body.classList.add('category-view');
-      
-      let touchStartY = 0;
-      let touchEndY = 0;
-      
-      mobileScreen.addEventListener('touchstart', (e) => {
-        touchStartY = e.changedTouches[0].screenY;
-      }, { passive: true });
-      
-      mobileScreen.addEventListener('touchend', (e) => {
-        touchEndY = e.changedTouches[0].screenY;
-        handleSwipe();
-      }, { passive: true });
-      
-      function handleSwipe() {
-        const swipeDistance = touchStartY - touchEndY;
-        
-        // Swipe up detected (threshold of 50px)
-        if (swipeDistance > 50) {
-          // Add swipe up animation class
-          mobileScreen.classList.add('swipe-up');
-          
-          // Wait for animation to complete, then redirect
-          setTimeout(() => {
-            window.location.href = 'mobile.html';
-          }, 600);
-        }
-      }
-    }
-
+    // State
     let allPhotos = [];
+    let displayedPhotos = [];
+    let currentCategory = 'cycling';
+    let lightboxIndex = 0;
+    let isMobile = window.innerWidth <= 768;
+    const imageCount = 15;
+
+    // Mobile pile-up state
+    let mobileImages = [];
     let photoQueue = [];
-    let zIndexCounter = 1;
-    let imagesData = [];
-    const topBuffer = 55;
-    let loadedCount = 0;
-    const isMobileDevice = window.innerWidth <= 1024;
-    const initialLoadCount = isMobileDevice ? 20 : 12;
-    let isLoadingMore = false;
-    let isOrganized = false;
-    let currentCategory = null;
-    let mobileScrollSetup = false;
+    let mobileZIndex = 1;
+    let totalScrolled = 0;
+    let lastTouchY = 0;
+    let catchZone = window.innerHeight * 0.4; // Where images "catch"
+    let maxPileSize = 12; // Max images in pile before cleanup
 
-    document.addEventListener('DOMContentLoaded', () => {
-      const categoryButtons = document.querySelectorAll('.category-btn');
-      
-      categoryButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-          const category = btn.dataset.category;
-          if (category) {
-            loadCategory(category);
-          }
-        });
+    // Elements
+    const canvas = document.getElementById('canvas');
+    const loading = document.getElementById('loading');
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+    const lightboxCurrent = document.getElementById('lightbox-current');
+    const lightboxTotal = document.getElementById('lightbox-total');
+    const scrollHint = document.getElementById('scroll-hint');
+
+    // Initialize
+    loadCategory(currentCategory);
+
+    // Category buttons
+    document.querySelectorAll('.category-btn[data-category]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        loadCategory(btn.dataset.category);
       });
+    });
 
-      const loadMoreBtn = document.getElementById("load-more-btn");
-      if (loadMoreBtn) {
-        loadMoreBtn.addEventListener('click', loadMorePhotos);
+    // Refresh button (desktop only)
+    document.getElementById('refresh-btn').addEventListener('click', () => {
+      if (!isMobile) {
+        displayImages();
       }
-      
-      const organizeBtn = document.getElementById("organize-btn");
-      if (organizeBtn) {
-        organizeBtn.addEventListener('click', toggleOrganize);
-      }
+    });
 
-      const backBtn = document.getElementById("back-btn");
-      if (backBtn) {
-        backBtn.addEventListener('click', backToCategories);
+    // Lightbox controls
+    document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+    document.getElementById('lightbox-prev').addEventListener('click', () => navigateLightbox(-1));
+    document.getElementById('lightbox-next').addEventListener('click', () => navigateLightbox(1));
+    lightbox.addEventListener('click', (e) => {
+      if (e.target === lightbox || e.target.closest('.lightbox-content')) {
+        closeLightbox();
+      }
+    });
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (lightbox.classList.contains('active')) {
+        if (e.key === 'Escape') closeLightbox();
+        if (e.key === 'ArrowLeft') navigateLightbox(-1);
+        if (e.key === 'ArrowRight') navigateLightbox(1);
       }
     });
 
     function loadCategory(category) {
       currentCategory = category;
+      canvas.innerHTML = '';
+      displayedPhotos = [];
+      mobileImages = [];
+      totalScrolled = 0;
+      loading.classList.remove('hidden');
       
-      const categoryScreen = document.getElementById('category-screen');
-      categoryScreen.classList.add('fade-out');
+      const jsonFile = category === 'cycling' ? 'cycling.json' : 'life.json';
       
-      setTimeout(() => {
-        categoryScreen.classList.add('hidden');
-        document.body.classList.remove('category-view');
-        
-        const isMobile = window.innerWidth <= 1024;
-        if (!isMobile) {
-          document.getElementById('back-btn').style.display = 'block';
-          document.getElementById('about-btn').style.display = 'none';
-        } else {
-          document.getElementById('back-btn').style.display = 'block';
-          document.getElementById('about-btn').style.display = 'none';
-        }
-        
-        document.getElementById("loading").style.display = "block";
-        
-        let jsonFile = 'photos.json';
-        if (category === 'cycling') jsonFile = 'cycling.json';
-        else if (category === 'life') jsonFile = 'life.json';
-        
-        fetch(jsonFile)
-          .then(res => res.json())
-          .then(data => {
-            allPhotos = data;
-            resetQueue();
-            loadInitialPhotos();
-            
-            setTimeout(() => {
-              document.getElementById('results').classList.add('fade-in');
-            }, 100);
-          })
-          .catch(err => {
-            document.getElementById("loading").innerHTML = `<p>Error loading ${category} photos. Please refresh the page.</p>`;
-          });
-      }, 800);
-    }
-
-    function backToCategories() {
-      const resultsDiv = document.getElementById('results');
-      
-      resultsDiv.classList.remove('fade-in');
-      
-      setTimeout(() => {
-        document.getElementById('back-btn').style.display = 'none';
-        document.getElementById('about-btn').style.display = 'inline-block';
-        document.getElementById('load-more-btn').classList.remove('visible');
-        document.getElementById('organize-btn').classList.remove('visible');
-        
-        resultsDiv.innerHTML = '';
-        imagesData = [];
-        loadedCount = 0;
-        zIndexCounter = 1;
-        isOrganized = false;
-        mobileScrollSetup = false;
-        
-        const categoryScreen = document.getElementById('category-screen');
-        categoryScreen.classList.remove('fade-out');
-        categoryScreen.classList.remove('hidden');
-        document.body.classList.add('category-view');
-        
-        document.getElementById('organize-btn').textContent = 'Organize';
-      }, 800);
-    }
-
-    function resetQueue() {
-      photoQueue = shuffleArray([...allPhotos]);
-    }
-
-    function getNextBatch(count) {
-      if (photoQueue.length < count) {
-        resetQueue();
-      }
-      return photoQueue.splice(0, count);
-    }
-
-    function loadInitialPhotos() {
-      document.getElementById("loading").style.display = "none";
-      
-      const isMobile = window.innerWidth <= 768;
-      if (isMobile) {
-        setupMobileVerticalScroll();
-      } else {
-        document.getElementById("load-more-btn").classList.add("visible");
-        document.getElementById("organize-btn").classList.add("visible");
-      }
-      
-      const batch = getNextBatch(initialLoadCount);
-      addImages(batch);
-    }
-
-    function addImages(selected) {
-      const resultsDiv = document.getElementById("results");
-      const isMobile = window.innerWidth <= 768;
-      
-      const mobileWidths = [
-        window.innerWidth * 0.48,
-        window.innerWidth * 0.48,
-        window.innerWidth * 0.98,
-        window.innerWidth * 0.65,
-        window.innerWidth * 0.32,
-        window.innerWidth * 0.48,
-        window.innerWidth * 0.48,
-        window.innerWidth * 0.98,
-        window.innerWidth * 0.40,
-        window.innerWidth * 0.57,
-        window.innerWidth * 0.48,
-        window.innerWidth * 0.48,
-        window.innerWidth * 0.73,
-        window.innerWidth * 0.25,
-        window.innerWidth * 0.98,
-        window.innerWidth * 0.48,
-        window.innerWidth * 0.48,
-        window.innerWidth * 0.35,
-        window.innerWidth * 0.62,
-        window.innerWidth * 0.98
-      ];
-      
-      selected.forEach((src, index) => {
-        const staggerDelay = isMobile ? 200 : 300;
-        setTimeout(() => {
-          const img = new Image();
-          img.src = src;
-          img.alt = `Photography by Devin Feilen`;
-          img.loading = "eager";
-          img.tabIndex = 0;
-          img.setAttribute('role', 'img');
-
-          img.onload = () => {
-            loadedCount++;
-
-            const wrapper = document.createElement('div');
-            wrapper.className = 'image-wrapper';
-            
-            if (isMobile) {
-              const width = mobileWidths[index % mobileWidths.length];
-              const aspectRatio = img.naturalWidth / img.naturalHeight;
-              const height = width / aspectRatio;
-              
-              img.style.width = width + "px";
-              img.style.height = height + "px";
-              wrapper.style.width = width + "px";
-              wrapper.style.height = height + "px";
-              
-              wrapper.appendChild(img);
-              makeExpandable(img);
-              resultsDiv.appendChild(wrapper);
-              
-              imagesData.push({wrapper, img, width, height});
-            } else {
-              const resizeHandle = document.createElement('div');
-              resizeHandle.className = 'resize-handle';
-              wrapper.appendChild(resizeHandle);
-              makeResizable(wrapper, img, resizeHandle);
-
-              const maxDim = Math.min(window.innerWidth * 0.8, window.innerHeight * 0.8, 500);
-              let scale = Math.min(maxDim / img.naturalWidth, maxDim / img.naturalHeight, 1);
-              
-              const width = img.naturalWidth * scale;
-              const height = img.naturalHeight * scale;
-              
-              img.style.width = width + "px";
-              img.style.height = height + "px";
-              wrapper.style.width = width + "px";
-              wrapper.style.height = height + "px";
-              
-              const maxX = window.innerWidth - width;
-              const maxY = window.innerHeight - height - topBuffer;
-              const x = Math.random() * maxX;
-              const y = Math.random() * maxY + topBuffer;
-              
-              wrapper.style.left = x + "px";
-              wrapper.style.top = y + "px";
-              wrapper.style.zIndex = zIndexCounter++;
-
-              wrapper.appendChild(img);
-              makeDraggable(wrapper, img);
-              makeExpandable(img);
-              resultsDiv.appendChild(wrapper);
-
-              imagesData.push({wrapper, img, width, height, relX: x / maxX, relY: (y - topBuffer) / maxY});
-            }
-          };
-
-          img.onerror = (e) => {
-            img.dataset.retryCount = img.dataset.retryCount ? parseInt(img.dataset.retryCount) + 1 : 1;
-            
-            if (img.dataset.retryCount <= 2) {
-              const retryDelay = img.dataset.retryCount * 3000;
-              
-              setTimeout(() => {
-                const timestamp = new Date().getTime();
-                img.src = src + '?t=' + timestamp;
-              }, retryDelay);
-            }
-          };
+      fetch(jsonFile)
+        .then(res => {
+          if (!res.ok) throw new Error('Not found');
+          return res.json();
+        })
+        .then(data => {
+          allPhotos = data;
+          photoQueue = shuffleArray([...allPhotos]);
+          loading.classList.add('hidden');
           
-          const timeoutDuration = 30000;
-          const timeoutId = setTimeout(() => {
-            if (!img.complete || img.naturalWidth === 0) {
-              img.onerror(new Error('Timeout'));
-            }
-          }, timeoutDuration);
-          
-          const originalOnLoad = img.onload;
-          img.onload = function() {
-            clearTimeout(timeoutId);
-            originalOnLoad.call(this);
-          };
-        }, index * staggerDelay);
-      });
-    }
-
-    function loadMorePhotos() {
-      const loadMoreBtn = document.getElementById("load-more-btn");
-      const organizeBtn = document.getElementById("organize-btn");
-      const resultsDiv = document.getElementById("results");
-      const isMobile = window.innerWidth <= 768;
-      
-      loadMoreBtn.disabled = true;
-      loadMoreBtn.textContent = "...";
-      
-      resultsDiv.classList.remove('fade-in');
-      
-      if (!isMobile) {
-        isOrganized = false;
-        organizeBtn.textContent = "Organize";
-      }
-      
-      setTimeout(() => {
-        resultsDiv.innerHTML = "";
-        imagesData = [];
-        loadedCount = 0;
-        zIndexCounter = 1;
-        
-        const batchSize = isMobile ? 20 : 12;
-        const batch = getNextBatch(batchSize);
-        addImages(batch);
-        
-        setTimeout(() => {
-          resultsDiv.classList.add('fade-in');
-          loadMoreBtn.disabled = false;
-          loadMoreBtn.textContent = "See More";
-        }, 300);
-      }, 800);
-    }
-
-    function setupMobileVerticalScroll() {
-      if (mobileScrollSetup) return;
-      mobileScrollSetup = true;
-      
-      const resultsDiv = document.getElementById("results");
-      
-      let isScrolling = false;
-      let scrollTimeout;
-      
-      resultsDiv.addEventListener('scroll', () => {
-        const scrollTop = resultsDiv.scrollTop;
-        const scrollHeight = resultsDiv.scrollHeight;
-        const clientHeight = resultsDiv.clientHeight;
-        
-        clearTimeout(scrollTimeout);
-        
-        isScrolling = true;
-        
-        scrollTimeout = setTimeout(() => {
-          isScrolling = false;
-        }, 150);
-        
-        if (scrollTop + clientHeight >= scrollHeight - 800) {
-          loadMoreMobileImages();
-        }
-      });
-      
-      let startY = 0;
-      let currentY = 0;
-      
-      resultsDiv.addEventListener('touchstart', (e) => {
-        startY = e.touches[0].clientY;
-      }, { passive: true });
-      
-      resultsDiv.addEventListener('touchmove', (e) => {
-        currentY = e.touches[0].clientY;
-      }, { passive: true });
-    }
-
-    function loadMoreMobileImages() {
-      if (isLoadingMore) return;
-      isLoadingMore = true;
-      
-      const batch = getNextBatch(10);
-      addImages(batch);
-      
-      setTimeout(() => { 
-        isLoadingMore = false; 
-      }, 1000);
-    }
-
-    function makeDraggable(wrapper, img) {
-      if (window.innerWidth <= 1024) return;
-
-      let offsetX, offsetY, isDragging = false;
-      if (img) img.ondragstart = () => false;
-
-      if (img) {
-        img.addEventListener("mousedown", e => {
-          e.preventDefault();
-          startDrag(e.clientX, e.clientY);
-        });
-
-        img.addEventListener("keydown", e => {
-          const step = e.shiftKey ? 50 : 10;
-          let newLeft = wrapper.offsetLeft;
-          let newTop = wrapper.offsetTop;
-
-          switch(e.key) {
-            case "ArrowLeft": newLeft -= step; e.preventDefault(); break;
-            case "ArrowRight": newLeft += step; e.preventDefault(); break;
-            case "ArrowUp": newTop -= step; e.preventDefault(); break;
-            case "ArrowDown": newTop += step; e.preventDefault(); break;
-            default: return;
+          if (isMobile) {
+            initMobileExperience();
+          } else {
+            displayImages();
           }
+        })
+        .catch(err => {
+          console.error('Error loading photos:', err);
+          loading.classList.add('hidden');
+        });
+    }
 
-          if (newTop < topBuffer) newTop = topBuffer;
-          wrapper.style.left = newLeft + "px";
-          wrapper.style.top = newTop + "px";
-          wrapper.style.zIndex = zIndexCounter++;
+    // ===== MOBILE PILE-UP EXPERIENCE =====
+    
+    function initMobileExperience() {
+      canvas.innerHTML = '';
+      mobileImages = [];
+      mobileZIndex = 1;
+      
+      // Show scroll hint
+      if (scrollHint) {
+        scrollHint.classList.remove('hidden');
+      }
+      
+      // Spawn initial images
+      for (let i = 0; i < 3; i++) {
+        setTimeout(() => spawnMobileImage(), i * 200);
+      }
+      
+      // Touch handlers
+      canvas.addEventListener('touchstart', handleTouchStart, { passive: true });
+      canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+      canvas.addEventListener('touchend', handleTouchEnd, { passive: true });
+    }
+
+    function handleTouchStart(e) {
+      lastTouchY = e.touches[0].clientY;
+    }
+
+    function handleTouchMove(e) {
+      const currentY = e.touches[0].clientY;
+      const deltaY = lastTouchY - currentY; // Positive = scrolling up
+      lastTouchY = currentY;
+      
+      if (deltaY > 0) {
+        // Scrolling up - move images and spawn new ones
+        totalScrolled += deltaY;
+        
+        // Hide scroll hint after first scroll
+        if (scrollHint && totalScrolled > 50) {
+          scrollHint.classList.add('hidden');
+        }
+        
+        // Move existing images up
+        mobileImages.forEach(imgData => {
+          if (!imgData.caught) {
+            imgData.y -= deltaY * 1.2;
+            
+            // Check if image should be caught
+            if (imgData.y <= catchZone + (Math.random() * 100 - 50)) {
+              imgData.caught = true;
+              imgData.wrapper.classList.add('caught');
+              // Add slight random offset when caught
+              imgData.y = catchZone + (Math.random() * 60 - 30);
+              imgData.x += (Math.random() * 40 - 20);
+            }
+            
+            imgData.wrapper.style.top = imgData.y + 'px';
+            imgData.wrapper.style.left = imgData.x + 'px';
+          }
+        });
+        
+        // Spawn new image periodically
+        if (totalScrolled % 150 < deltaY) {
+          spawnMobileImage();
+        }
+        
+        // Cleanup old images
+        cleanupMobileImages();
+      }
+    }
+
+    function handleTouchEnd(e) {
+      // Optional: add momentum or settle animations
+    }
+
+    function spawnMobileImage() {
+      if (photoQueue.length === 0) {
+        photoQueue = shuffleArray([...allPhotos]);
+      }
+      
+      const src = photoQueue.pop();
+      const wrapper = document.createElement('div');
+      wrapper.className = 'float-img';
+      
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = 'Photography by Devin Feilen';
+      img.loading = 'eager';
+      
+      // Random size between 45-70% of screen width
+      const widthPercent = 0.45 + Math.random() * 0.25;
+      const size = window.innerWidth * widthPercent;
+      wrapper.style.width = size + 'px';
+      
+      // Random horizontal position
+      const maxX = window.innerWidth - size - 10;
+      const x = 10 + Math.random() * maxX;
+      
+      // Start from below the screen
+      const y = window.innerHeight + 50;
+      
+      wrapper.style.left = x + 'px';
+      wrapper.style.top = y + 'px';
+      wrapper.style.zIndex = mobileZIndex++;
+      
+      wrapper.appendChild(img);
+      canvas.appendChild(wrapper);
+      
+      // Fade in
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          wrapper.classList.add('visible');
+        });
+      });
+      
+      // Tap to open lightbox
+      wrapper.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openLightbox(src);
+      });
+      
+      const imgData = {
+        wrapper,
+        src,
+        x,
+        y,
+        caught: false,
+        zIndex: mobileZIndex
+      };
+      
+      mobileImages.push(imgData);
+      displayedPhotos.push(src);
+    }
+
+    function cleanupMobileImages() {
+      // Remove images that are caught and too far from view
+      const caughtImages = mobileImages.filter(img => img.caught);
+      
+      if (caughtImages.length > maxPileSize) {
+        // Remove oldest caught images
+        const toRemove = caughtImages.slice(0, caughtImages.length - maxPileSize);
+        
+        toRemove.forEach(imgData => {
+          imgData.wrapper.style.opacity = '0';
+          imgData.wrapper.style.transform = 'scale(0.8)';
+          
+          setTimeout(() => {
+            if (imgData.wrapper.parentNode) {
+              imgData.wrapper.remove();
+            }
+          }, 400);
+          
+          // Remove from arrays
+          const idx = mobileImages.indexOf(imgData);
+          if (idx > -1) mobileImages.splice(idx, 1);
+          
+          const srcIdx = displayedPhotos.indexOf(imgData.src);
+          if (srcIdx > -1) displayedPhotos.splice(srcIdx, 1);
         });
       }
+    }
 
-      function startDrag(clientX, clientY) {
-        if (isDragging) return;
+    // ===== DESKTOP EXPERIENCE =====
+
+    function displayImages() {
+      // Clear existing
+      canvas.innerHTML = '';
+      displayedPhotos = [];
+      
+      // Shuffle and pick images
+      const shuffled = shuffleArray([...allPhotos]);
+      const selected = shuffled.slice(0, imageCount);
+      
+      // Staggered reveal
+      selected.forEach((src, i) => {
+        setTimeout(() => {
+          spawnImage(src, i);
+        }, i * 120);
+      });
+    }
+
+    function spawnImage(src, index) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'float-img';
+      
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = 'Photography by Devin Feilen';
+      img.loading = 'eager';
+      
+      // Random size between 250-400px
+      const size = 250 + Math.random() * 150;
+      wrapper.style.width = size + 'px';
+      
+      // Random position with padding from edges
+      const padding = 80;
+      const maxX = window.innerWidth - size - padding;
+      const maxY = window.innerHeight - size - padding;
+      const x = padding + Math.random() * maxX;
+      const y = padding + Math.random() * maxY;
+      
+      wrapper.style.left = x + 'px';
+      wrapper.style.top = y + 'px';
+      wrapper.style.zIndex = index + 1;
+      
+      // Add resize handle
+      const resizeHandle = document.createElement('div');
+      resizeHandle.className = 'resize-handle';
+      wrapper.appendChild(resizeHandle);
+      
+      // Make draggable
+      makeDraggable(wrapper);
+      
+      // Make resizable
+      makeResizable(wrapper, img, resizeHandle);
+      
+      wrapper.appendChild(img);
+      canvas.appendChild(wrapper);
+      
+      // Fade in
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          wrapper.classList.add('visible');
+        });
+      });
+      
+      // Double-click to open lightbox
+      wrapper.addEventListener('dblclick', () => {
+        openLightbox(src);
+      });
+      
+      displayedPhotos.push(src);
+    }
+
+    function makeDraggable(wrapper) {
+      let isDragging = false;
+      let hasMoved = false;
+      let startX, startY, initialLeft, initialTop;
+      
+      wrapper.addEventListener('mousedown', (e) => {
+        // Ignore if clicking resize handle
+        if (e.target.classList.contains('resize-handle')) return;
+        
         isDragging = true;
-        offsetX = clientX - wrapper.offsetLeft;
-        offsetY = clientY - wrapper.offsetTop;
-        wrapper.style.zIndex = zIndexCounter++;
-        wrapper.style.transition = "none";
-        if (img) img.style.cursor = "grabbing";
-
-        function onMove(clientX, clientY) {
-          let newLeft = clientX - offsetX;
-          let newTop = clientY - offsetY;
-          if (newTop < topBuffer) newTop = topBuffer;
-          wrapper.style.left = newLeft + "px";
-          wrapper.style.top = newTop + "px";
+        hasMoved = false;
+        wrapper.classList.add('dragging');
+        
+        startX = e.clientX;
+        startY = e.clientY;
+        initialLeft = wrapper.offsetLeft;
+        initialTop = wrapper.offsetTop;
+        
+        // Bring to front
+        wrapper.style.zIndex = getMaxZIndex() + 1;
+        
+        e.preventDefault();
+      });
+      
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        
+        const deltaX = e.clientX - startX;
+        const deltaY = e.clientY - startY;
+        
+        if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
+          hasMoved = true;
         }
-
-        function onMouseMove(e) {
-          onMove(e.clientX, e.clientY);
-        }
-
-        function stopDrag() {
+        
+        wrapper.style.left = (initialLeft + deltaX) + 'px';
+        wrapper.style.top = (initialTop + deltaY) + 'px';
+      });
+      
+      document.addEventListener('mouseup', () => {
+        if (isDragging) {
           isDragging = false;
-          wrapper.style.transition = "transform 0.2s ease";
-          if (img) img.style.cursor = "grab";
-          document.removeEventListener("mousemove", onMouseMove);
-          document.removeEventListener("mouseup", stopDrag);
+          wrapper.classList.remove('dragging');
         }
-
-        document.addEventListener("mousemove", onMouseMove);
-        document.addEventListener("mouseup", stopDrag);
-      }
+      });
     }
 
     function makeResizable(wrapper, img, handle) {
       let isResizing = false;
-      let startWidth, startHeight, startX, startY;
-      let aspectRatio = img.naturalWidth / img.naturalHeight;
-
-      handle.addEventListener("mousedown", e => {
+      let startX, startY, startWidth, startHeight, aspectRatio;
+      
+      handle.addEventListener('mousedown', (e) => {
+        isResizing = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        startWidth = wrapper.offsetWidth;
+        startHeight = img.offsetHeight;
+        aspectRatio = img.naturalWidth / img.naturalHeight;
+        
+        // Bring to front
+        wrapper.style.zIndex = getMaxZIndex() + 1;
+        
         e.preventDefault();
         e.stopPropagation();
-        startResize(e.clientX, e.clientY);
       });
-
-      function startResize(clientX, clientY) {
-        isResizing = true;
-        startWidth = img.offsetWidth;
-        startHeight = img.offsetHeight;
-        startX = clientX;
-        startY = clientY;
-        wrapper.style.zIndex = zIndexCounter++;
-
-        function onMouseMove(e) {
-          if (!isResizing) return;
-          const delta = Math.max(e.clientX - startX, e.clientY - startY);
-          
-          let newWidth = startWidth + delta;
-          let newHeight = newWidth / aspectRatio;
-
-          if (newWidth < 100) {
-            newWidth = 100;
-            newHeight = newWidth / aspectRatio;
-          }
-
-          img.style.width = newWidth + "px";
-          img.style.height = newHeight + "px";
-          wrapper.style.width = newWidth + "px";
-          wrapper.style.height = newHeight + "px";
-
-          const data = imagesData.find(d => d.img === img);
-          if (data) {
-            data.width = newWidth;
-            data.height = newHeight;
-          }
-        }
-
-        function stopResize() {
-          isResizing = false;
-          document.removeEventListener("mousemove", onMouseMove);
-          document.removeEventListener("mouseup", stopResize);
-        }
-
-        document.addEventListener("mousemove", onMouseMove);
-        document.addEventListener("mouseup", stopResize);
-      }
-    }
-
-    function makeExpandable(img) {
-      const lightbox = document.getElementById("lightbox");
-      const lightboxImg = document.getElementById("lightbox-img");
-      const lightboxClose = document.getElementById("lightbox-close");
-      const isMobile = window.innerWidth <= 768;
-
-      const eventType = isMobile ? "click" : "dblclick";
       
-      img.addEventListener(eventType, () => {
-        lightboxImg.src = img.src;
-        lightboxImg.alt = img.alt;
-        lightbox.style.display = "flex";
-        lightboxClose.focus();
+      document.addEventListener('mousemove', (e) => {
+        if (!isResizing) return;
+        
+        const deltaX = e.clientX - startX;
+        const deltaY = e.clientY - startY;
+        const delta = Math.max(deltaX, deltaY);
+        
+        let newWidth = startWidth + delta;
+        newWidth = Math.max(100, Math.min(newWidth, window.innerWidth * 0.8));
+        
+        wrapper.style.width = newWidth + 'px';
       });
-
-      lightboxClose.addEventListener("click", () => {
-        lightbox.style.display = "none";
-        img.focus();
-      });
-
-      lightbox.addEventListener("click", e => {
-        if (e.target === lightbox || e.target === lightboxImg) {
-          lightbox.style.display = "none";
-          img.focus();
-        }
-      });
-
-      lightbox.addEventListener("keydown", e => {
-        if (e.key === "Escape") {
-          lightbox.style.display = "none";
-          img.focus();
-        }
+      
+      document.addEventListener('mouseup', () => {
+        isResizing = false;
       });
     }
 
-    let resizeTimeout;
-    window.addEventListener("resize", () => {
-      clearTimeout(resizeTimeout);
-      resizeTimeout = setTimeout(() => {
-        imagesData.forEach(data => {
-          if (data.wrapper) {
-            const maxX = window.innerWidth - data.width;
-            const maxY = window.innerHeight - data.height - topBuffer;
-            data.wrapper.style.left = data.relX * maxX + "px";
-            data.wrapper.style.top = data.relY * maxY + topBuffer + "px";
-          }
-        });
-      }, 250);
-    });
-
-    function toggleOrganize() {
-      const organizeBtn = document.getElementById("organize-btn");
-      
-      if (isOrganized) {
-        organizeBtn.textContent = "Organize";
-        explodeImages();
-        isOrganized = false;
-      } else {
-        organizeBtn.textContent = "Explode";
-        organizeImages();
-        isOrganized = true;
-      }
+    function getMaxZIndex() {
+      let max = 0;
+      document.querySelectorAll('.float-img').forEach(el => {
+        const z = parseInt(el.style.zIndex) || 0;
+        if (z > max) max = z;
+      });
+      return max;
     }
 
-    function organizeImages() {
-      const numImages = imagesData.length;
-      const cols = Math.ceil(Math.sqrt(numImages));
-      const rows = Math.ceil(numImages / cols);
+    function openLightbox(src) {
+      lightboxIndex = allPhotos.indexOf(src);
+      if (lightboxIndex === -1) lightboxIndex = 0;
       
-      const availableWidth = window.innerWidth - 100;
-      const availableHeight = window.innerHeight - 100;
+      lightboxImg.src = src;
+      lightboxCurrent.textContent = String(lightboxIndex + 1).padStart(2, '0');
+      lightboxTotal.textContent = String(allPhotos.length).padStart(2, '0');
       
-      const cellWidth = availableWidth / cols;
-      const cellHeight = availableHeight / rows;
+      lightbox.classList.add('active');
+      document.body.style.overflow = 'hidden';
       
-      imagesData.forEach((data, index) => {
-        const col = index % cols;
-        const row = Math.floor(index / cols);
-        
-        const cellX = 50 + (col * cellWidth);
-        const cellY = 50 + (row * cellHeight);
-        
-        const imgAspect = data.img.naturalWidth / data.img.naturalHeight;
-        const cellAspect = cellWidth / cellHeight;
-        
-        let newWidth, newHeight;
-        if (imgAspect > cellAspect) {
-          newWidth = cellWidth * 0.9;
-          newHeight = newWidth / imgAspect;
-        } else {
-          newHeight = cellHeight * 0.9;
-          newWidth = newHeight * imgAspect;
-        }
-        
-        const x = cellX + (cellWidth - newWidth) / 2;
-        const y = cellY + (cellHeight - newHeight) / 2;
-        
-        if (!data.originalLeft) {
-          data.originalLeft = data.wrapper.style.left;
-          data.originalTop = data.wrapper.style.top;
-          data.originalWidth = data.img.style.width;
-          data.originalHeight = data.img.style.height;
-        }
-        
-        data.wrapper.style.left = x + "px";
-        data.wrapper.style.top = y + "px";
-        data.wrapper.style.width = newWidth + "px";
-        data.wrapper.style.height = newHeight + "px";
-        data.img.style.width = newWidth + "px";
-        data.img.style.height = newHeight + "px";
-      });
+      setTimeout(() => lightbox.classList.add('visible'), 10);
     }
 
-    function explodeImages() {
-      imagesData.forEach(data => {
-        if (data.originalLeft) {
-          data.wrapper.style.left = data.originalLeft;
-          data.wrapper.style.top = data.originalTop;
-          data.wrapper.style.width = data.originalWidth;
-          data.wrapper.style.height = data.originalHeight;
-          data.img.style.width = data.originalWidth;
-          data.img.style.height = data.originalHeight;
-        }
-      });
+    function closeLightbox() {
+      lightbox.classList.remove('visible');
+      setTimeout(() => {
+        lightbox.classList.remove('active');
+        document.body.style.overflow = '';
+      }, 400);
+    }
+
+    function navigateLightbox(dir) {
+      lightboxIndex = (lightboxIndex + dir + allPhotos.length) % allPhotos.length;
+      
+      lightboxImg.style.opacity = '0';
+      lightboxImg.style.transform = 'translateY(10px)';
+      
+      setTimeout(() => {
+        lightboxImg.src = allPhotos[lightboxIndex];
+        lightboxCurrent.textContent = String(lightboxIndex + 1).padStart(2, '0');
+        lightboxImg.style.opacity = '1';
+        lightboxImg.style.transform = 'translateY(0)';
+      }, 200);
     }
 
     function shuffleArray(array) {
-      return array.map(v => ({v, sort: Math.random()}))
-        .sort((a, b) => a.sort - b.sort)
-        .map(({v}) => v);
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
     }
+
+    // Handle resize
+    window.addEventListener('resize', () => {
+      const wasMobile = isMobile;
+      isMobile = window.innerWidth <= 768;
+      catchZone = window.innerHeight * 0.4;
+      
+      if (wasMobile !== isMobile) {
+        loadCategory(currentCategory);
+      }
+    });
   </script>
 </body>
 </html>
