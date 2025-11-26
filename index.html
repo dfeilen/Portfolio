@@ -86,6 +86,96 @@
       text-decoration: underline;
     }
 
+    /* Popup Notice */
+    .popup-notice {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      z-index: 100;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      pointer-events: none;
+    }
+
+    .popup-notice.visible {
+      opacity: 1;
+    }
+
+    /* A&B Link */
+    .ab-link {
+      position: fixed;
+      top: 24px;
+      left: 32px;
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text);
+      text-decoration: none;
+      z-index: 100;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      pointer-events: none;
+    }
+
+    .ab-link.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .ab-link:hover {
+      text-decoration: underline;
+    }
+
+    /* About Box */
+    .about-box {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90%;
+      max-width: 500px;
+      background: var(--bg);
+      padding: 40px;
+      z-index: 60;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      pointer-events: none;
+    }
+
+    .about-box.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .about-box h2 {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+
+    .about-box p {
+      font-size: 13px;
+      line-height: 1.8;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+
+    .about-box a {
+      color: var(--text);
+      text-decoration: underline;
+    }
+
+    .about-box a:hover {
+      color: var(--text-muted);
+    }
+
     /* Canvas Area */
     .canvas {
       position: fixed;
@@ -322,6 +412,16 @@
         display: none;
       }
 
+      .popup-notice {
+        display: none;
+      }
+
+      .ab-link {
+        top: 20px;
+        left: 20px;
+        font-size: 10px;
+      }
+
       .canvas {
         position: fixed;
         inset: 0;
@@ -331,7 +431,7 @@
       .float-img {
         position: absolute !important;
         opacity: 0;
-        transform: scale(0.95);
+        transform: scale(0.98);
         transition: opacity 0.4s ease, transform 0.4s ease;
         cursor: pointer;
         box-shadow: 0 4px 24px rgba(0,0,0,0.15);
@@ -340,10 +440,6 @@
       .float-img.visible {
         opacity: 1;
         transform: scale(1);
-      }
-
-      .float-img.caught {
-        transition: top 0.6s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.4s ease, transform 0.4s ease;
       }
 
       .float-img img {
@@ -355,6 +451,24 @@
 
       .resize-handle {
         display: none;
+      }
+
+      .about-box {
+        width: 85%;
+        padding: 30px;
+        max-height: 80vh;
+        overflow-y: auto;
+      }
+
+      .about-box h2 {
+        font-size: 13px;
+        margin-bottom: 20px;
+      }
+
+      .about-box p {
+        font-size: 12px;
+        line-height: 1.7;
+        margin-bottom: 14px;
       }
 
       .lightbox-content {
@@ -425,11 +539,17 @@
     <button class="category-btn" data-category="ab">A&B</button>
     <button class="category-btn" data-category="people">People</button>
     <button class="category-btn" data-category="walls">Walls</button>
-    <a href="about.html" class="category-btn">Devin</a>
+    <button class="category-btn" data-category="devin">Devin</button>
   </nav>
 
   <!-- Refresh Button (desktop only) -->
   <button class="refresh-btn" id="refresh-btn">Refresh</button>
+
+  <!-- Popup Notice (desktop only) -->
+  <div class="popup-notice" id="popup-notice">click drag & resize photos</div>
+
+  <!-- A&B Link -->
+  <a href="https://a-and-b.bike/" target="_blank" class="ab-link" id="ab-link">a-and-b.bike →</a>
 
   <!-- Loading -->
   <div class="loading" id="loading">
@@ -438,6 +558,16 @@
 
   <!-- Canvas -->
   <div class="canvas" id="canvas"></div>
+
+  <!-- About Box -->
+  <div class="about-box" id="about-box">
+    <h2>About</h2>
+    <p>Devin Feilen is a photographer based in Portland, Oregon. He can typically be found at cyclocross races around the PNW or wandering around with a Ricoh GR.</p>
+    <p>Site design by yours truly and never squarespace.</p>
+    <p>You can support me at <a href="https://buymeacoffee.com/devinfeilen" target="_blank">buymeacoffee.com/devinfeilen</a></p>
+    <p>For usage/licensing or any questions, please contact me via Instagram <a href="https://instagram.com/devinfeilen" target="_blank">@devinfeilen</a> or via email at <a href="mailto:dfeeilen@gmail.com">dfeeilen@gmail.com</a></p>
+    <p>Thank you for visiting :)</p>
+  </div>
 
   <!-- Scroll Hint (mobile only) -->
   <div class="scroll-hint" id="scroll-hint">
@@ -479,17 +609,13 @@
     let mobileZIndex = 1;
     let totalScrolled = 0;
     let lastTouchY = 0;
-    let catchZone = window.innerHeight * 0.4; // Where images "catch"
-    let maxPileSize = 12; // Max images in pile before cleanup
+    let maxPileSize = 15; // Max images to keep in memory
     
     // Mobile scroll smoothing
     let velocity = 0;
     let lastScrollTime = 0;
     let isScrolling = false;
     let scrollTimeout = null;
-    let lastSpawnScroll = 0;
-    let spawnThreshold = 400; // Pixels scrolled before spawning new image (increased)
-    let minVerticalGap = 120; // Minimum vertical gap between images
     let horizontalBuffer = 30; // Buffer from screen edges
 
     // Elements
@@ -500,6 +626,9 @@
     const lightboxCurrent = document.getElementById('lightbox-current');
     const lightboxTotal = document.getElementById('lightbox-total');
     const scrollHint = document.getElementById('scroll-hint');
+    const aboutBox = document.getElementById('about-box');
+    const popupNotice = document.getElementById('popup-notice');
+    const abLink = document.getElementById('ab-link');
 
     // Initialize
     loadCategory(currentCategory);
@@ -545,7 +674,25 @@
       displayedPhotos = [];
       mobileImages = [];
       totalScrolled = 0;
-      loading.classList.remove('hidden');
+      
+      // Hide about box for non-devin categories
+      if (category !== 'devin') {
+        aboutBox.classList.remove('visible');
+        loading.classList.remove('hidden');
+      } else {
+        // Show about box immediately for devin category
+        aboutBox.classList.add('visible');
+        if (isMobile && scrollHint) {
+          scrollHint.classList.add('hidden');
+        }
+      }
+      
+      // Show/hide A&B link
+      if (category === 'ab') {
+        abLink.classList.add('visible');
+      } else {
+        abLink.classList.remove('visible');
+      }
       
       const jsonFile = category + '.json';
       
@@ -559,7 +706,12 @@
           photoQueue = shuffleArray([...allPhotos]);
           loading.classList.add('hidden');
           
-          if (isMobile) {
+          if (category === 'devin') {
+            // Only spawn background photos on desktop
+            if (!isMobile) {
+              spawnAboutPhotos();
+            }
+          } else if (isMobile) {
             initMobileExperience();
           } else {
             displayImages();
@@ -568,7 +720,105 @@
         .catch(err => {
           console.error('Error loading photos:', err);
           loading.classList.add('hidden');
+          // About box is already visible, so text will show even without photos
         });
+    }
+
+    // ===== ABOUT SECTION =====
+    
+    function spawnAboutPhotos() {
+      // Show popup notice
+      showPopupNotice();
+      
+      // Get about box dimensions for collision avoidance
+      const boxRect = aboutBox.getBoundingClientRect();
+      const boxPadding = 40; // Extra padding around the box
+      const excludeZone = {
+        left: boxRect.left - boxPadding,
+        right: boxRect.right + boxPadding,
+        top: boxRect.top - boxPadding,
+        bottom: boxRect.bottom + boxPadding
+      };
+      
+      // Shuffle and pick 5 images
+      const shuffled = shuffleArray([...allPhotos]);
+      const selected = shuffled.slice(0, 5);
+      
+      // Spawn images avoiding the center
+      selected.forEach((src, i) => {
+        setTimeout(() => {
+          spawnAboutImage(src, i, excludeZone);
+        }, i * 150);
+      });
+    }
+
+    function spawnAboutImage(src, index, excludeZone) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'float-img';
+      
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = 'Photography by Devin Feilen';
+      img.loading = 'eager';
+      
+      // Smaller size for about page: 180-280px
+      const targetWidth = 180 + Math.random() * 100;
+      wrapper.style.width = targetWidth + 'px';
+      
+      // Add resize handle
+      const resizeHandle = document.createElement('div');
+      resizeHandle.className = 'resize-handle';
+      wrapper.appendChild(resizeHandle);
+      
+      wrapper.appendChild(img);
+      canvas.appendChild(wrapper);
+      
+      // Wait for image to load to get actual dimensions
+      img.onload = () => {
+        const aspectRatio = img.naturalWidth / img.naturalHeight;
+        const actualHeight = targetWidth / aspectRatio;
+        
+        // Find position that doesn't overlap with center box
+        let x, y;
+        let attempts = 0;
+        const padding = 60;
+        
+        do {
+          x = padding + Math.random() * (window.innerWidth - targetWidth - padding * 2);
+          y = padding + Math.random() * (window.innerHeight - actualHeight - padding * 2);
+          attempts++;
+        } while (
+          attempts < 50 &&
+          x < excludeZone.right &&
+          x + targetWidth > excludeZone.left &&
+          y < excludeZone.bottom &&
+          y + actualHeight > excludeZone.top
+        );
+        
+        wrapper.style.left = x + 'px';
+        wrapper.style.top = y + 'px';
+        wrapper.style.zIndex = index + 1;
+        
+        // Make draggable
+        makeDraggable(wrapper);
+        
+        // Make resizable
+        makeResizable(wrapper, img, resizeHandle);
+        
+        // Fade in after positioning
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            wrapper.classList.add('visible');
+          });
+        });
+      };
+      
+      // Double-click to open lightbox
+      wrapper.addEventListener('dblclick', () => {
+        openLightbox(src);
+      });
+      
+      displayedPhotos.push(src);
     }
 
     // ===== MOBILE PILE-UP EXPERIENCE =====
@@ -578,7 +828,6 @@
       mobileImages = [];
       mobileZIndex = 1;
       totalScrolled = 0;
-      lastSpawnScroll = 0;
       velocity = 0;
       
       // Show scroll hint
@@ -586,8 +835,10 @@
         scrollHint.classList.remove('hidden');
       }
       
-      // Spawn initial image
-      spawnMobileImage();
+      // Spawn initial images in a queue below the screen
+      for (let i = 0; i < 5; i++) {
+        spawnMobileImage(i);
+      }
       
       // Touch handlers
       canvas.addEventListener('touchstart', handleTouchStart, { passive: true });
@@ -615,7 +866,7 @@
     function handleTouchMove(e) {
       const currentY = e.touches[0].clientY;
       const currentTime = Date.now();
-      const deltaY = lastTouchY - currentY; // Positive = scrolling up
+      const deltaY = lastTouchY - currentY; // Positive = scrolling up, Negative = scrolling down
       const deltaTime = currentTime - lastScrollTime;
       
       // Calculate velocity for momentum
@@ -626,9 +877,7 @@
       lastTouchY = currentY;
       lastScrollTime = currentTime;
       
-      if (deltaY > 0) {
-        applyScroll(deltaY);
-      }
+      applyScroll(deltaY);
       
       e.preventDefault();
     }
@@ -643,17 +892,15 @@
     }
     
     function applyMomentum() {
-      if (Math.abs(velocity) < 0.5) {
+      if (Math.abs(velocity) < 0.3) {
         endScrolling();
         return;
       }
       
       // Apply friction
-      velocity *= 0.95;
+      velocity *= 0.92;
       
-      if (velocity > 0) {
-        applyScroll(velocity);
-      }
+      applyScroll(velocity);
       
       requestAnimationFrame(applyMomentum);
     }
@@ -676,43 +923,46 @@
     }
     
     function applyScroll(deltaY) {
-      totalScrolled += deltaY;
+      // Calculate new scroll position
+      const newScrolled = totalScrolled + deltaY;
+      
+      // Clamp to prevent scrolling too far back
+      if (newScrolled < 0) {
+        // Only move by the amount that gets us to 0
+        deltaY = -totalScrolled;
+        totalScrolled = 0;
+        if (deltaY === 0) return;
+      } else {
+        totalScrolled = newScrolled;
+      }
       
       // Hide scroll hint after first scroll
       if (scrollHint && totalScrolled > 50) {
         scrollHint.classList.add('hidden');
       }
       
-      // Move existing images up
+      // Move all images based on scroll
       mobileImages.forEach(imgData => {
-        if (!imgData.caught) {
-          imgData.y -= deltaY * 1.1;
-          
-          // Check if image should be caught
-          if (imgData.y <= catchZone + (Math.random() * 80 - 40)) {
-            imgData.caught = true;
-            imgData.wrapper.classList.add('caught');
-            // Add slight random offset when caught
-            imgData.y = catchZone + (Math.random() * 50 - 25);
-            imgData.x += (Math.random() * 30 - 15);
-          }
-          
-          imgData.wrapper.style.top = imgData.y + 'px';
-          imgData.wrapper.style.left = imgData.x + 'px';
-        }
+        imgData.y -= deltaY;
+        imgData.wrapper.style.top = imgData.y + 'px';
       });
       
-      // Spawn new image when scrolled enough (one at a time)
-      if (totalScrolled - lastSpawnScroll >= spawnThreshold) {
-        spawnMobileImage();
-        lastSpawnScroll = totalScrolled;
+      // Only spawn new images when scrolling up (deltaY > 0)
+      if (deltaY > 0) {
+        const lowestImage = mobileImages.reduce((lowest, img) => {
+          return img.y > lowest.y ? img : lowest;
+        }, { y: -Infinity });
+        
+        if (lowestImage.y < window.innerHeight + 200) {
+          spawnMobileImage(mobileImages.length);
+        }
       }
       
-      // Cleanup old images
+      // Cleanup images that are too far off screen (above)
       cleanupMobileImages();
     }
 
-    function spawnMobileImage() {
+    function spawnMobileImage(index) {
       if (photoQueue.length === 0) {
         photoQueue = shuffleArray([...allPhotos]);
       }
@@ -726,8 +976,8 @@
       img.alt = 'Photography by Devin Feilen';
       img.loading = 'eager';
       
-      // Random size between 45-70% of screen width
-      const widthPercent = 0.45 + Math.random() * 0.25;
+      // Random size between 50-75% of screen width
+      const widthPercent = 0.50 + Math.random() * 0.25;
       const size = window.innerWidth * widthPercent;
       wrapper.style.width = size + 'px';
       
@@ -735,16 +985,18 @@
       const maxX = window.innerWidth - size - horizontalBuffer;
       const x = horizontalBuffer + Math.random() * (maxX - horizontalBuffer);
       
-      // Start from below the screen with vertical gap
-      // Find the lowest uncaught image and add gap
-      let lowestY = window.innerHeight;
-      mobileImages.forEach(imgData => {
-        if (!imgData.caught && imgData.y > lowestY - 300) {
-          lowestY = Math.max(lowestY, imgData.y + minVerticalGap);
-        }
-      });
+      // Position below the lowest existing image, or at base position if first
+      const spacing = window.innerHeight * 0.7; // 70% of screen height between images
+      let y;
       
-      const y = Math.max(window.innerHeight + 80, lowestY + minVerticalGap);
+      if (mobileImages.length === 0) {
+        y = window.innerHeight + 100 + (index * spacing);
+      } else {
+        const lowestImage = mobileImages.reduce((lowest, img) => {
+          return img.y > lowest.y ? img : lowest;
+        }, { y: window.innerHeight });
+        y = lowestImage.y + spacing;
+      }
       
       wrapper.style.left = x + 'px';
       wrapper.style.top = y + 'px';
@@ -773,7 +1025,6 @@
         src,
         x,
         y,
-        caught: false,
         zIndex: mobileZIndex
       };
       
@@ -782,31 +1033,25 @@
     }
 
     function cleanupMobileImages() {
-      // Remove images that are caught and too far from view
-      const caughtImages = mobileImages.filter(img => img.caught);
+      // Remove images that have scrolled too far above the screen
+      const toRemove = mobileImages.filter(img => img.y < -500);
       
-      if (caughtImages.length > maxPileSize) {
-        // Remove oldest caught images
-        const toRemove = caughtImages.slice(0, caughtImages.length - maxPileSize);
+      toRemove.forEach(imgData => {
+        imgData.wrapper.style.opacity = '0';
         
-        toRemove.forEach(imgData => {
-          imgData.wrapper.style.opacity = '0';
-          imgData.wrapper.style.transform = 'scale(0.8)';
-          
-          setTimeout(() => {
-            if (imgData.wrapper.parentNode) {
-              imgData.wrapper.remove();
-            }
-          }, 400);
-          
-          // Remove from arrays
-          const idx = mobileImages.indexOf(imgData);
-          if (idx > -1) mobileImages.splice(idx, 1);
-          
-          const srcIdx = displayedPhotos.indexOf(imgData.src);
-          if (srcIdx > -1) displayedPhotos.splice(srcIdx, 1);
-        });
-      }
+        setTimeout(() => {
+          if (imgData.wrapper.parentNode) {
+            imgData.wrapper.remove();
+          }
+        }, 300);
+        
+        // Remove from arrays
+        const idx = mobileImages.indexOf(imgData);
+        if (idx > -1) mobileImages.splice(idx, 1);
+        
+        const srcIdx = displayedPhotos.indexOf(imgData.src);
+        if (srcIdx > -1) displayedPhotos.splice(srcIdx, 1);
+      });
     }
 
     // ===== DESKTOP EXPERIENCE =====
@@ -815,6 +1060,9 @@
       // Clear existing
       canvas.innerHTML = '';
       displayedPhotos = [];
+      
+      // Show popup notice
+      showPopupNotice();
       
       // Shuffle and pick images
       const shuffled = shuffleArray([...allPhotos]);
@@ -826,6 +1074,15 @@
           spawnImage(src, i);
         }, i * 120);
       });
+    }
+    
+    function showPopupNotice() {
+      if (!isMobile && popupNotice) {
+        popupNotice.classList.add('visible');
+        setTimeout(() => {
+          popupNotice.classList.remove('visible');
+        }, 5000);
+      }
     }
 
     function spawnImage(src, index) {
@@ -1027,7 +1284,6 @@
     window.addEventListener('resize', () => {
       const wasMobile = isMobile;
       isMobile = window.innerWidth <= 768;
-      catchZone = window.innerHeight * 0.4;
       
       if (wasMobile !== isMobile) {
         loadCategory(currentCategory);
