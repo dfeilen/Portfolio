@@ -395,7 +395,6 @@
       html, body {
         height: 100%;
         overflow: hidden;
-        touch-action: pan-y;
       }
 
       .nav {
@@ -425,21 +424,24 @@
       .canvas {
         position: fixed;
         inset: 0;
-        overflow: hidden;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        padding: 120px 0 100px;
+      }
+
+      .mobile-scroll-container {
+        position: relative;
+        width: 100%;
       }
 
       .float-img {
-        position: absolute !important;
-        opacity: 0;
-        transform: scale(0.98);
-        transition: opacity 0.4s ease, transform 0.4s ease;
+        position: absolute;
+        opacity: 1;
+        transform: none;
         cursor: pointer;
         box-shadow: 0 4px 24px rgba(0,0,0,0.15);
-      }
-
-      .float-img.visible {
-        opacity: 1;
-        transform: scale(1);
+        transition: none;
       }
 
       .float-img img {
@@ -472,20 +474,20 @@
       }
 
       .lightbox-content {
-        padding: 80px 20px;
+        padding: 60px 15px;
       }
 
       .lightbox-nav {
-        width: 40px;
-        height: 40px;
+        display: none;
       }
 
-      .lightbox-prev {
-        left: 12px;
+      .lightbox-header {
+        padding: 16px 20px;
       }
 
-      .lightbox-next {
-        right: 12px;
+      .lightbox-close {
+        padding: 8px 16px;
+        font-size: 10px;
       }
 
       /* Scroll hint */
@@ -594,7 +596,7 @@
     </button>
   </div>
 
-  <script>
+  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
     // State
     let allPhotos = [];
     let displayedPhotos = [];
@@ -603,20 +605,9 @@
     let isMobile = window.innerWidth <= 768;
     const imageCount = 15;
 
-    // Mobile pile-up state
+    // Mobile state
     let mobileImages = [];
     let photoQueue = [];
-    let mobileZIndex = 1;
-    let totalScrolled = 0;
-    let lastTouchY = 0;
-    let maxPileSize = 15; // Max images to keep in memory
-    
-    // Mobile scroll smoothing
-    let velocity = 0;
-    let lastScrollTime = 0;
-    let isScrolling = false;
-    let scrollTimeout = null;
-    let horizontalBuffer = 30; // Buffer from screen edges
 
     // Elements
     const canvas = document.getElementById('canvas');
@@ -655,9 +646,41 @@
     document.getElementById('lightbox-next').addEventListener('click', () => navigateLightbox(1));
     lightbox.addEventListener('click', (e) => {
       if (e.target === lightbox || e.target.closest('.lightbox-content')) {
-        closeLightbox();
+        if (!isMobile) {
+          closeLightbox();
+        }
       }
     });
+
+    // Mobile lightbox swipe gestures
+    let lightboxTouchStartX = 0;
+    let lightboxTouchStartY = 0;
+    
+    lightbox.addEventListener('touchstart', (e) => {
+      lightboxTouchStartX = e.touches[0].clientX;
+      lightboxTouchStartY = e.touches[0].clientY;
+    }, { passive: true });
+    
+    lightbox.addEventListener('touchend', (e) => {
+      if (!lightbox.classList.contains('active')) return;
+      
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
+      const deltaX = touchEndX - lightboxTouchStartX;
+      const deltaY = touchEndY - lightboxTouchStartY;
+      
+      // Only trigger if horizontal swipe is greater than vertical
+      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+        if (deltaX > 0) {
+          navigateLightbox(-1); // Swipe right = previous
+        } else {
+          navigateLightbox(1); // Swipe left = next
+        }
+      } else if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) {
+        // Tap to close
+        closeLightbox();
+      }
+    }, { passive: true });
 
     // Keyboard navigation
     document.addEventListener('keydown', (e) => {
@@ -821,237 +844,94 @@
       displayedPhotos.push(src);
     }
 
-    // ===== MOBILE PILE-UP EXPERIENCE =====
+    // ===== MOBILE EXPERIENCE =====
     
     function initMobileExperience() {
       canvas.innerHTML = '';
       mobileImages = [];
-      mobileZIndex = 1;
-      totalScrolled = 0;
-      velocity = 0;
+      displayedPhotos = [];
       
-      // Show scroll hint
+      // Hide scroll hint after a moment
       if (scrollHint) {
         scrollHint.classList.remove('hidden');
-      }
-      
-      // Spawn initial images in a queue below the screen
-      for (let i = 0; i < 5; i++) {
-        spawnMobileImage(i);
-      }
-      
-      // Touch handlers
-      canvas.addEventListener('touchstart', handleTouchStart, { passive: true });
-      canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-      canvas.addEventListener('touchend', handleTouchEnd, { passive: true });
-    }
-
-    function handleTouchStart(e) {
-      lastTouchY = e.touches[0].clientY;
-      lastScrollTime = Date.now();
-      velocity = 0;
-      isScrolling = true;
-      
-      // Disable pointer events on all images while scrolling
-      mobileImages.forEach(imgData => {
-        imgData.wrapper.style.pointerEvents = 'none';
-      });
-      
-      // Clear any existing scroll timeout
-      if (scrollTimeout) {
-        clearTimeout(scrollTimeout);
-      }
-    }
-
-    function handleTouchMove(e) {
-      const currentY = e.touches[0].clientY;
-      const currentTime = Date.now();
-      const deltaY = lastTouchY - currentY; // Positive = scrolling up, Negative = scrolling down
-      const deltaTime = currentTime - lastScrollTime;
-      
-      // Calculate velocity for momentum
-      if (deltaTime > 0) {
-        velocity = deltaY / deltaTime * 16; // Normalize to ~60fps
-      }
-      
-      lastTouchY = currentY;
-      lastScrollTime = currentTime;
-      
-      applyScroll(deltaY);
-      
-      e.preventDefault();
-    }
-
-    function handleTouchEnd(e) {
-      // Apply momentum scrolling
-      if (Math.abs(velocity) > 0.5) {
-        requestAnimationFrame(applyMomentum);
-      } else {
-        endScrolling();
-      }
-    }
-    
-    function applyMomentum() {
-      if (Math.abs(velocity) < 0.3) {
-        endScrolling();
-        return;
-      }
-      
-      // Apply friction
-      velocity *= 0.92;
-      
-      applyScroll(velocity);
-      
-      requestAnimationFrame(applyMomentum);
-    }
-    
-    function endScrolling() {
-      // Delay before allowing taps
-      scrollTimeout = setTimeout(() => {
-        isScrolling = false;
-        // Enable pointer events on all images
-        mobileImages.forEach(imgData => {
-          imgData.wrapper.style.pointerEvents = 'auto';
-        });
-      }, 300);
-    }
-    
-    function handleMobileTap(src) {
-      if (!isScrolling) {
-        openLightbox(src);
-      }
-    }
-    
-    function applyScroll(deltaY) {
-      // Calculate new scroll position
-      const newScrolled = totalScrolled + deltaY;
-      
-      // Clamp to prevent scrolling too far back
-      if (newScrolled < 0) {
-        // Only move by the amount that gets us to 0
-        deltaY = -totalScrolled;
-        totalScrolled = 0;
-        if (deltaY === 0) return;
-      } else {
-        totalScrolled = newScrolled;
-      }
-      
-      // Hide scroll hint after first scroll
-      if (scrollHint && totalScrolled > 50) {
-        scrollHint.classList.add('hidden');
-      }
-      
-      // Move all images based on scroll
-      mobileImages.forEach(imgData => {
-        imgData.y -= deltaY;
-        imgData.wrapper.style.top = imgData.y + 'px';
-      });
-      
-      // Only spawn new images when scrolling up (deltaY > 0)
-      if (deltaY > 0) {
-        const lowestImage = mobileImages.reduce((lowest, img) => {
-          return img.y > lowest.y ? img : lowest;
-        }, { y: -Infinity });
-        
-        if (lowestImage.y < window.innerHeight + 200) {
-          spawnMobileImage(mobileImages.length);
-        }
-      }
-      
-      // Cleanup images that are too far off screen (above)
-      cleanupMobileImages();
-    }
-
-    function spawnMobileImage(index) {
-      if (photoQueue.length === 0) {
-        photoQueue = shuffleArray([...allPhotos]);
-      }
-      
-      const src = photoQueue.pop();
-      const wrapper = document.createElement('div');
-      wrapper.className = 'float-img';
-      
-      const img = document.createElement('img');
-      img.src = src;
-      img.alt = 'Photography by Devin Feilen';
-      img.loading = 'eager';
-      
-      // Random size between 50-75% of screen width
-      const widthPercent = 0.50 + Math.random() * 0.25;
-      const size = window.innerWidth * widthPercent;
-      wrapper.style.width = size + 'px';
-      
-      // Random horizontal position with buffer from edges
-      const maxX = window.innerWidth - size - horizontalBuffer;
-      const x = horizontalBuffer + Math.random() * (maxX - horizontalBuffer);
-      
-      // Position below the lowest existing image, or at base position if first
-      const spacing = window.innerHeight * 0.7; // 70% of screen height between images
-      let y;
-      
-      if (mobileImages.length === 0) {
-        y = window.innerHeight + 100 + (index * spacing);
-      } else {
-        const lowestImage = mobileImages.reduce((lowest, img) => {
-          return img.y > lowest.y ? img : lowest;
-        }, { y: window.innerHeight });
-        y = lowestImage.y + spacing;
-      }
-      
-      wrapper.style.left = x + 'px';
-      wrapper.style.top = y + 'px';
-      wrapper.style.zIndex = mobileZIndex++;
-      
-      // Disable pointer events initially
-      wrapper.style.pointerEvents = 'none';
-      
-      wrapper.appendChild(img);
-      canvas.appendChild(wrapper);
-      
-      // Fade in
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          wrapper.classList.add('visible');
-        });
-      });
-      
-      // Tap to open lightbox (only works when not scrolling)
-      wrapper.addEventListener('click', () => {
-        handleMobileTap(src);
-      });
-      
-      const imgData = {
-        wrapper,
-        src,
-        x,
-        y,
-        zIndex: mobileZIndex
-      };
-      
-      mobileImages.push(imgData);
-      displayedPhotos.push(src);
-    }
-
-    function cleanupMobileImages() {
-      // Remove images that have scrolled too far above the screen
-      const toRemove = mobileImages.filter(img => img.y < -500);
-      
-      toRemove.forEach(imgData => {
-        imgData.wrapper.style.opacity = '0';
-        
         setTimeout(() => {
-          if (imgData.wrapper.parentNode) {
-            imgData.wrapper.remove();
-          }
-        }, 300);
+          scrollHint.classList.add('hidden');
+        }, 3000);
+      }
+      
+      // Create scroll container
+      const scrollContainer = document.createElement('div');
+      scrollContainer.className = 'mobile-scroll-container';
+      scrollContainer.id = 'mobile-scroll-container';
+      canvas.appendChild(scrollContainer);
+      
+      // Shuffle photos
+      const shuffled = shuffleArray([...allPhotos]);
+      
+      // Calculate positions and spawn images
+      const spacing = window.innerHeight * 0.6;
+      const horizontalBuffer = 30;
+      let currentY = 50;
+      
+      shuffled.forEach((src, index) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'float-img';
         
-        // Remove from arrays
-        const idx = mobileImages.indexOf(imgData);
-        if (idx > -1) mobileImages.splice(idx, 1);
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = 'Photography by Devin Feilen';
+        img.loading = index < 10 ? 'eager' : 'lazy';
         
-        const srcIdx = displayedPhotos.indexOf(imgData.src);
-        if (srcIdx > -1) displayedPhotos.splice(srcIdx, 1);
+        // Random size between 55-80% of screen width
+        const widthPercent = 0.55 + Math.random() * 0.25;
+        const size = window.innerWidth * widthPercent;
+        wrapper.style.width = size + 'px';
+        
+        // Random horizontal position with buffer
+        const maxX = window.innerWidth - size - horizontalBuffer;
+        const x = horizontalBuffer + Math.random() * (maxX - horizontalBuffer);
+        
+        wrapper.style.left = x + 'px';
+        wrapper.style.top = currentY + 'px';
+        
+        wrapper.appendChild(img);
+        scrollContainer.appendChild(wrapper);
+        
+        // Tap to open lightbox
+        wrapper.addEventListener('click', (e) => {
+          e.preventDefault();
+          openMobileLightbox(src, index);
+        });
+        
+        mobileImages.push({
+          wrapper,
+          src,
+          index
+        });
+        
+        displayedPhotos.push(src);
+        
+        // Add spacing for next image (with some randomness)
+        currentY += spacing + (Math.random() * 100 - 50);
       });
+      
+      // Set container height
+      scrollContainer.style.height = (currentY + 200) + 'px';
+    }
+
+    function openMobileLightbox(src, displayIndex) {
+      // Find the index in allPhotos array
+      lightboxIndex = allPhotos.indexOf(src);
+      if (lightboxIndex === -1) lightboxIndex = 0;
+      
+      lightboxImg.src = src;
+      lightboxCurrent.textContent = String(lightboxIndex + 1).padStart(2, '0');
+      lightboxTotal.textContent = String(allPhotos.length).padStart(2, '0');
+      
+      lightbox.classList.add('active');
+      document.body.style.overflow = 'hidden';
+      
+      setTimeout(() => lightbox.classList.add('visible'), 10);
     }
 
     // ===== DESKTOP EXPERIENCE =====
@@ -1281,14 +1161,4 @@
     }
 
     // Handle resize
-    window.addEventListener('resize', () => {
-      const wasMobile = isMobile;
-      isMobile = window.innerWidth <= 768;
-      
-      if (wasMobile !== isMobile) {
-        loadCategory(currentCategory);
-      }
-    });
-  </script>
-</body>
-</html>
+    wind
