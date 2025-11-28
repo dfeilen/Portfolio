@@ -992,7 +992,7 @@
     }
     
     function handleMobileScroll(scrollTop, imageData) {
-      const fadeDistance = window.innerHeight * 0.5; // Distance over which to fade out
+      const maxPile = 10; // Maximum images in pile before cleanup
       
       imageData.forEach((data) => {
         if (!data.wrapper) return;
@@ -1009,26 +1009,14 @@
             data.wrapper.style.position = 'fixed';
             data.wrapper.style.top = data.catchY + 'px';
             data.wrapper.style.zIndex = 100 + data.index;
-            data.wrapper.style.transition = 'opacity 0.3s ease, top 0.2s ease';
+            data.wrapper.style.visibility = 'visible';
+            data.wrapper.style.opacity = 1;
           }
         } else {
-          // Image is caught - handle fading
+          // Image is caught - check if scrolling back up
           const scrollSinceCaught = scrollTop - data.caughtScrollPos;
           
-          if (scrollSinceCaught > 0) {
-            // Fade out based on scroll distance
-            const opacity = Math.max(0, 1 - (scrollSinceCaught / fadeDistance));
-            data.wrapper.style.opacity = opacity;
-            
-            // Slight upward drift as it fades
-            const drift = Math.min(scrollSinceCaught * 0.08, 40);
-            data.wrapper.style.top = (data.catchY - drift) + 'px';
-            
-            // Hide completely faded images
-            if (opacity <= 0.01) {
-              data.wrapper.style.visibility = 'hidden';
-            }
-          } else if (scrollSinceCaught < -10) {
+          if (scrollSinceCaught < -10) {
             // Scrolling back up - uncatch the image
             data.caught = false;
             data.wrapper.style.position = 'absolute';
@@ -1036,10 +1024,40 @@
             data.wrapper.style.opacity = 1;
             data.wrapper.style.visibility = 'visible';
             data.wrapper.style.zIndex = '';
-            data.wrapper.style.transition = '';
           }
         }
       });
+      
+      // Count caught images that are visible and cleanup if too many
+      const caughtImages = imageData.filter(d => d.caught);
+      const visibleCaught = caughtImages.filter(d => d.wrapper.style.visibility !== 'hidden');
+      
+      if (visibleCaught.length > maxPile) {
+        // Sort by catch order (lowest caughtScrollPos = caught first)
+        visibleCaught.sort((a, b) => a.caughtScrollPos - b.caughtScrollPos);
+        
+        // Hide oldest caught images
+        const toHide = visibleCaught.slice(0, visibleCaught.length - maxPile);
+        
+        toHide.forEach(data => {
+          data.wrapper.style.visibility = 'hidden';
+        });
+      }
+      
+      // Restore visibility for caught images that should be visible based on pile limit
+      // (in case user scrolled back and pile has room)
+      const hiddenCaught = caughtImages.filter(d => d.wrapper.style.visibility === 'hidden');
+      if (hiddenCaught.length > 0 && visibleCaught.length < maxPile) {
+        // Sort hidden by catch order (most recent first to restore)
+        hiddenCaught.sort((a, b) => b.caughtScrollPos - a.caughtScrollPos);
+        
+        const canRestore = maxPile - visibleCaught.length;
+        const toRestore = hiddenCaught.slice(0, canRestore);
+        
+        toRestore.forEach(data => {
+          data.wrapper.style.visibility = 'visible';
+        });
+      }
     }
     
     function repositionMobileImages(imageData, scrollContainer, baseSpacing) {
