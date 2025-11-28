@@ -35,11 +35,13 @@
     /* Navigation */
     .nav {
       position: fixed;
-      bottom: 24px;
-      right: 32px;
+      top: 24px;
+      left: 32px;
       z-index: 100;
       display: flex;
-      gap: 16px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
       font-size: 12px;
       letter-spacing: 0.05em;
     }
@@ -69,7 +71,7 @@
     .refresh-btn {
       position: fixed;
       bottom: 24px;
-      left: 32px;
+      right: 32px;
       z-index: 100;
       background: none;
       border: none;
@@ -80,10 +82,27 @@
       cursor: pointer;
       text-transform: uppercase;
       padding: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
     .refresh-btn:hover {
       text-decoration: underline;
+    }
+
+    .refresh-exclaim {
+      font-weight: bold;
+      animation: pulse 1s ease-in-out infinite;
+    }
+
+    .refresh-exclaim.hidden {
+      display: none;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
     }
 
     /* Popup Notice */
@@ -109,7 +128,7 @@
     /* A&B Link */
     .ab-link {
       position: fixed;
-      top: 24px;
+      bottom: 24px;
       left: 32px;
       font-size: 11px;
       letter-spacing: 0.05em;
@@ -399,8 +418,8 @@
 
       .nav {
         top: 20px;
+        left: auto;
         right: 20px;
-        bottom: auto;
         flex-direction: column;
         align-items: flex-end;
         gap: 12px;
@@ -417,6 +436,7 @@
 
       .ab-link {
         top: 20px;
+        bottom: auto;
         left: 20px;
         font-size: 10px;
       }
@@ -427,21 +447,21 @@
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
-        padding: 120px 0 100px;
+        padding: 0;
       }
 
       .mobile-scroll-container {
         position: relative;
         width: 100%;
+        min-height: 100vh;
       }
 
       .float-img {
         position: absolute;
         opacity: 1;
-        transform: none;
         cursor: pointer;
         box-shadow: 0 4px 24px rgba(0,0,0,0.15);
-        transition: none;
+        will-change: transform, opacity;
       }
 
       .float-img img {
@@ -493,13 +513,13 @@
       /* Scroll hint */
       .scroll-hint {
         position: fixed;
-        bottom: 30px;
+        bottom: 20%;
         left: 50%;
         transform: translateX(-50%);
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 8px;
+        gap: 16px;
         z-index: 50;
         opacity: 1;
         transition: opacity 0.5s ease;
@@ -510,25 +530,25 @@
         opacity: 0;
       }
 
-      .scroll-hint-text {
-        font-size: 10px;
-        letter-spacing: 0.15em;
-        text-transform: uppercase;
-        color: var(--text-muted);
+      .scroll-hint-arrow {
+        width: 30px;
+        height: 30px;
+        border-right: 2px solid var(--text);
+        border-top: 2px solid var(--text);
+        transform: rotate(-45deg);
+        animation: scrollBounce 1s ease-in-out infinite;
       }
 
-      .scroll-hint-arrow {
-        width: 20px;
-        height: 20px;
-        border-left: 1.5px solid var(--text-muted);
-        border-bottom: 1.5px solid var(--text-muted);
-        transform: rotate(-45deg);
-        animation: scrollBounce 1.5s ease-in-out infinite;
+      .scroll-hint-text {
+        font-size: 13px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text);
       }
 
       @keyframes scrollBounce {
-        0%, 100% { transform: rotate(-45deg) translateY(0); }
-        50% { transform: rotate(-45deg) translateY(5px); }
+        0%, 100% { transform: rotate(-45deg) translateY(0); opacity: 1; }
+        50% { transform: rotate(-45deg) translateY(-12px); opacity: 0.6; }
       }
     }
   </style>
@@ -545,7 +565,10 @@
   </nav>
 
   <!-- Refresh Button (desktop only) -->
-  <button class="refresh-btn" id="refresh-btn">Refresh</button>
+  <button class="refresh-btn" id="refresh-btn">
+    <span class="refresh-exclaim" id="refresh-exclaim">!</span>
+    <span>Refresh Images</span>
+  </button>
 
   <!-- Popup Notice (desktop only) -->
   <div class="popup-notice" id="popup-notice">click drag & resize photos</div>
@@ -564,8 +587,8 @@
   <!-- About Box -->
   <div class="about-box" id="about-box">
     <h2>About</h2>
-    <p>Devin Feilen is a photographer based in Portland, Oregon. He can typically be found at cyclocross races around the PNW or wandering around with a Ricoh GR.</p>
-    <p>Site design by yours truly and never squarespace.</p>
+    <p>Devin Feilen is a photographer based in Portland, Oregon. He can typically be found at bicycle races around the PNW or wandering around with a Ricoh GR.</p>
+    <p>Site design by yours truly.</p>
     <p>You can support me at <a href="https://buymeacoffee.com/devinfeilen" target="_blank">buymeacoffee.com/devinfeilen</a></p>
     <p>For usage/licensing or any questions, please contact me via Instagram <a href="https://instagram.com/devinfeilen" target="_blank">@devinfeilen</a> or via email at <a href="/cdn-cgi/l/email-protection#b7d3d1d2d2dedbd2d9f7d0dad6dedb99d4d8da"><span class="__cf_email__" data-cfemail="c7a3a1a2a2aeaba2a987a0aaa6aeabe9a4a8aa">[email&#160;protected]</span></a></p>
     <p>Thank you for visiting :)</p>
@@ -573,8 +596,8 @@
 
   <!-- Scroll Hint (mobile only) -->
   <div class="scroll-hint" id="scroll-hint">
-    <span class="scroll-hint-text">Swipe up</span>
     <div class="scroll-hint-arrow"></div>
+    <span class="scroll-hint-text">Swipe up</span>
   </div>
 
   <!-- Lightbox -->
@@ -634,8 +657,13 @@
     });
 
     // Refresh button (desktop only)
+    const refreshExclaim = document.getElementById('refresh-exclaim');
     document.getElementById('refresh-btn').addEventListener('click', () => {
       if (!isMobile) {
+        // Hide exclamation after first click
+        if (refreshExclaim) {
+          refreshExclaim.classList.add('hidden');
+        }
         displayImages();
       }
     });
@@ -696,7 +724,6 @@
       canvas.innerHTML = '';
       displayedPhotos = [];
       mobileImages = [];
-      totalScrolled = 0;
       
       // Hide about box for non-devin categories
       if (category !== 'devin') {
@@ -851,12 +878,9 @@
       mobileImages = [];
       displayedPhotos = [];
       
-      // Hide scroll hint after a moment
+      // Show scroll hint
       if (scrollHint) {
         scrollHint.classList.remove('hidden');
-        setTimeout(() => {
-          scrollHint.classList.add('hidden');
-        }, 3000);
       }
       
       // Create scroll container
@@ -868,23 +892,19 @@
       // Shuffle photos
       const shuffled = shuffleArray([...allPhotos]);
       
-      // Calculate positions and spawn images
-      const baseSpacing = 80; // Minimum gap between images
+      const baseSpacing = 80;
       const horizontalBuffer = 30;
-      let currentY = 50;
-      
-      // Track image load completion for proper spacing
-      let loadedCount = 0;
       const imageData = [];
+      
+      // Start photos below the visible area so screen is empty initially
+      let currentY = window.innerHeight + 50;
       
       shuffled.forEach((src, index) => {
         const wrapper = document.createElement('div');
         wrapper.className = 'float-img';
         
         const img = document.createElement('img');
-        img.src = src;
         img.alt = 'Photography by Devin Feilen';
-        img.loading = index < 10 ? 'eager' : 'lazy';
         
         // Random size between 55-80% of screen width
         const widthPercent = 0.55 + Math.random() * 0.25;
@@ -894,53 +914,151 @@
         // Random horizontal position with buffer
         const maxX = window.innerWidth - size - horizontalBuffer;
         const x = horizontalBuffer + Math.random() * (maxX - horizontalBuffer);
-        
         wrapper.style.left = x + 'px';
-        wrapper.style.top = '0px'; // Temporary, will be set after layout
-        wrapper.style.visibility = 'hidden';
+        
+        // Position sequentially with estimated height
+        const estimatedHeight = size * 0.7;
+        wrapper.style.top = currentY + 'px';
         
         wrapper.appendChild(img);
         scrollContainer.appendChild(wrapper);
         
-        imageData.push({
+        // Random catch zone - where this image will stop (25-40% from top)
+        const catchY = window.innerHeight * (0.25 + Math.random() * 0.15);
+        
+        const data = {
           wrapper,
+          img,
           src,
           index,
-          size
-        });
+          initialY: currentY,
+          estimatedHeight,
+          randomOffset: Math.random() * 40 - 20,
+          catchY: catchY,
+          caught: false,
+          caughtScrollPos: 0
+        };
+        
+        imageData.push(data);
+        
+        // Update Y for next image
+        currentY += estimatedHeight + baseSpacing + data.randomOffset;
         
         // Tap to open lightbox
         wrapper.addEventListener('click', (e) => {
           e.preventDefault();
-          openMobileLightbox(src, index);
+          if (data.wrapper.style.visibility !== 'hidden') {
+            openMobileLightbox(src, index);
+          }
         });
         
-        mobileImages.push({
-          wrapper,
-          src,
-          index
-        });
-        
+        mobileImages.push(data);
         displayedPhotos.push(src);
+        
+        // Set src to start loading
+        img.loading = index < 15 ? 'eager' : 'lazy';
+        img.src = src;
       });
       
-      // After a short delay, position all images based on their rendered heights
+      // Set initial container height
+      scrollContainer.style.height = (currentY + 200) + 'px';
+      
+      // After images load, recalculate positions
       setTimeout(() => {
-        let yPos = 50;
+        repositionMobileImages(imageData, scrollContainer, baseSpacing);
+      }, 500);
+      
+      setTimeout(() => {
+        repositionMobileImages(imageData, scrollContainer, baseSpacing);
+      }, 1500);
+      
+      // Handle scroll for pile-up effect
+      let ticking = false;
+      
+      canvas.addEventListener('scroll', () => {
+        if (!ticking) {
+          requestAnimationFrame(() => {
+            handleMobileScroll(canvas.scrollTop, imageData);
+            ticking = false;
+          });
+          ticking = true;
+        }
         
-        imageData.forEach((data, i) => {
-          const height = data.wrapper.offsetHeight || (data.size * 1.2); // Fallback estimate
+        // Hide scroll hint
+        if (scrollHint && canvas.scrollTop > 20) {
+          scrollHint.classList.add('hidden');
+        }
+      }, { passive: true });
+    }
+    
+    function handleMobileScroll(scrollTop, imageData) {
+      const fadeDistance = window.innerHeight * 0.5; // Distance over which to fade out
+      
+      imageData.forEach((data) => {
+        if (!data.wrapper) return;
+        
+        // Calculate where this image would be based on scroll
+        const naturalY = data.initialY - scrollTop;
+        
+        if (!data.caught) {
+          // Image hasn't been caught yet
+          if (naturalY <= data.catchY) {
+            // Catch the image
+            data.caught = true;
+            data.caughtScrollPos = scrollTop;
+            data.wrapper.style.position = 'fixed';
+            data.wrapper.style.top = data.catchY + 'px';
+            data.wrapper.style.zIndex = 100 + data.index;
+            data.wrapper.style.transition = 'opacity 0.3s ease, top 0.2s ease';
+          }
+        } else {
+          // Image is caught - handle fading
+          const scrollSinceCaught = scrollTop - data.caughtScrollPos;
           
+          if (scrollSinceCaught > 0) {
+            // Fade out based on scroll distance
+            const opacity = Math.max(0, 1 - (scrollSinceCaught / fadeDistance));
+            data.wrapper.style.opacity = opacity;
+            
+            // Slight upward drift as it fades
+            const drift = Math.min(scrollSinceCaught * 0.08, 40);
+            data.wrapper.style.top = (data.catchY - drift) + 'px';
+            
+            // Hide completely faded images
+            if (opacity <= 0.01) {
+              data.wrapper.style.visibility = 'hidden';
+            }
+          } else if (scrollSinceCaught < -10) {
+            // Scrolling back up - uncatch the image
+            data.caught = false;
+            data.wrapper.style.position = 'absolute';
+            data.wrapper.style.top = data.initialY + 'px';
+            data.wrapper.style.opacity = 1;
+            data.wrapper.style.visibility = 'visible';
+            data.wrapper.style.zIndex = '';
+            data.wrapper.style.transition = '';
+          }
+        }
+      });
+    }
+    
+    function repositionMobileImages(imageData, scrollContainer, baseSpacing) {
+      let yPos = window.innerHeight + 50;
+      
+      imageData.forEach((data) => {
+        const actualHeight = data.wrapper.offsetHeight;
+        const height = actualHeight > 0 ? actualHeight : data.estimatedHeight;
+        
+        data.initialY = yPos;
+        if (!data.caught) {
           data.wrapper.style.top = yPos + 'px';
-          data.wrapper.style.visibility = 'visible';
-          
-          // Add image height plus spacing for next position
-          yPos += height + baseSpacing + (Math.random() * 40 - 20);
-        });
+        }
         
-        // Set container height
-        scrollContainer.style.height = (yPos + 200) + 'px';
-      }, 100);
+        // Use stored random offset for consistent spacing
+        yPos += height + baseSpacing + data.randomOffset;
+      });
+      
+      scrollContainer.style.height = (yPos + 200) + 'px';
     }
 
     function openMobileLightbox(src, displayIndex) {
