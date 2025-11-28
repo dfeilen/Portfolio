@@ -920,6 +920,9 @@
         const estimatedHeight = size * 0.7;
         wrapper.style.top = currentY + 'px';
         
+        // Set high z-index so uncaught images appear above the pile
+        wrapper.style.zIndex = 500 + index;
+        
         wrapper.appendChild(img);
         scrollContainer.appendChild(wrapper);
         
@@ -994,21 +997,32 @@
     function handleMobileScroll(scrollTop, imageData) {
       const maxPile = 10; // Maximum images in pile before cleanup
       
+      // Count current caught images for z-index ordering
+      let caughtCount = imageData.filter(d => d.caught).length;
+      
       imageData.forEach((data) => {
         if (!data.wrapper) return;
         
-        // Calculate where this image would be based on scroll
-        const naturalY = data.initialY - scrollTop;
+        // Get image height for center-based positioning
+        const imgHeight = data.wrapper.offsetHeight || data.estimatedHeight;
+        const halfHeight = imgHeight / 2;
+        
+        // Calculate where this image's CENTER would be based on scroll
+        const naturalCenterY = (data.initialY + halfHeight) - scrollTop;
         
         if (!data.caught) {
-          // Image hasn't been caught yet
-          if (naturalY <= data.catchY) {
-            // Catch the image
+          // Image hasn't been caught yet - keep it on top of the pile
+          data.wrapper.style.zIndex = 500 + data.index;
+          
+          if (naturalCenterY <= data.catchY) {
+            // Catch the image - position so center is at catchY
             data.caught = true;
             data.caughtScrollPos = scrollTop;
+            caughtCount++;
+            data.caughtOrder = caughtCount;
             data.wrapper.style.position = 'fixed';
-            data.wrapper.style.top = data.catchY + 'px';
-            data.wrapper.style.zIndex = 100 + data.index;
+            data.wrapper.style.top = (data.catchY - halfHeight) + 'px';
+            data.wrapper.style.zIndex = 100 + data.caughtOrder;
             data.wrapper.style.visibility = 'visible';
             data.wrapper.style.opacity = 1;
           }
@@ -1019,11 +1033,12 @@
           if (scrollSinceCaught < -10) {
             // Scrolling back up - uncatch the image
             data.caught = false;
+            data.caughtOrder = 0;
             data.wrapper.style.position = 'absolute';
             data.wrapper.style.top = data.initialY + 'px';
             data.wrapper.style.opacity = 1;
             data.wrapper.style.visibility = 'visible';
-            data.wrapper.style.zIndex = '';
+            data.wrapper.style.zIndex = 500 + data.index;
           }
         }
       });
