@@ -461,12 +461,8 @@
         opacity: 1;
         cursor: pointer;
         box-shadow: 0 4px 24px rgba(0,0,0,0.15);
-        will-change: transform, opacity, top, left;
+        will-change: transform, opacity;
         border: 2px solid rgba(255,255,255,0.85);
-      }
-
-      .float-img.caught {
-        transition: top 0.3s ease-out, left 0.2s ease-out, transform 0.3s ease-out, box-shadow 0.3s ease;
       }
 
       .float-img img {
@@ -790,6 +786,14 @@
         abLink.classList.remove('visible');
       }
       
+      // Hide refresh button on about page (desktop)
+      const refreshBtn = document.getElementById('refresh-btn');
+      if (category === 'devin') {
+        refreshBtn.style.display = 'none';
+      } else if (!isMobile) {
+        refreshBtn.style.display = 'flex';
+      }
+      
       const jsonFile = category + '.json';
       
       fetch(jsonFile)
@@ -938,7 +942,7 @@
       // Shuffle photos
       const shuffled = shuffleArray([...allPhotos]);
       
-      const baseSpacing = 80;
+      const baseSpacing = window.innerHeight * 0.8; // Much larger spacing - 80% of screen height
       const horizontalBuffer = 30;
       const imageData = [];
       
@@ -972,8 +976,8 @@
         wrapper.appendChild(img);
         scrollContainer.appendChild(wrapper);
         
-        // Random catch zone - where this image will stop (25-40% from top)
-        const catchY = window.innerHeight * (0.25 + Math.random() * 0.15);
+        // Random catch zone - where this image will stop (45-55% from top - middle of screen)
+        const catchY = window.innerHeight * (0.45 + Math.random() * 0.10);
         
         // Random horizontal drift when caught (-30 to 30 pixels)
         const catchDriftX = (Math.random() - 0.5) * 60;
@@ -986,7 +990,7 @@
           initialY: currentY,
           initialX: x,
           estimatedHeight,
-          randomOffset: Math.random() * 40 - 20,
+          randomOffset: Math.random() * 100 - 50, // Larger variation (-50 to +50)
           catchY: catchY,
           catchDriftX: catchDriftX,
           caught: false,
@@ -1107,9 +1111,6 @@
             caughtCount++;
             data.caughtOrder = caughtCount;
             
-            // Add caught class for smooth transition
-            data.wrapper.classList.add('caught');
-            
             data.wrapper.style.position = 'fixed';
             data.wrapper.style.top = (data.catchY - halfHeight) + 'px';
             
@@ -1129,7 +1130,6 @@
             // Scrolling back up - uncatch the image
             data.caught = false;
             data.caughtOrder = 0;
-            data.wrapper.classList.remove('caught');
             data.wrapper.style.position = 'absolute';
             data.wrapper.style.top = data.initialY + 'px';
             data.wrapper.style.left = data.initialX + 'px';
@@ -1203,7 +1203,7 @@
           data.wrapper.style.top = yPos + 'px';
         }
         
-        // Use stored random offset for consistent spacing
+        // Use large spacing for one-at-a-time loading feel
         yPos += height + baseSpacing + data.randomOffset;
       });
       
