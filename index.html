@@ -721,6 +721,23 @@
       }
     });
 
+    // Mobile tap to open most recently caught image
+    canvas.addEventListener('click', (e) => {
+      if (!isMobile) return;
+      if (!canvas.mobileImageData) return;
+      
+      // Find the most recently caught image (highest caughtOrder)
+      const imageData = canvas.mobileImageData;
+      const caughtImages = imageData.filter(d => d.caught && d.wrapper.style.visibility !== 'hidden');
+      if (caughtImages.length > 0) {
+        caughtImages.sort((a, b) => b.caughtOrder - a.caughtOrder);
+        const mostRecent = caughtImages[0];
+        if (mostRecent && mostRecent.src) {
+          openMobileLightbox(mostRecent.src);
+        }
+      }
+    });
+
     function loadCategory(category) {
       currentCategory = category;
       canvas.innerHTML = '';
@@ -956,13 +973,6 @@
         // Update Y for next image
         currentY += estimatedHeight + baseSpacing + data.randomOffset;
         
-        // Tap to open lightbox
-        wrapper.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          openMobileLightbox(src);
-        });
-        
         mobileImages.push(data);
         displayedPhotos.push(src);
         
@@ -970,6 +980,9 @@
         img.loading = index < 15 ? 'eager' : 'lazy';
         img.src = src;
       });
+      
+      // Store imageData reference for tap handler
+      canvas.mobileImageData = imageData;
       
       // Set initial container height
       scrollContainer.style.height = (currentY + 200) + 'px';
@@ -1016,26 +1029,30 @@
       imageData.forEach((data) => {
         if (!data.wrapper) return;
         
-        // Calculate where top of image is on screen
-        const screenY = data.initialY - scrollTop;
+        // Get image height
+        const imgHeight = data.wrapper.offsetHeight || data.estimatedHeight;
+        const halfHeight = imgHeight / 2;
+        
+        // Calculate where CENTER of image is on screen
+        const centerScreenY = (data.initialY + halfHeight) - scrollTop;
         
         if (!data.caught) {
           data.wrapper.style.zIndex = 500 + data.index;
           data.wrapper.style.transform = 'scale(1)';
           data.wrapper.style.boxShadow = '0 4px 24px rgba(0,0,0,0.15)';
           
-          // Catch when top of image reaches catch zone
-          if (screenY <= catchZoneY) {
+          // Catch when center of image reaches catch zone
+          if (centerScreenY <= catchZoneY) {
             data.caught = true;
             data.caughtScrollPos = scrollTop;
             caughtCount++;
             data.caughtOrder = caughtCount;
             
-            // Freeze at current screen position
-            data.frozenScreenY = screenY;
+            // Position so center is at catch zone
+            const topPosition = catchZoneY - halfHeight;
             
             data.wrapper.style.position = 'fixed';
-            data.wrapper.style.top = screenY + 'px';
+            data.wrapper.style.top = topPosition + 'px';
             data.wrapper.style.left = data.initialX + 'px';
             data.wrapper.style.zIndex = 100 + data.caughtOrder;
             data.wrapper.style.visibility = 'visible';
