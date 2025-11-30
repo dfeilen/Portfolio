@@ -1022,7 +1022,7 @@
     
     function handleMobileScroll(scrollTop, imageData) {
       const maxPile = 10;
-      const catchZoneY = window.innerHeight * 0.5; // Middle of screen
+      const catchZoneY = window.innerHeight * 0.5; // Trigger point at middle of screen
       
       let caughtCount = imageData.filter(d => d.caught).length;
       
@@ -1033,8 +1033,11 @@
         const imgHeight = data.wrapper.offsetHeight || data.estimatedHeight;
         const halfHeight = imgHeight / 2;
         
+        // Calculate current TOP position on screen
+        const currentTopY = data.initialY - scrollTop;
+        
         // Calculate where CENTER of image is on screen
-        const centerScreenY = (data.initialY + halfHeight) - scrollTop;
+        const centerScreenY = currentTopY + halfHeight;
         
         if (!data.caught) {
           data.wrapper.style.zIndex = 500 + data.index;
@@ -1048,11 +1051,9 @@
             caughtCount++;
             data.caughtOrder = caughtCount;
             
-            // Position so center is at catch zone
-            const topPosition = catchZoneY - halfHeight;
-            
+            // FREEZE at exact current screen position - no adjustment
             data.wrapper.style.position = 'fixed';
-            data.wrapper.style.top = topPosition + 'px';
+            data.wrapper.style.top = currentTopY + 'px';
             data.wrapper.style.left = data.initialX + 'px';
             data.wrapper.style.zIndex = 100 + data.caughtOrder;
             data.wrapper.style.visibility = 'visible';
