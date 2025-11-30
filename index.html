@@ -446,7 +446,8 @@
         inset: 0;
         overflow-y: auto;
         overflow-x: hidden;
-        -webkit-overflow-scrolling: touch;
+        -webkit-overflow-scrolling: auto;
+        overscroll-behavior: contain;
         padding: 0;
       }
 
@@ -936,12 +937,6 @@
         wrapper.appendChild(img);
         scrollContainer.appendChild(wrapper);
         
-        // Random catch zone - where this image will stop (45-55% from top - middle of screen)
-        const catchY = window.innerHeight * (0.45 + Math.random() * 0.10);
-        
-        // Random horizontal drift when caught (-30 to 30 pixels)
-        const catchDriftX = (Math.random() - 0.5) * 60;
-        
         const data = {
           wrapper,
           img,
@@ -950,9 +945,7 @@
           initialY: currentY,
           initialX: x,
           estimatedHeight,
-          randomOffset: Math.random() * 100 - 50, // Larger variation (-50 to +50)
-          catchY: catchY,
-          catchDriftX: catchDriftX,
+          randomOffset: Math.random() * 100 - 50,
           caught: false,
           caughtScrollPos: 0,
           caughtOrder: 0
@@ -992,8 +985,11 @@
       
       // Handle scroll for pile-up effect
       let ticking = false;
+      let lastScrollTop = 0;
       
       canvas.addEventListener('scroll', () => {
+        const currentScrollTop = canvas.scrollTop;
+        
         if (!ticking) {
           requestAnimationFrame(() => {
             handleMobileScroll(canvas.scrollTop, imageData);
@@ -1001,6 +997,8 @@
           });
           ticking = true;
         }
+        
+        lastScrollTop = currentScrollTop;
         
         // Hide scroll hint
         if (scrollHint && canvas.scrollTop > 20) {
@@ -1010,50 +1008,44 @@
     }
     
     function handleMobileScroll(scrollTop, imageData) {
-      const maxPile = 10; // Maximum images in pile before cleanup
+      const maxPile = 10;
+      const catchZoneY = window.innerHeight * 0.5; // Middle of screen
       
-      // Count current caught images for z-index ordering
       let caughtCount = imageData.filter(d => d.caught).length;
       
       imageData.forEach((data) => {
         if (!data.wrapper) return;
         
-        // Get image height for center-based positioning
-        const imgHeight = data.wrapper.offsetHeight || data.estimatedHeight;
-        const halfHeight = imgHeight / 2;
-        
-        // Calculate where this image's CENTER would be based on scroll
-        const naturalCenterY = (data.initialY + halfHeight) - scrollTop;
+        // Calculate where top of image is on screen
+        const screenY = data.initialY - scrollTop;
         
         if (!data.caught) {
-          // Image hasn't been caught yet - keep it on top of the pile
           data.wrapper.style.zIndex = 500 + data.index;
           data.wrapper.style.transform = 'scale(1)';
           data.wrapper.style.boxShadow = '0 4px 24px rgba(0,0,0,0.15)';
           
-          if (naturalCenterY <= data.catchY) {
-            // Catch the image - position so center is at catchY
+          // Catch when top of image reaches catch zone
+          if (screenY <= catchZoneY) {
             data.caught = true;
             data.caughtScrollPos = scrollTop;
             caughtCount++;
             data.caughtOrder = caughtCount;
             
+            // Freeze at current screen position
+            data.frozenScreenY = screenY;
+            
             data.wrapper.style.position = 'fixed';
-            data.wrapper.style.top = (data.catchY - halfHeight) + 'px';
-            
-            // Keep same horizontal position - no drift
+            data.wrapper.style.top = screenY + 'px';
             data.wrapper.style.left = data.initialX + 'px';
-            
             data.wrapper.style.zIndex = 100 + data.caughtOrder;
             data.wrapper.style.visibility = 'visible';
             data.wrapper.style.opacity = 1;
           }
         } else {
-          // Image is caught - check if scrolling back up
+          // Check if scrolling back up enough to uncatch
           const scrollSinceCaught = scrollTop - data.caughtScrollPos;
           
-          if (scrollSinceCaught < -10) {
-            // Scrolling back up - uncatch the image
+          if (scrollSinceCaught < -30) {
             data.caught = false;
             data.caughtOrder = 0;
             data.wrapper.style.position = 'absolute';
