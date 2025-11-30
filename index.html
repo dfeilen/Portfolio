@@ -551,42 +551,6 @@
         0%, 100% { transform: translateY(0) rotate(-45deg); opacity: 1; }
         50% { transform: translateY(-12px) rotate(-45deg); opacity: 0.6; }
       }
-
-      /* Momentum Indicator */
-      .momentum-indicator {
-        position: fixed;
-        right: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 3px;
-        height: 80px;
-        background: rgba(255,255,255,0.15);
-        border-radius: 2px;
-        z-index: 80;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        pointer-events: none;
-      }
-
-      .momentum-indicator.visible {
-        opacity: 1;
-      }
-
-      .momentum-bar {
-        position: absolute;
-        bottom: 50%;
-        left: 0;
-        width: 100%;
-        height: 0%;
-        background: var(--text);
-        border-radius: 2px;
-        transition: height 0.1s ease-out, bottom 0.1s ease-out;
-      }
-
-      .momentum-bar.down {
-        bottom: auto;
-        top: 50%;
-      }
     }
   </style>
 </head>
@@ -635,11 +599,6 @@
   <div class="scroll-hint" id="scroll-hint">
     <div class="scroll-hint-arrow"></div>
     <span class="scroll-hint-text">Swipe up</span>
-  </div>
-
-  <!-- Momentum Indicator (mobile only) -->
-  <div class="momentum-indicator" id="momentum-indicator">
-    <div class="momentum-bar" id="momentum-bar"></div>
   </div>
 
   <!-- Lightbox -->
@@ -943,7 +902,6 @@
       const shuffled = shuffleArray([...allPhotos]);
       
       const baseSpacing = window.innerHeight * 0.8; // Much larger spacing - 80% of screen height
-      const horizontalBuffer = 30;
       const imageData = [];
       
       // Start photos below the visible area so screen is empty initially
@@ -961,9 +919,11 @@
         const size = window.innerWidth * widthPercent;
         wrapper.style.width = size + 'px';
         
-        // Random horizontal position with buffer
-        const maxX = window.innerWidth - size - horizontalBuffer;
-        const x = horizontalBuffer + Math.random() * (maxX - horizontalBuffer);
+        // Random horizontal position with buffer (larger on right to avoid nav)
+        const leftBuffer = 15;
+        const rightBuffer = 100; // Extra buffer for nav buttons
+        const maxX = window.innerWidth - size - rightBuffer;
+        const x = leftBuffer + Math.random() * Math.max(0, maxX - leftBuffer);
         wrapper.style.left = x + 'px';
         
         // Position sequentially with estimated height
@@ -1006,9 +966,8 @@
         // Tap to open lightbox
         wrapper.addEventListener('click', (e) => {
           e.preventDefault();
-          if (data.wrapper.style.visibility !== 'hidden') {
-            openMobileLightbox(src, index);
-          }
+          e.stopPropagation();
+          openMobileLightbox(src);
         });
         
         mobileImages.push(data);
@@ -1033,47 +992,15 @@
       
       // Handle scroll for pile-up effect
       let ticking = false;
-      let lastScrollTop = 0;
-      let momentumTimeout = null;
-      const momentumIndicator = document.getElementById('momentum-indicator');
-      const momentumBar = document.getElementById('momentum-bar');
       
       canvas.addEventListener('scroll', () => {
-        const currentScrollTop = canvas.scrollTop;
-        const scrollDelta = currentScrollTop - lastScrollTop;
-        
         if (!ticking) {
           requestAnimationFrame(() => {
-            handleMobileScroll(currentScrollTop, imageData);
+            handleMobileScroll(canvas.scrollTop, imageData);
             ticking = false;
           });
           ticking = true;
         }
-        
-        // Update momentum indicator
-        if (momentumIndicator && momentumBar) {
-          momentumIndicator.classList.add('visible');
-          
-          // Calculate momentum bar height (capped at 40px)
-          const momentum = Math.min(Math.abs(scrollDelta) * 2, 40);
-          momentumBar.style.height = momentum + 'px';
-          
-          // Direction
-          if (scrollDelta > 0) {
-            momentumBar.classList.remove('down');
-          } else {
-            momentumBar.classList.add('down');
-          }
-          
-          // Hide after scroll stops
-          clearTimeout(momentumTimeout);
-          momentumTimeout = setTimeout(() => {
-            momentumIndicator.classList.remove('visible');
-            momentumBar.style.height = '0px';
-          }, 300);
-        }
-        
-        lastScrollTop = currentScrollTop;
         
         // Hide scroll hint
         if (scrollHint && canvas.scrollTop > 20) {
@@ -1114,9 +1041,8 @@
             data.wrapper.style.position = 'fixed';
             data.wrapper.style.top = (data.catchY - halfHeight) + 'px';
             
-            // Apply horizontal drift
-            const newX = data.initialX + data.catchDriftX;
-            data.wrapper.style.left = newX + 'px';
+            // Keep same horizontal position - no drift
+            data.wrapper.style.left = data.initialX + 'px';
             
             data.wrapper.style.zIndex = 100 + data.caughtOrder;
             data.wrapper.style.visibility = 'visible';
@@ -1210,7 +1136,7 @@
       scrollContainer.style.height = (yPos + 200) + 'px';
     }
 
-    function openMobileLightbox(src, displayIndex) {
+    function openMobileLightbox(src) {
       // Find the index in allPhotos array
       lightboxIndex = allPhotos.indexOf(src);
       if (lightboxIndex === -1) lightboxIndex = 0;
