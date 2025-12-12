@@ -188,8 +188,8 @@
     /* A&B Link - Floating Badge */
     .ab-link {
       position: fixed;
-      bottom: 32px;
-      left: 32px;
+      top: 24px;
+      right: 32px;
       font-size: 12px;
       letter-spacing: 0.05em;
       text-transform: uppercase;
@@ -578,6 +578,7 @@
       .ab-link {
         bottom: 24px;
         top: auto;
+        right: auto;
         left: 50%;
         transform: translateX(-50%);
         font-size: 11px;
@@ -894,9 +895,10 @@
   <nav class="nav">
     <button class="category-btn active" data-category="racing"><span>R</span><span>a</span><span>c</span><span>i</span><span>n</span><span>g</span></button>
     <button class="category-btn" data-category="bikes"><span>B</span><span>i</span><span>k</span><span>e</span><span>s</span></button>
+    <button class="category-btn" data-category="ab"><span>A</span><span>&</span><span>B</span></button>
+    <button class="category-btn" data-category="people"><span>P</span><span>e</span><span>o</span><span>p</span><span>l</span><span>e</span></button>
     <button class="category-btn" data-category="life"><span>L</span><span>i</span><span>f</span><span>e</span></button>
     <button class="category-btn" data-category="walls"><span>W</span><span>a</span><span>l</span><span>l</span><span>s</span></button>
-    <button class="category-btn" data-category="ab"><span>A</span><span>&</span><span>B</span></button>
     <button class="category-btn" data-category="devin"><span>D</span><span>e</span><span>v</span><span>i</span><span>n</span></button>
   </nav>
 
@@ -932,7 +934,7 @@
     <p>Devin Feilen is a photographer based in Portland, Oregon. He can typically be found at bicycle races around the PNW or wandering around with a Ricoh GR.</p>
     <p>Site design by yours truly.</p>
     <p>You can support me at <a href="https://buymeacoffee.com/devinfeilen" target="_blank">buymeacoffee.com/devinfeilen</a></p>
-    <p>For usage/licensing or any questions, please contact me via Instagram <a href="https://instagram.com/devinfeilen" target="_blank">@devinfeilen</a> or via email at dfeeilen@gmail.com</a></p>
+    <p>For usage/licensing or any questions, please contact me via Instagram <a href="https://instagram.com/devinfeilen" target="_blank">@devinfeilen</a> or via email at <a href="/cdn-cgi/l/email-protection#b7d3d1d2d2dedbd2d9f7d0dad6dedb99d4d8da"><span class="__cf_email__" data-cfemail="c7a3a1a2a2aeaba2a987a0aaa6aeabe9a4a8aa">[email&#160;protected]</span></a></p>
     <p>Thank you for visiting :)</p>
   </div>
 
@@ -1036,8 +1038,8 @@
     initTheme();
 
     // ===== DATE-BASED EASTER EGGS =====
-    const BIRTHDAY_MONTH = 6;
-    const BIRTHDAY_DAY = 27;   
+    const BIRTHDAY_MONTH = 1; // January (1-12)
+    const BIRTHDAY_DAY = 1;   // Day of month - CHANGE THIS TO YOUR BIRTHDAY
     
     function initEasterEggs() {
       const now = new Date();
