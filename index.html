@@ -21,6 +21,13 @@
       --border: #ddd;
     }
 
+    [data-theme="dark"] {
+      --bg: #111;
+      --text: #f5f5f3;
+      --text-muted: #888;
+      --border: #333;
+    }
+
     html, body {
       height: 100%;
       overflow: hidden;
@@ -30,6 +37,42 @@
       font-family: 'Space Mono', monospace;
       background: var(--bg);
       color: var(--text);
+      transition: background 0.4s ease, color 0.4s ease;
+    }
+
+    /* Dark Mode Toggle */
+    .theme-toggle {
+      position: fixed;
+      bottom: 24px;
+      left: 32px;
+      z-index: 100;
+      background: none;
+      border: none;
+      font-family: inherit;
+      font-size: 14px;
+      letter-spacing: 0.12em;
+      color: var(--text);
+      cursor: pointer;
+      text-transform: uppercase;
+      padding: 0;
+      opacity: 0.5;
+      transition: opacity 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .theme-toggle:hover {
+      opacity: 1;
+    }
+
+    .theme-toggle-icon {
+      font-size: 16px;
+      transition: transform 0.4s ease;
+    }
+
+    [data-theme="dark"] .theme-toggle-icon {
+      transform: rotate(180deg);
     }
 
     /* Navigation */
@@ -41,9 +84,9 @@
       display: flex;
       flex-direction: column;
       align-items: flex-start;
-      gap: 12px;
-      font-size: 12px;
-      letter-spacing: 0.05em;
+      gap: 8px;
+      font-size: 16px;
+      letter-spacing: 0.12em;
     }
 
     .category-btn {
@@ -55,9 +98,11 @@
       color: var(--text);
       cursor: pointer;
       text-transform: uppercase;
-      padding: 0;
+      padding: 6px 0;
       text-decoration: none;
       position: relative;
+      opacity: 0.4;
+      transition: opacity 0.3s ease;
     }
 
     .category-btn span {
@@ -73,11 +118,11 @@
     .category-btn:hover span:nth-child(6) { transform: translate(6px, -4px) rotate(8deg); }
 
     .category-btn:hover {
-      text-decoration: none;
+      opacity: 0.7;
     }
 
     .category-btn.active {
-      text-decoration: underline;
+      opacity: 1;
     }
 
     /* Refresh Button */
@@ -89,8 +134,8 @@
       background: none;
       border: none;
       font-family: inherit;
-      font-size: 12px;
-      letter-spacing: 0.05em;
+      font-size: 14px;
+      letter-spacing: 0.12em;
       color: var(--text);
       cursor: pointer;
       text-transform: uppercase;
@@ -98,10 +143,12 @@
       display: flex;
       align-items: center;
       gap: 8px;
+      opacity: 0.5;
+      transition: opacity 0.3s ease;
     }
 
     .refresh-btn:hover {
-      text-decoration: underline;
+      opacity: 1;
     }
 
     .refresh-exclaim {
@@ -176,6 +223,15 @@
       50% { box-shadow: 0 0 0 8px rgba(26, 26, 26, 0); }
     }
 
+    [data-theme="dark"] .ab-link.visible {
+      animation: badgePulseDark 2s ease-in-out infinite;
+    }
+
+    @keyframes badgePulseDark {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(245, 245, 243, 0.2); }
+      50% { box-shadow: 0 0 0 8px rgba(245, 245, 243, 0); }
+    }
+
     @keyframes arrowBounce {
       0%, 100% { transform: translateX(0); }
       50% { transform: translateX(5px); }
@@ -193,7 +249,7 @@
       padding: 40px;
       z-index: 60;
       opacity: 0;
-      transition: opacity 0.5s ease;
+      transition: opacity 0.5s ease, background 0.4s ease;
       pointer-events: none;
     }
 
@@ -238,11 +294,15 @@
       position: absolute;
       opacity: 0;
       transform: scale(0.9);
-      transition: opacity 0.5s ease, transform 0.5s ease;
+      transition: opacity 0.5s ease, transform 0.5s ease, box-shadow 0.4s ease;
       pointer-events: auto;
       cursor: grab;
       box-shadow: 0 4px 20px rgba(0,0,0,0.1);
       touch-action: none; /* Prevent browser gestures on touch */
+    }
+
+    [data-theme="dark"] .float-img {
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
     }
 
     .float-img.visible {
@@ -340,7 +400,7 @@
       display: none;
       flex-direction: column;
       opacity: 0;
-      transition: opacity 0.4s ease;
+      transition: opacity 0.4s ease, background 0.4s ease;
     }
 
     .lightbox.active {
@@ -486,8 +546,13 @@
         right: 20px;
         flex-direction: column;
         align-items: flex-end;
-        gap: 12px;
-        font-size: 11px;
+        gap: 10px;
+        font-size: 12px;
+        letter-spacing: 0.1em;
+      }
+
+      .category-btn {
+        opacity: 0.4;
       }
 
       .category-btn:hover span {
@@ -495,7 +560,11 @@
       }
 
       .category-btn:hover {
-        text-decoration: underline;
+        opacity: 0.7;
+      }
+
+      .category-btn.active {
+        opacity: 1;
       }
 
       .refresh-btn {
@@ -517,6 +586,17 @@
 
       .ab-link.visible {
         animation: badgePulse 2s ease-in-out infinite;
+      }
+
+      [data-theme="dark"] .ab-link.visible {
+        animation: badgePulseDark 2s ease-in-out infinite;
+      }
+
+      .theme-toggle {
+        bottom: auto;
+        top: 20px;
+        left: 20px;
+        font-size: 12px;
       }
 
       .canvas {
@@ -548,6 +628,11 @@
         will-change: transform, opacity;
         border: 2px solid rgba(255,255,255,0.85);
         transition: box-shadow 0.4s ease, transform 0.3s ease;
+      }
+
+      [data-theme="dark"] .float-img {
+        border-color: rgba(40,40,40,0.85);
+        box-shadow: 0 4px 24px rgba(0,0,0,0.4);
       }
 
       .float-img img {
@@ -650,6 +735,158 @@
         50% { transform: translateY(-12px) rotate(-45deg); opacity: 0.6; }
       }
     }
+
+    /* ===== EASTER EGG STYLES ===== */
+
+    /* 5AM Sunrise Theme */
+    [data-easter="sunrise"] {
+      --bg: #ffecd2;
+      --text: #4a3728;
+      --text-muted: #8b7355;
+      --border: #e8d4bc;
+    }
+
+    [data-easter="sunrise"]::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(to top, #fcb69f 0%, #ffecd2 50%, #a1c4fd 100%);
+      opacity: 0.3;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .sunrise-message {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 14px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text);
+      z-index: 200;
+      text-align: center;
+      opacity: 0;
+      animation: sunriseMsg 4s ease forwards;
+      pointer-events: none;
+    }
+
+    @keyframes sunriseMsg {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+      20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    /* Friday the 13th - Spooky */
+    [data-easter="spooky"] {
+      --bg: #1a1a1a;
+      --text: #c9c9c9;
+      --text-muted: #666;
+      --border: #333;
+    }
+
+    [data-easter="spooky"] .float-img {
+      box-shadow: 0 8px 40px rgba(139, 0, 0, 0.3), 0 0 60px rgba(0, 0, 0, 0.5);
+    }
+
+    [data-easter="spooky"] .float-img:nth-child(odd) {
+      transform: rotate(-2deg) scale(1);
+    }
+
+    [data-easter="spooky"] .float-img:nth-child(even) {
+      transform: rotate(2deg) scale(1);
+    }
+
+    [data-easter="spooky"] .float-img.visible:nth-child(odd) {
+      transform: rotate(-2deg) scale(1);
+    }
+
+    [data-easter="spooky"] .float-img.visible:nth-child(even) {
+      transform: rotate(2deg) scale(1);
+    }
+
+    /* April Fools - Upside Down */
+    [data-easter="aprilfools"] .float-img img {
+      transform: rotate(180deg);
+    }
+
+    [data-easter="aprilfools"] .float-img img.loading {
+      transform: rotate(180deg) scale(1.02);
+      filter: blur(15px);
+    }
+
+    [data-easter="aprilfools"] .float-img img.loaded {
+      transform: rotate(180deg) scale(1);
+      filter: blur(0);
+    }
+
+    /* Birthday Confetti */
+    .confetti-container {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+      overflow: hidden;
+    }
+
+    .confetti {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      top: -20px;
+      opacity: 0;
+      animation: confettiFall linear forwards;
+    }
+
+    .confetti:nth-child(odd) {
+      border-radius: 50%;
+    }
+
+    @keyframes confettiFall {
+      0% { 
+        opacity: 1; 
+        top: -20px; 
+        transform: rotate(0deg) translateX(0);
+      }
+      100% { 
+        opacity: 0.7; 
+        top: 110vh; 
+        transform: rotate(720deg) translateX(100px);
+      }
+    }
+
+    .birthday-message {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 18px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text);
+      z-index: 10000;
+      text-align: center;
+      opacity: 0;
+      animation: birthdayMsg 5s ease forwards;
+      pointer-events: none;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    @keyframes birthdayMsg {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+      15% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+      25% { transform: translate(-50%, -50%) scale(1); }
+      85% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    /* Bounce back animation for drag off screen */
+    .float-img.bounce-back {
+      transition: left 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                  top 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+    }
   </style>
 </head>
 <body>
@@ -667,6 +904,12 @@
   <button class="refresh-btn" id="refresh-btn">
     <span class="refresh-exclaim" id="refresh-exclaim">!</span>
     <span>Refresh Images</span>
+  </button>
+
+  <!-- Theme Toggle -->
+  <button class="theme-toggle" id="theme-toggle">
+    <span class="theme-toggle-icon">◐</span>
+    <span class="theme-toggle-text">Dark</span>
   </button>
 
   <!-- Popup Notice (desktop only) -->
@@ -754,13 +997,170 @@
     const aboutBox = document.getElementById('about-box');
     const popupNotice = document.getElementById('popup-notice');
     const abLink = document.getElementById('ab-link');
+    const themeToggle = document.getElementById('theme-toggle');
+    const themeToggleText = themeToggle.querySelector('.theme-toggle-text');
+
+    // ===== THEME TOGGLE =====
+    function initTheme() {
+      const savedTheme = localStorage.getItem('theme');
+      
+      if (savedTheme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        updateThemeButton('dark');
+      }
+    }
+
+    function updateThemeButton(theme) {
+      if (theme === 'dark') {
+        themeToggleText.textContent = 'Light';
+      } else {
+        themeToggleText.textContent = 'Dark';
+      }
+    }
+
+    function toggleTheme() {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      
+      if (newTheme === 'light') {
+        document.documentElement.removeAttribute('data-theme');
+      } else {
+        document.documentElement.setAttribute('data-theme', newTheme);
+      }
+      
+      localStorage.setItem('theme', newTheme === 'light' ? '' : newTheme);
+      updateThemeButton(newTheme);
+    }
+
+    themeToggle.addEventListener('click', toggleTheme);
+    initTheme();
+
+    // ===== DATE-BASED EASTER EGGS =====
+    const BIRTHDAY_MONTH = 1; // January (1-12)
+    const BIRTHDAY_DAY = 1;   // Day of month - CHANGE THIS TO YOUR BIRTHDAY
+    
+    function initEasterEggs() {
+      const now = new Date();
+      const hour = now.getHours();
+      const minute = now.getMinutes();
+      const month = now.getMonth() + 1; // 0-indexed, so add 1
+      const day = now.getDate();
+      const dayOfWeek = now.getDay(); // 0 = Sunday, 5 = Friday
+      
+      // 5:00 AM - 5:59 AM: Sunrise theme
+      if (hour === 5) {
+        document.documentElement.setAttribute('data-easter', 'sunrise');
+        showSunriseMessage();
+        return; // Only one easter egg at a time
+      }
+      
+      // Friday the 13th: Spooky theme
+      if (dayOfWeek === 5 && day === 13) {
+        document.documentElement.setAttribute('data-easter', 'spooky');
+        return;
+      }
+      
+      // April 1st: April Fools - upside down
+      if (month === 4 && day === 1) {
+        document.documentElement.setAttribute('data-easter', 'aprilfools');
+        return;
+      }
+      
+      // Birthday: Confetti!
+      if (month === BIRTHDAY_MONTH && day === BIRTHDAY_DAY) {
+        triggerBirthdayConfetti();
+        return;
+      }
+    }
+    
+    function showSunriseMessage() {
+      const msg = document.createElement('div');
+      msg.className = 'sunrise-message';
+      msg.textContent = "You're up early ☀";
+      document.body.appendChild(msg);
+      
+      // Remove after animation
+      setTimeout(() => msg.remove(), 4500);
+    }
+    
+    function triggerBirthdayConfetti() {
+      // Create confetti container
+      const container = document.createElement('div');
+      container.className = 'confetti-container';
+      document.body.appendChild(container);
+      
+      // Birthday message
+      const msg = document.createElement('div');
+      msg.className = 'birthday-message';
+      msg.textContent = "Happy Birthday! 🎂";
+      document.body.appendChild(msg);
+      
+      // Confetti colors
+      const colors = ['#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3', '#54a0ff', '#5f27cd', '#00d2d3', '#ff9f43'];
+      
+      // Generate confetti pieces
+      for (let i = 0; i < 100; i++) {
+        setTimeout(() => {
+          const confetti = document.createElement('div');
+          confetti.className = 'confetti';
+          confetti.style.left = Math.random() * 100 + 'vw';
+          confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+          confetti.style.animationDuration = (Math.random() * 3 + 2) + 's';
+          confetti.style.animationDelay = '0s';
+          confetti.style.width = (Math.random() * 10 + 5) + 'px';
+          confetti.style.height = (Math.random() * 10 + 5) + 'px';
+          container.appendChild(confetti);
+          
+          // Remove after animation
+          setTimeout(() => confetti.remove(), 5000);
+        }, i * 50);
+      }
+      
+      // Remove message after animation
+      setTimeout(() => msg.remove(), 5500);
+      
+      // Remove container after all confetti done
+      setTimeout(() => container.remove(), 10000);
+    }
+    
+    initEasterEggs();
 
     // Initialize
     loadCategory(currentCategory);
 
+    // ===== EASTER EGG: Rapid Devin clicks =====
+    let devinClickCount = 0;
+    let devinClickTimer = null;
+    const DEVIN_CLICKS_NEEDED = 5;
+    const DEVIN_CLICK_WINDOW = 1500; // 1.5 seconds to click 5 times
+
     // Category buttons
     document.querySelectorAll('.category-btn[data-category]').forEach(btn => {
       btn.addEventListener('click', () => {
+        // Easter egg: rapid clicks on Devin
+        if (btn.dataset.category === 'devin') {
+          devinClickCount++;
+          
+          if (devinClickCount === 1) {
+            // Start the timer on first click
+            devinClickTimer = setTimeout(() => {
+              devinClickCount = 0;
+            }, DEVIN_CLICK_WINDOW);
+          }
+          
+          if (devinClickCount >= DEVIN_CLICKS_NEEDED) {
+            // Easter egg triggered!
+            clearTimeout(devinClickTimer);
+            devinClickCount = 0;
+            window.location.href = 'secret.html';
+            return;
+          }
+        } else {
+          // Reset counter if clicking other categories
+          devinClickCount = 0;
+          if (devinClickTimer) clearTimeout(devinClickTimer);
+        }
+        
         document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         loadCategory(btn.dataset.category);
@@ -1439,6 +1839,51 @@
       let hasMoved = false;
       let startX, startY, initialLeft, initialTop;
       
+      // Check if image is off screen and bounce back
+      function checkBounceBack() {
+        const rect = wrapper.getBoundingClientRect();
+        const padding = 50; // Keep at least 50px visible
+        let needsBounce = false;
+        let newLeft = wrapper.offsetLeft;
+        let newTop = wrapper.offsetTop;
+        
+        // Check if dragged too far off each edge
+        if (rect.right < padding) {
+          // Too far left
+          newLeft = padding - rect.width + padding;
+          needsBounce = true;
+        } else if (rect.left > window.innerWidth - padding) {
+          // Too far right
+          newLeft = window.innerWidth - padding - padding;
+          needsBounce = true;
+        }
+        
+        if (rect.bottom < padding) {
+          // Too far up
+          newTop = padding - rect.height + padding;
+          needsBounce = true;
+        } else if (rect.top > window.innerHeight - padding) {
+          // Too far down
+          newTop = window.innerHeight - padding - padding;
+          needsBounce = true;
+        }
+        
+        if (needsBounce) {
+          // Add bounce class for elastic animation
+          wrapper.classList.add('bounce-back');
+          wrapper.style.left = newLeft + 'px';
+          wrapper.style.top = newTop + 'px';
+          
+          // Show "nice try" message
+          showNiceTryMessage();
+          
+          // Remove class after animation
+          setTimeout(() => {
+            wrapper.classList.remove('bounce-back');
+          }, 500);
+        }
+      }
+      
       // Mouse events
       wrapper.addEventListener('mousedown', (e) => {
         // Ignore if clicking resize handle
@@ -1477,6 +1922,7 @@
         if (isDragging) {
           isDragging = false;
           wrapper.classList.remove('dragging');
+          checkBounceBack();
         }
       });
       
@@ -1521,8 +1967,47 @@
         if (isDragging) {
           isDragging = false;
           wrapper.classList.remove('dragging');
+          checkBounceBack();
         }
       }, { passive: true });
+    }
+    
+    // "Nice try" message for bounce back easter egg
+    let niceTryTimeout = null;
+    function showNiceTryMessage() {
+      // Don't show if one is already visible
+      if (document.querySelector('.nice-try-message')) return;
+      
+      const msg = document.createElement('div');
+      msg.className = 'nice-try-message';
+      msg.textContent = 'Nice try 😏';
+      msg.style.cssText = `
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 12px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+        z-index: 1000;
+      `;
+      document.body.appendChild(msg);
+      
+      // Fade in
+      requestAnimationFrame(() => {
+        msg.style.opacity = '0.7';
+      });
+      
+      // Fade out and remove
+      clearTimeout(niceTryTimeout);
+      niceTryTimeout = setTimeout(() => {
+        msg.style.opacity = '0';
+        setTimeout(() => msg.remove(), 300);
+      }, 1500);
     }
 
     function makeResizable(wrapper, img, handle) {
