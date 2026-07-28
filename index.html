@@ -159,11 +159,23 @@ a.h.on{color:var(--fg-dim);pointer-events:none}
 @media (hover:none),(pointer:coarse),(max-width:1200px){.pv{display:none}}
 
 /* ---- Series: one picture per screen, centred ---- */
-.plates{padding:8vh 0 12vh}
+/* ---- One picture per screen, and the scroll rests on each ----
+   `mandatory` guarantees you always land on a photograph rather than
+   between two. `scroll-snap-stop:always` is the important half: without
+   it a hard flick skips three or four frames at once, which defeats the
+   whole idea. The easing of the snap is the browser's own — it already
+   reads as a settle rather than a jump. */
+html{scroll-snap-type:y mandatory}
+
+.plates{padding:0;opacity:1;transition:opacity .3s var(--ease)}
+.plates.pre{opacity:0}          /* held blank while the intro plays */
+
 .plate{
   min-height:100svh;
   display:grid;place-items:center;
   padding:0 var(--edge-r) 0 var(--edge-l);
+  scroll-snap-align:center;
+  scroll-snap-stop:always;
 }
 .frame{
   position:relative;overflow:hidden;background:var(--sunk);
@@ -186,7 +198,17 @@ a.h.on{color:var(--fg-dim);pointer-events:none}
   /* 2% inside a frame that never moves. Nothing reflows. */
   .open:hover .frame img.ready{transform:scale(1.02)}
 }
-.series-end{min-height:60svh;display:grid;place-items:center;padding:0 var(--edge-r) 0 var(--edge-l)}
+/* The closing link has to be a snap target too. Under `mandatory` the
+   scroller must rest on one, so without this the last photograph becomes
+   a floor you cannot scroll past. */
+.series-end{min-height:60svh;display:grid;place-items:center;
+  padding:0 var(--edge-r) 0 var(--edge-l);scroll-snap-align:center}
+
+/* ---- Intro choreography ---- */
+.intro{position:fixed;inset:0;z-index:70;pointer-events:none;overflow:hidden}
+.intro figure{position:absolute;margin:0;opacity:0;will-change:transform,opacity;
+  box-shadow:0 12px 40px rgba(0,0,0,.55)}
+.intro img{width:100%;height:auto;display:block}
 
 /* ---- Information: five lines, vertically centred ---- */
 .info{min-height:100svh;display:grid;place-items:center;padding:0 var(--edge-r) 0 var(--edge-l)}
@@ -261,24 +283,24 @@ a.h.on{color:var(--fg-dim);pointer-events:none}
   .bar-l{gap:10px}
   .bar-r{justify-content:space-between;gap:4px}
 
-  /* Plates stop being full-screen slots. One-per-screen is a desktop
-     luxury; on a phone it means a lot of scrolling past empty space. */
-  .plate{min-height:auto;padding:0 var(--edge-r) 0 var(--edge-l)}
-  .plates{
-    display:flex;flex-direction:column;gap:11vh;
-    padding:12vh 0 calc(30vh + var(--sa-b));
-  }
+  /* Phones keep the one-per-screen slots so the snapping works the same
+     way it does on desktop. (This reverses an earlier decision — stacking
+     them tightly is better for free scrolling, worse for snapping.)
+     scroll-padding keeps the bottom bar out of the centring maths. */
+  .plate{min-height:100svh;padding:0 var(--edge-r) 0 var(--edge-l)}
+  .plates{padding:0}
+  html{scroll-padding-bottom:64px}
   .index{padding-bottom:calc(22vh + var(--sa-b))}
   .index a{padding:9px 0}          /* 31px tap target on three short words */
   .info{padding:0 var(--edge-r) calc(24vh + var(--sa-b)) var(--edge-l)}
   .info-inner p{padding:5px 0}
-  .series-end{min-height:auto;padding:2vh var(--edge-r) 0 var(--edge-l)}
+  /* Still a full screen, so it stays reachable as the final snap point. */
+  .series-end{min-height:100svh;padding:0 var(--edge-r) 0 var(--edge-l)}
 }
 
 /* ---- Landscape phones: very little height, so give it back ---- */
 @media (max-width:900px) and (orientation:landscape) and (max-height:520px){
   :root{--imgh:78svh}
-  .plates{gap:8vh;padding:8vh 0 calc(24vh + var(--sa-b))}
   .bar{flex-direction:row;align-items:baseline}
 }
 
@@ -291,6 +313,11 @@ a.h.on{color:var(--fg-dim);pointer-events:none}
   .pv img{opacity:0}
   .pv img.on{opacity:.28}
   #view.out{opacity:1}
+  .plates.pre{opacity:1}
+  /* Mandatory snap moves the page without being asked, which is exactly
+     what this preference is about. Proximity still helps you land on a
+     photograph but never overrides a deliberate scroll. */
+  html{scroll-snap-type:y proximity}
 }
 .boot{min-height:100svh;display:grid;place-items:center;padding:0 var(--edge-r) 0 var(--edge-l)}
 </style>
@@ -356,6 +383,23 @@ const SERIES = [
   { slug:'life',  title:'Life',         sources:['life','walls','people'] },
   { slug:'work',  title:'Professional', sources:['ab'] }
 ];
+
+/* Intro choreography. Every number that affects how it feels is here. */
+const INTRO = {
+  enabled:      true,
+  oncePerVisit: true,   // false = replay every time you open a group
+  count:        7,      // how many photographs scatter (rest wait below)
+  cardVW:       15,     // scattered card width, % of viewport width
+  popStagger:   50,     // ms between each one appearing
+  popDuration:  400,
+  hold:         200,    // beat before it collects itself
+  convergeBase: 680,    // first photograph's flight time
+  convergeStep: 28      // each subsequent one leaves slightly later
+};
+/* Total ≈ 1.9s. That is already near the ceiling for something standing
+   between a visitor and the work — much past two seconds and a first-time
+   viewer starts wondering whether the site is broken. If you want it
+   calmer, raise `hold`; if you want it shorter, drop `count`. */
 
 const mq = q => (window.matchMedia ? window.matchMedia(q) : { matches:false });
 const REDUCED = mq('(prefers-reduced-motion: reduce)').matches;
@@ -469,7 +513,9 @@ function renderSeries(slug) {
   const next = SERIES[(i+1) % SERIES.length];
 
   const el = document.createElement('div');
-  el.innerHTML = `<div class="plates" id="plates"></div>
+  // Hidden from the start when the intro is going to play, otherwise the
+  // real column paints for one frame before the overlay covers it.
+  el.innerHTML = `<div class="plates${shouldRunIntro(slug) ? ' pre' : ''}" id="plates"></div>
     <div class="series-end"><a class="h" href="#/w/${next.slug}">${esc(next.title)} &rarr;</a></div>`;
   const plates = $('#plates', el);
 
@@ -529,6 +575,159 @@ function renderMissing(msg) {
   el.innerHTML = `<div class="info-inner"><p>${esc(msg)}</p><p><a class="h" href="#/">Index</a></p></div>`;
   setBar('');
   return el;
+}
+
+/* ============================================================================
+   INTRO CHOREOGRAPHY
+
+   Photographs scatter across the screen, hold for a beat, then the first
+   flies into place at full size while the rest fall into the column
+   below it — leaving you at the top of a scroll that is already built.
+
+   Two things make the hand-off invisible at the end:
+     1. The real column is in the DOM the whole time at opacity 0, so its
+        frames can be measured with getBoundingClientRect().
+     2. Those frames already have their exact dimensions reserved from
+        the JSON, so they measure correctly before any image has loaded.
+
+   The scatter is seeded rather than truly random: it looks arbitrary but
+   is identical on every visit, which is the same principle as the rest
+   of the site. Change SEED for a different arrangement.
+   ============================================================================ */
+const SEED = 20260726;
+function seededRandom(seed) {
+  return function () {
+    seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+let introRunning = false, introAbort = null;
+const introDone = new Set();
+
+function shouldRunIntro(slug) {
+  if (!INTRO.enabled || REDUCED) return false;
+  if (!('animate' in Element.prototype)) return false;   // no WAAPI, skip
+  if (INTRO.oncePerVisit && introDone.has(slug)) return false;
+  return true;
+}
+
+/* Scatter positions: a loose grid with jitter. Pure random clumps and
+   leaves holes; a jittered grid reads as scattered but stays even. */
+function scatterLayout(n, rnd) {
+  const cols = n <= 4 ? 2 : n <= 6 ? 3 : 4;
+  const rows = Math.ceil(n / cols);
+  const cw = 100 / cols, ch = 100 / rows;
+  return Array.from({ length: n }, (_, i) => {
+    const cx = (i % cols) * cw, cy = Math.floor(i / cols) * ch;
+    return {
+      x: cx + cw * (0.10 + rnd() * 0.45),
+      y: cy + ch * (0.12 + rnd() * 0.40),
+      rot: (rnd() * 2 - 1) * 7
+    };
+  });
+}
+
+function runIntro(scope, series) {
+  const platesEl = $('.plates', scope);
+  const plates = $$('.plate', scope);
+  if (!platesEl || !plates.length) return;
+
+  introDone.add(series.slug);
+  introRunning = true;
+  platesEl.classList.add('pre');
+  document.body.style.overflow = 'hidden';   // no scrolling mid-flight
+
+  const n = Math.min(INTRO.count, plates.length);
+  const rnd = seededRandom(SEED);
+  const spots = scatterLayout(n, rnd);
+
+  const layer = document.createElement('div');
+  layer.className = 'intro';
+  document.body.appendChild(layer);
+
+  const cards = [];
+  for (let i = 0; i < n; i++) {
+    const p = series.photos[i];
+    const fig = document.createElement('figure');
+    fig.style.left = spots[i].x + '%';
+    fig.style.top  = spots[i].y + '%';
+    fig.style.width = INTRO.cardVW + 'vw';
+    const img = document.createElement('img');
+    img.alt = '';
+    if (p.ar) img.style.aspectRatio = p.ar;
+    img.src = USE_OPTIMIZER ? sized(p.url, 640) : p.url;   // thumbnails only
+    fig.appendChild(img);
+    layer.appendChild(fig);
+    cards.push({ fig, rot: spots[i].rot });
+  }
+
+  // Any deliberate input ends it immediately. Never trap someone in an
+  // animation they did not ask for.
+  const finish = () => {
+    if (!introRunning) return;
+    introRunning = false;
+    removeEventListener('wheel', finish);
+    removeEventListener('touchstart', finish);
+    removeEventListener('keydown', finish);
+    removeEventListener('click', finish);
+    cards.forEach(c => c.fig.getAnimations().forEach(a => a.cancel()));
+    layer.remove();
+    document.body.style.overflow = '';
+    platesEl.classList.remove('pre');
+  };
+  introAbort = finish;
+  addEventListener('wheel', finish, { once:true, passive:true });
+  addEventListener('touchstart', finish, { once:true, passive:true });
+  addEventListener('keydown', finish, { once:true });
+  addEventListener('click', finish, { once:true });
+
+  // Phase 1 — arrive, scattered
+  cards.forEach((c, i) => {
+    c.fig.animate(
+      [{ opacity:0, transform:`scale(.72) rotate(${c.rot}deg)` },
+       { opacity:1, transform:`scale(1) rotate(${c.rot}deg)` }],
+      { duration: INTRO.popDuration, delay: i * INTRO.popStagger,
+        easing:'cubic-bezier(.22,1,.36,1)', fill:'forwards' });
+  });
+
+  const settled = (n - 1) * INTRO.popStagger + INTRO.popDuration + INTRO.hold;
+
+  // Phase 2 — collect into the column
+  setTimeout(() => {
+    if (!introRunning) return;
+
+    const targets = plates.slice(0, n).map(p => $('.frame', p).getBoundingClientRect());
+
+    cards.forEach((c, i) => {
+      const from = c.fig.getBoundingClientRect();
+      const to = targets[i];
+      if (!from.width || !to.width) return;
+      const dx = (to.left + to.width / 2) - (from.left + from.width / 2);
+      const dy = (to.top  + to.height / 2) - (from.top  + from.height / 2);
+      const s  = to.width / from.width;
+
+      c.fig.animate(
+        [{ transform:`translate(0,0) scale(1) rotate(${c.rot}deg)` },
+         { transform:`translate(${dx}px, ${dy}px) scale(${s}) rotate(0deg)` }],
+        { duration: INTRO.convergeBase + i * INTRO.convergeStep,
+          delay: i * INTRO.convergeStep,
+          easing:'cubic-bezier(.16,1,.3,1)', fill:'forwards' });
+    });
+
+    // Swap to the real column on the frame the flight ends. The overlay
+    // card and the real frame are the same picture at the same size and
+    // position by then, so nothing visibly changes hands.
+    const flight = INTRO.convergeBase + (n - 1) * INTRO.convergeStep * 2;
+    setTimeout(() => {
+      if (!introRunning) return;
+      platesEl.classList.remove('pre');
+      requestAnimationFrame(() => { layer.remove(); introRunning = false;
+                                    document.body.style.overflow = ''; });
+    }, flight - 60);
+  }, settled);
 }
 
 /* ============================================================================
@@ -709,6 +908,10 @@ async function route() {
   if (key === current) return;
   current = key;
 
+  // Leaving mid-flight tears the intro down rather than leaving an
+  // orphaned overlay pinned over the next view.
+  if (introAbort) { introAbort(); introAbort = null; }
+
   const navKey = r.name === 'series' ? 'index' : r.name;
   $$('[data-nav]').forEach(a => a.classList.toggle('on', a.dataset.nav === navKey));
 
@@ -729,7 +932,11 @@ async function route() {
   if (countIO) { countIO.disconnect(); countIO = null; }
   if (r.name === 'series') {
     const s = DATA.get(r.slug);
-    if (s) initCounter(view, s.photos.length);
+    if (s) {
+      initCounter(view, s.photos.length);
+      // Layout has to settle before the target frames can be measured.
+      if (shouldRunIntro(s.slug)) requestAnimationFrame(() => runIntro(view, s));
+    }
   }
 
   requestAnimationFrame(() => view.classList.remove('out'));
