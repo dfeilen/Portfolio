@@ -520,6 +520,71 @@ function adoptRatio(frame, img, p) {
   frame.classList.remove('auto');
 }
 
+/* ---------------------------------------------------------------------------
+   Decoded-memory windowing.
+
+   `loading="lazy"` controls when an image is fetched, but nothing about
+   when it's released. Once decoded it stays decoded, and a browser
+   holding fourteen of them has fourteen bitmaps in memory — which for a
+   6192×4128 original is 6192 × 4128 × 4 bytes ≈ 102 MB *each*. On iOS
+   (and therefore in every iOS browser, Chrome included, since they all
+   run WebKit) the renderer stops decoding well before that and images
+   simply never appear.
+
+   So the src is attached only to frames near the viewport and removed
+   again once they're well past. At most three photographs are decoded at
+   any moment, whatever the size of the originals. The frame keeps its
+   reserved box and placeholder either way, so nothing shifts and nothing
+   goes blank-white — a detached frame looks exactly like one that hasn't
+   loaded yet.
+
+   This is a safety net, not a substitute for sensible file sizes.
+--------------------------------------------------------------------------- */
+const KEEP_NEAR = '100% 0px';   // roughly one screen either side
+let windowIO = null;
+
+function attachImage(img) {
+  if (img.dataset.on === '1') return;
+  img.dataset.on = '1';
+  mount(img, img.dataset.url, {
+    sizes: img.dataset.sizes,
+    eager: img.dataset.eager === '1'
+  });
+  const p = img.__photo, frame = img.__frame;
+  if (p && frame && !p.ar) {
+    const learn = () => adoptRatio(frame, img, p);
+    if (img.complete && img.naturalWidth) learn();
+    else img.addEventListener('load', learn, { once:true });
+  }
+}
+
+function detachImage(img) {
+  if (img.dataset.on !== '1') return;
+  if (img.dataset.eager === '1') return;      // keep the opening frame
+  img.dataset.on = '0';
+  img.classList.remove('ready');
+  img.removeAttribute('srcset');
+  img.removeAttribute('src');                 // releases the decoded bitmap
+}
+
+function initWindowing(scope) {
+  if (windowIO) { windowIO.disconnect(); windowIO = null; }
+  const plates = $$('.plate', scope);
+  if (!plates.length) return;
+  if (!('IntersectionObserver' in window)) {   // no observer: just load them all
+    $$('.frame img', scope).forEach(attachImage);
+    return;
+  }
+  windowIO = new IntersectionObserver(ents => {
+    ents.forEach(e => {
+      const img = $('.frame img', e.target);
+      if (!img) return;
+      if (e.isIntersecting) attachImage(img); else detachImage(img);
+    });
+  }, { rootMargin: KEEP_NEAR });
+  plates.forEach(p => windowIO.observe(p));
+}
+
 function mount(img, url, { sizes, eager } = {}) {
   img.decoding = 'async';
   img.loading = eager ? 'eager' : 'lazy';
@@ -647,12 +712,16 @@ function renderSeries(slug) {
     fig.appendChild(btn);
     plates.appendChild(fig);
 
-    mount(img, p.url, { sizes:'(max-width:1600px) 96vw, 52vw', eager: n===0 });
-    if (!p.ar) {
-      const learn = () => adoptRatio(frame, img, p);
-      if (img.complete && img.naturalWidth) learn();
-      else img.addEventListener('load', learn, { once:true });
-    }
+    // The src is not set here. initWindowing() attaches it when the frame
+    // comes near, and takes it away again once it's well past.
+    img.dataset.url   = p.url;
+    img.dataset.sizes = '(max-width:1600px) 96vw, 52vw';
+    img.dataset.eager = n === 0 ? '1' : '0';
+    img.dataset.on    = '0';
+    img.__photo = p;
+    img.__frame = frame;
+    if (n === 0) attachImage(img);          // opening frame, straight away
+
     btn.addEventListener('click', () => openLB(gi < 0 ? 0 : gi));
   });
 
@@ -878,10 +947,11 @@ async function route() {
   swapIn(view, el);
   scrollTo({ top:0, behavior:'auto' });
 
-  if (countIO) { countIO.disconnect(); countIO = null; }
+  if (countIO)  { countIO.disconnect();  countIO = null; }
+  if (windowIO) { windowIO.disconnect(); windowIO = null; }
   if (r.name === 'series') {
     const s = DATA.get(r.slug);
-    if (s) initCounter(view, s.photos.length);
+    if (s) { initCounter(view, s.photos.length); initWindowing(view); }
   }
 
   requestAnimationFrame(() => view.classList.remove('out'));
