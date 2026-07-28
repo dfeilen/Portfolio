@@ -237,11 +237,11 @@ html{scroll-snap-type:y mandatory}
 
 .frame{
   position:relative;overflow:hidden;background:var(--sunk);
-  /* Capped two ways at once: never wider than 38vw, never taller than
-     84svh. Whichever binds first wins, so a portrait and a landscape
-     both end up occupying one screen without either being cropped. */
+  /* Capped by width and by height at once; whichever binds first wins,
+     so any shape occupies one screen without being cropped. */
   width:min(var(--imgw),calc(var(--imgh) * var(--arn,1.5)));
   max-width:100%;
+  margin-inline:auto;     /* the button now fills the row; this centres us in it */
   aspect-ratio:var(--ar,3/2);
 }
 /* When a photograph's dimensions aren't in the JSON we can't reserve its
@@ -267,6 +267,7 @@ html{scroll-snap-type:y mandatory}
 .frame.auto{
   width:min(var(--imgw), calc(var(--imgh) * 1.5));
   max-width:100%;
+  margin-inline:auto;
   aspect-ratio:3/2;
   background:var(--sunk);
 }
@@ -286,8 +287,20 @@ html{scroll-snap-type:y mandatory}
 .frame img.ready{opacity:1}
 
 /* Photographs do not move on hover. The zoom-in cursor is the whole
-   affordance — it says "this opens" without touching the picture. */
-.open{display:block;cursor:zoom-in}
+   affordance — it says "this opens" without touching the picture.
+
+   `width:100%` is load-bearing and not cosmetic. A <button> is
+   shrink-to-fit, so without it the button's width is decided by its
+   content — and its content is .frame, whose own width is `min(100%, …)`
+   on any screen under 1600px. That percentage then resolves against a
+   button whose width depends on the frame: circular. The browser
+   resolves the cycle at zero, the frame collapses to 0×0, and the
+   photograph is loaded and decoded but invisible.
+
+   Desktop never hit it because --imgw is all absolute units up there, so
+   the frame has a definite width and the button simply wraps it. Below
+   1600px --imgw becomes 100% and the whole column silently disappears. */
+.open{display:block;width:100%;cursor:zoom-in}
 /* The closing link has to be a snap target too. Under `mandatory` the
    scroller must rest on one, so without this the last photograph becomes
    a floor you cannot scroll past. */
