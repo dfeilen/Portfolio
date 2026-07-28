@@ -19,6 +19,11 @@
 <link rel="preconnect" href="https://devinfeilen.b-cdn.net" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 
+<!-- Applies the saved theme before the first paint. Without this the
+     page renders dark, the main script runs at the end of the body, and
+     a light-mode visitor watches it flip on every single page load. -->
+<script>try{if(localStorage.getItem('theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+
 <style>
 /* ============================================================================
    ONE TYPE SIZE. ONE COLOUR. ONE RULE.
@@ -97,7 +102,6 @@ body{
   letter-spacing:var(--track);
   font-weight:400;
   -webkit-font-smoothing:antialiased;
-  transition:background .45s var(--ease),color .45s var(--ease);
   overflow-x:hidden;
   /* No grey flash on tap, and no 300ms wait for a double-tap that
      never comes — the page can't be pinch-zoomed into anyway. */
@@ -106,6 +110,28 @@ body{
 }
 ::selection{background:var(--fg);color:var(--bg)}
 :focus-visible{outline:1px solid var(--fg);outline-offset:3px}
+
+/* ============================================================================
+   THEME SWITCHING
+
+   Only `body` used to carry a colour transition, so its text faded while
+   everything that sets a colour of its own — the html background, every
+   `.dim` element, the frame placeholder, the lightbox, the two gradient
+   bars — changed instantly. Half the page eased and half of it snapped.
+
+   Rather than remembering to add a transition to each of those rules
+   (and to every rule added later), the switch turns one on for
+   everything, for exactly as long as it takes. `!important` is needed to
+   beat the per-element transitions that already exist, and the class is
+   removed afterwards so it can never interfere with hover or loading.
+   ============================================================================ */
+html.theming, html.theming *, html.theming *::before, html.theming *::after{
+  transition:background-color .45s var(--ease),
+             background-image .45s var(--ease),
+             color .45s var(--ease),
+             border-color .45s var(--ease),
+             outline-color .45s var(--ease) !important;
+}
 
 a,button{touch-action:manipulation}
 a{color:inherit;text-decoration:none}
@@ -148,6 +174,14 @@ a.h.on{color:var(--fg-dim);pointer-events:none}
   padding:12px 6px;margin:-12px -6px;
   display:inline-block;line-height:var(--lh);
 }
+
+/* The toggle's label changes between "Light mode" (10 characters) and
+   "Dark mode" (9). The bar is right-anchored, so that one character was
+   sliding the whole navigation ~8px sideways on every switch — most
+   obvious on Information, where nothing else is moving. Reserving the
+   wider of the two labels holds it still. `ch` is exact here because
+   the face is monospaced. */
+#theme{min-width:calc(10ch + 12px);text-align:left}
 
 /* ============================================================================
    VIEWS
@@ -220,18 +254,26 @@ html{scroll-snap-type:y mandatory}
    Here nothing is computed from a guessed ratio. Both dimensions are
    capped directly, so any shape fits whatever its real proportions turn
    out to be. */
+/* Before this, an unsized frame reserved nothing at all: width auto,
+   aspect-ratio auto, no background. Every frame was 0×0 until its file
+   arrived, so an unmigrated site is a completely blank page for as long
+   as the images take — which on a phone, over cellular, reads as "the
+   images aren't loading."
+
+   It now holds a provisional 3:2 box of roughly the right size with the
+   placeholder visible, and `object-fit:contain` so a portrait sits
+   letterboxed inside it rather than being cropped. The moment the file
+   decodes, adoptRatio() replaces this with the true ratio. */
 .frame.auto{
-  width:auto;
-  max-width:var(--imgw);
-  aspect-ratio:auto;
-  background:none;        /* no placeholder box — its size isn't known */
+  width:min(var(--imgw), calc(var(--imgh) * 1.5));
+  max-width:100%;
+  aspect-ratio:3/2;
+  background:var(--sunk);
 }
 .frame.auto img{
-  position:static;
-  width:auto;height:auto;
-  max-width:var(--imgw);
-  max-height:var(--imgh);
-  object-fit:contain;
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  object-fit:contain;     /* contain, not cover — the ratio is a guess */
 }
 .frame img{
   position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
@@ -358,6 +400,11 @@ html{scroll-snap-type:y mandatory}
    ============================================================================ */
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{transition-duration:.001ms!important;animation-duration:.001ms!important}
+  /* The theme-switch rule is `!important` at a higher specificity, so it
+     has to be beaten on its own terms rather than by the line above. */
+  html.theming,html.theming *,html.theming *::before,html.theming *::after{
+    transition-duration:.001ms!important;
+  }
   .frame img,.pv img{opacity:1}
   .pv img{opacity:0}
   .pv img.on{opacity:.28}
@@ -444,6 +491,12 @@ const $$ = (s,r=document) => Array.from(r.querySelectorAll(s));
 const pad = n => String(n).padStart(2,'0');
 const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const wait = ms => new Promise(r => setTimeout(r, ms));
+
+/* replaceChildren() is Safari 14+. On an older iPhone it throws, the
+   router dies, and the page renders nothing at all — which is
+   indistinguishable from "the images aren't loading". Two lines of
+   insurance for a failure mode that would look like a total blank. */
+const swapIn = (parent, el) => { parent.textContent = ''; parent.appendChild(el); };
 
 const urlFor = (slug,f) => /^https?:\/\//i.test(f) ? f : `${CDN}/${slug}/${f}`;
 const sized  = (u,w) => USE_OPTIMIZER ? u + (u.includes('?')?'&':'?') + 'width=' + w : u;
@@ -822,7 +875,7 @@ async function route() {
     default:            el = renderMissing('That page does not exist.');
   }
 
-  view.replaceChildren(el);
+  swapIn(view, el);
   scrollTo({ top:0, behavior:'auto' });
 
   if (countIO) { countIO.disconnect(); countIO = null; }
@@ -841,19 +894,32 @@ addEventListener('hashchange', route);
    THEME — dark is the default here, so the button offers Light mode
    ============================================================================ */
 const themeBtn = $('#theme');
-function applyTheme(t) {
-  if (t === 'light') document.documentElement.setAttribute('data-theme','light');
-  else document.documentElement.removeAttribute('data-theme');
+const root = document.documentElement;
+let themingTimer = null;
+
+/* `animate` is only true for a deliberate toggle. On first load the
+   theme is already correct (set by the inline script in <head>), so
+   there is nothing to fade and nothing should. */
+function applyTheme(t, animate) {
+  if (animate) {
+    root.classList.add('theming');
+    clearTimeout(themingTimer);
+    themingTimer = setTimeout(() => root.classList.remove('theming'), 520);
+  }
+  if (t === 'light') root.setAttribute('data-theme','light');
+  else root.removeAttribute('data-theme');
   themeBtn.textContent = t === 'light' ? 'Dark mode' : 'Light mode';
   const m = $('meta[name="theme-color"]');
   if (m) m.content = t === 'light' ? '#f0f0ed' : '#0a0a0a';
 }
+
 let theme = 'dark';
 try { theme = localStorage.getItem('theme') || 'dark'; } catch(_) {}
 applyTheme(theme);
+
 themeBtn.addEventListener('click', () => {
-  theme = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-  applyTheme(theme);
+  theme = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  applyTheme(theme, true);
   try { localStorage.setItem('theme', theme); } catch(_) {}
 });
 
@@ -865,7 +931,7 @@ themeBtn.addEventListener('click', () => {
   loaded.forEach(s => { DATA.set(s.slug, s); s.photos.forEach(p => FLAT.push(p)); });
 
   if (!loaded.length) {
-    view.replaceChildren(renderMissing('Nothing loaded. Serve this over http rather than opening the file directly.'));
+    swapIn(view, renderMissing('Nothing loaded. Serve this over http rather than opening the file directly.'));
     return;
   }
   route();
