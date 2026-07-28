@@ -197,6 +197,9 @@ html{scroll-snap-type:y mandatory}
 
 .plates{padding:0;opacity:1;transition:opacity .55s var(--ease)}
 .plates.pre{opacity:0}          /* held blank while the intro plays */
+/* The hand-off switches the column on underneath a card that already
+   covers it, so the fade has to be suppressed for exactly that frame. */
+.plates.instant{transition:none}
 
 .plate{
   position:relative;
@@ -459,22 +462,23 @@ const INTRO = {
   oncePerVisit: true,   // false = replay every time you open a group
   cardVW:           15,   // scattered card width at 7 photos; scales down
   popStagger:       85,   // ms between each one appearing…
-  popWindow:       800,   // …but the whole scatter fits in this window
+  popWindow:       700,   // …but the whole scatter fits in this window
   popDuration:     700,
-  hold:            350,   // beat before it collects itself
-  convergeDuration: 950,  // every card's flight time (only departure varies)
-  convergeStagger:  55,   // …
-  convergeWindow:  520,   // …compressed to this in total
-  platesFade:      550,   // must match the .plates transition in the CSS
-  handoffFade:     260,   // overlay cross-fade at the very end
+  hold:            220,   // beat before it collects itself
+  clearDuration:   720,   // how long the other cards take to drop away
+  convergeStagger:  55,   // …their departures are staggered…
+  convergeWindow:  480,   // …compressed into this in total
+  heroMinimum:     900,   // the first photograph never travels faster
+  heroTrail:       140,   // and always lands this long after the last one
+  handoffFade:     300,   // overlay dissolving off the real picture
   readyTimeout:   1400    // longest we'll wait on the first full-size image
 };
-/* Roughly 3.3s for a group of eight, 3.5s for fourteen — the windows
-   above keep it from growing with the number of photographs. It plays
-   once per group per visit and any input skips it, which is what makes
-   that length affordable. If it drags, cut `popWindow` and
-   `convergeWindow` first; they compress the queue without touching how
-   softly any individual card moves. */
+/* Roughly 3.1s for a group of eight, 3.2s for fourteen — the windows
+   keep it from growing with the number of photographs. It plays once per
+   group per visit and any input skips it, which is what makes that
+   length affordable. If it drags, cut `popWindow` and `convergeWindow`
+   first: they compress the queue without touching how softly any
+   individual card moves. */
 
 const mq = q => (window.matchMedia ? window.matchMedia(q) : { matches:false });
 const REDUCED = mq('(prefers-reduced-motion: reduce)').matches;
@@ -824,69 +828,100 @@ function runIntro(scope, series) {
 
   const settled = (n - 1) * popStep + INTRO.popDuration + INTRO.hold;
 
-  /* ---- Phase 2: collect into the column ---- */
+  /* ---- Phase 2: clear the screen, then land the first photograph ----
+
+     The order matters and it is the opposite of what I had. Previously
+     every card flew for the same time, so the first one landed *first*
+     and then sat there while the other thirteen were still crossing the
+     screen — and because the real column had already begun fading in
+     underneath, you saw the opening photograph surrounded by clutter for
+     about a second.
+
+     Now the other cards drop away and fade out as they go, and the first
+     photograph is the last thing still moving. By the time it settles the
+     screen is empty apart from it. */
   at(settled, () => {
     if (!introRunning) return;
 
     const targets = plates.map(p => $('.frame', p).getBoundingClientRect());
 
-    cards.forEach((c, i) => {
-      const from = c.fig.getBoundingClientRect();
-      const to = targets[i];
-      if (!from.width || !to.width) return;
-      const dx = (to.left + to.width  / 2) - (from.left + from.width  / 2);
-      const dy = (to.top  + to.height / 2) - (from.top  + from.height / 2);
-      const s  = to.width / from.width;
+    // Rotated elements report an inflated bounding box, so the scale has
+    // to come from the untransformed layout width or every card lands
+    // slightly too small.
+    const geom = (fig, to) => {
+      const r = fig.getBoundingClientRect();
+      return {
+        dx: (to.left + to.width  / 2) - (r.left + r.width  / 2),
+        dy: (to.top  + to.height / 2) - (r.top  + r.height / 2),
+        s:  to.width / (fig.offsetWidth || r.width)
+      };
+    };
 
-      c.fig.animate(
-        [{ transform:`translate(0,0) scale(1) rotate(${c.rot}deg)` },
-         { transform:`translate(${dx}px, ${dy}px) scale(${s}) rotate(0deg)` }],
-        // Same duration for everyone, only the departure staggered. The
-        // first photograph therefore always lands first and alone.
-        { duration: INTRO.convergeDuration, delay: i * cvStep,
-          easing:'cubic-bezier(.45,0,.15,1)', fill:'forwards' });
+    const others = cards.length - 1;
+    const othersEnd = Math.max(0, others - 1) * cvStep + INTRO.clearDuration;
+    const heroFlight = Math.max(INTRO.heroMinimum, othersEnd + INTRO.heroTrail);
+
+    cards.forEach((c, i) => {
+      const to = targets[i];
+      if (!to || !to.width) return;
+      const { dx, dy, s } = geom(c.fig, to);
+      const from = `translate(0,0) scale(1) rotate(${c.rot}deg)`;
+      const dest = `translate(${dx}px, ${dy}px) scale(${s}) rotate(0deg)`;
+
+      if (i === 0) {
+        c.fig.animate([{ transform:from }, { transform:dest }],
+          { duration: heroFlight, easing:'cubic-bezier(.45,0,.15,1)', fill:'forwards' });
+      } else {
+        // Fading as they descend is what actually gets them off the
+        // screen — several of them land below the fold, and without this
+        // they'd simply still be there when the overlay lifts.
+        c.fig.animate(
+          [{ transform:from, opacity:1 },
+           { transform:dest, opacity:0 }],
+          { duration: INTRO.clearDuration, delay: (i - 1) * cvStep,
+            easing:'cubic-bezier(.45,0,.15,1)', fill:'forwards' });
+      }
     });
 
     /* ---- Phase 3: the hand-off ----
 
-       This is what used to snap. The real column's fade is a 550ms CSS
-       transition, but the overlay was being removed one frame after it
-       started — so the picture vanished and reappeared from nothing.
-
-       Now the fade *starts early enough to finish* exactly as the first
-       card lands, and the overlay is then cross-faded out on top of an
-       already-solid image. Two identical pictures in the same place, so
-       there is nothing to see. */
-    const heroLands = INTRO.convergeDuration;
-    const allLand   = INTRO.convergeDuration + (n - 1) * cvStep;
-
-    const reveal = () => { if (introRunning) platesEl.classList.remove('pre'); };
+       The first card is now sitting exactly on top of the real frame, at
+       the same size and position, and nothing else is on screen. So the
+       column is switched on with the transition suppressed — invisible,
+       because the card covers it — and then the overlay simply dissolves.
+       No fade-in of an empty box, no double image, nothing to snap. */
     const firstImg = $('.frame img', plates[0]);
     const loaded = () => firstImg && firstImg.complete && firstImg.naturalWidth;
 
-    at(Math.max(0, heroLands - INTRO.platesFade), () => {
+    at(heroFlight, () => {
       if (!introRunning) return;
-      // Never fade into an empty frame: if the full-size first image is
-      // still in flight, hold the reveal until it lands.
-      if (loaded()) return reveal();
+
+      const handOff = () => {
+        if (!introRunning) return;
+        platesEl.classList.add('instant');   // no transition for this swap
+        platesEl.classList.remove('pre');
+        void platesEl.offsetHeight;          // commit before re-enabling
+        platesEl.classList.remove('instant');
+
+        const out = layer.animate([{ opacity:1 }, { opacity:0 }],
+          { duration: INTRO.handoffFade, easing:'linear', fill:'forwards' });
+        const end = () => {
+          layer.remove();
+          introRunning = false;
+          detach();
+          document.body.style.overflow = '';
+        };
+        out.finished.then(end).catch(end);
+      };
+
+      // Never dissolve onto an empty frame: if the full-size first image
+      // is still in flight, hold the swap until it arrives.
+      if (loaded()) return handOff();
       let done = false;
-      const go = () => { if (!done) { done = true; reveal(); } };
+      const go = () => { if (!done) { done = true; handOff(); } };
       firstImg.addEventListener('load', go, { once:true });
       firstImg.addEventListener('error', go, { once:true });
       at(INTRO.readyTimeout, go);
-    });
-
-    at(allLand + 80, () => {
-      if (!introRunning) return;
-      const out = layer.animate([{ opacity:1 }, { opacity:0 }],
-        { duration: INTRO.handoffFade, easing:'linear', fill:'forwards' });
-      const end = () => {
-        layer.remove();
-        introRunning = false;
-        detach();
-        document.body.style.overflow = '';
-      };
-      out.finished.then(end).catch(end);
     });
   });
 }
