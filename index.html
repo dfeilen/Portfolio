@@ -48,7 +48,18 @@
   /* 80, not 84. At 84 a portrait leaves only ~8svh of background above
      and below it, and two in a row look joined. 80 opens that to ~10svh
      each side, which with the hairline below is unambiguous. */
-  --imgh:80svh;           /* frame height cap */
+  /* Frame height cap.
+
+     A bare percentage of the viewport scales, but it scales without
+     limit: 80svh is 725px on a laptop and 1152px on a 27" monitor, which
+     is more photograph than anyone wants at once. clamp() gives it a
+     floor and a ceiling, so it tracks the window between them and stops.
+
+     66%, down from 80%. Two things come out of that: the picture stops
+     crowding the screen, and the background between consecutive frames
+     opens from 20% of the screen to 34% — which is what stops two
+     portraits reading as one continuous strip. */
+  --imgh:clamp(180px, 66svh, 800px);
 
   /* Frame width cap. Portraits never reach it — they're limited by
      height — so this number only governs landscape and square, which
@@ -58,7 +69,7 @@
      The `100vw - 800px` term is what keeps the centred bar safe: it
      holds 400px of margin either side, and the right-hand nav needs
      about 337px. The bar is the only reason this cap exists at all. */
-  --imgw:min(56vw, calc(100vw - 800px));
+  --imgw:min(52vw, calc(100vw - 800px), 1000px);
   /* The old curve here was expo-out — it leaps at the start and crawls
      at the end, which is what read as "sharp". These two ease gently in
      *and* out, so nothing ever jerks into motion. */
@@ -222,14 +233,13 @@ html{scroll-snap-type:y mandatory}
 .frame.auto img{position:static;height:auto}
 .frame img{
   position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
-  opacity:0;transition:opacity 1.1s var(--ease),transform 1s var(--ease);
+  opacity:0;transition:opacity 1.1s var(--ease);
 }
 .frame img.ready{opacity:1}
+
+/* Photographs do not move on hover. The zoom-in cursor is the whole
+   affordance — it says "this opens" without touching the picture. */
 .open{display:block;cursor:zoom-in}
-@media (hover:hover) and (pointer:fine){
-  /* 2% inside a frame that never moves. Nothing reflows. */
-  .open:hover .frame img.ready{transform:scale(1.02)}
-}
 /* The closing link has to be a snap target too. Under `mandatory` the
    scroller must rest on one, so without this the last photograph becomes
    a floor you cannot scroll past. */
@@ -295,10 +305,7 @@ html{scroll-snap-type:y mandatory}
    a landscape frame reaches 72% of the screen instead of 48%.
    ============================================================================ */
 @media (max-width:1600px){
-  /* 76, not 72: with the bar at the bottom there is more vertical room
-     to give back, and it keeps portraits exactly the size they were
-     before the threshold moved. Still clears the bar by ~100px. */
-  :root{--imgw:100%;--imgh:76svh}
+  :root{--imgw:100%;--imgh:clamp(180px, 64svh, 680px)}
   .bar{
     top:auto;bottom:0;transform:none;
     padding:16px var(--edge-r) calc(14px + var(--sa-b)) var(--edge-l);
@@ -316,7 +323,7 @@ html{scroll-snap-type:y mandatory}
 
 /* ---- Phones ---- */
 @media (max-width:700px){
-  :root{--edge:16px;--imgh:64svh}
+  :root{--edge:16px;--imgh:clamp(160px, 58svh, 520px)}
 
   /* Two rows: the counter above, navigation below. Three nav items fit
      one line at 13px on a 360px screen. */
@@ -341,7 +348,7 @@ html{scroll-snap-type:y mandatory}
 
 /* ---- Landscape phones: very little height, so give it back ---- */
 @media (max-width:900px) and (orientation:landscape) and (max-height:520px){
-  :root{--imgh:78svh}
+  :root{--imgh:clamp(140px, 70svh, 420px)}
   .bar{flex-direction:row;align-items:baseline}
 }
 
