@@ -36,6 +36,7 @@
   --fg:#ffffff;
   --fg-dim:#8a8a8a;      /* 5.7:1 on --bg — secondary and disabled only */
   --sunk:#161616;
+  --rule:#242424;        /* the divider between photographs */
 
   --font:'Space Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
   --size:13px;
@@ -44,11 +45,26 @@
 
   --edge:clamp(10px,2vw,28px);
   --gap:20px;             /* between frames, exactly as measured */
-  --imgh:84svh;           /* frame height cap */
-  --imgw:38vw;            /* frame width cap — leaves the side margins
-                             that the centred bar lives in */
-  --ease:cubic-bezier(.22,1,.36,1);
-  --fade:340ms;
+  /* 80, not 84. At 84 a portrait leaves only ~8svh of background above
+     and below it, and two in a row look joined. 80 opens that to ~10svh
+     each side, which with the hairline below is unambiguous. */
+  --imgh:80svh;           /* frame height cap */
+
+  /* Frame width cap. Portraits never reach it — they're limited by
+     height — so this number only governs landscape and square, which
+     were previously stuck at 38vw and reached barely half the screen
+     height while a portrait filled it.
+
+     The `100vw - 800px` term is what keeps the centred bar safe: it
+     holds 400px of margin either side, and the right-hand nav needs
+     about 337px. The bar is the only reason this cap exists at all. */
+  --imgw:min(56vw, calc(100vw - 800px));
+  /* The old curve here was expo-out — it leaps at the start and crawls
+     at the end, which is what read as "sharp". These two ease gently in
+     *and* out, so nothing ever jerks into motion. */
+  --ease:cubic-bezier(.4,0,.2,1);         /* general UI */
+  --ease-soft:cubic-bezier(.45,0,.15,1);  /* long travel: the intro */
+  --fade:520ms;
 
   /* Safe areas. Zero on everything that isn't a notched phone. */
   --sa-l:env(safe-area-inset-left,0px);
@@ -60,6 +76,7 @@
 }
 [data-theme="light"]{
   --bg:#f0f0ed; --fg:#0a0a0a; --fg-dim:#686862; --sunk:#e2e2dd;  /* dim 4.9:1 */
+  --rule:#dcdcd7;
 }
 
 *,*::before,*::after{box-sizing:border-box}
@@ -96,7 +113,7 @@ a{color:inherit;text-decoration:none}
 /* Links dim on hover rather than underlining. At 13px an underline is
    noise; a change in weight would reflow. Opacity is the only move that
    costs nothing. */
-a.h,button.h{transition:color .3s var(--ease)}
+a.h,button.h{transition:color .45s var(--ease)}
 a.h:hover,button.h:hover,a.h:focus-visible,button.h:focus-visible{color:var(--fg-dim)}
 a.h.on{color:var(--fg-dim);pointer-events:none}
 
@@ -119,7 +136,7 @@ a.h.on{color:var(--fg-dim);pointer-events:none}
 .bar > *{pointer-events:auto}
 .bar-l{display:flex;gap:14px;min-width:0}
 .bar-r{display:flex;gap:8px;white-space:nowrap;align-items:baseline}
-.count{opacity:0;transition:opacity .3s var(--ease)}
+.count{opacity:0;transition:opacity .5s var(--ease)}
 .count.show{opacity:1}
 
 /* Tap targets. The padding grows the hit area to ~38×38 without moving
@@ -139,7 +156,7 @@ a.h.on{color:var(--fg-dim);pointer-events:none}
 /* ---- Index: three lines, same 13px as everything else ---- */
 .index{min-height:100svh;display:grid;place-items:center;padding:0 var(--edge-r) 0 var(--edge-l)}
 .index-inner{display:grid;gap:0;justify-items:center}
-.index a{display:block;padding:3px 0;transition:color .3s var(--ease)}
+.index a{display:block;padding:3px 0;transition:color .45s var(--ease)}
 @media (hover:hover) and (pointer:fine){
   .index-inner:hover a{color:var(--fg-dim)}
   .index-inner:hover a:hover{color:var(--fg)}
@@ -153,7 +170,7 @@ a.h.on{color:var(--fg-dim);pointer-events:none}
 .pv img{
   max-width:var(--imgw);max-height:var(--imgh);
   width:auto;height:auto;object-fit:contain;
-  position:absolute;opacity:0;transition:opacity .5s var(--ease);
+  position:absolute;opacity:0;transition:opacity .75s var(--ease);
 }
 .pv img.on{opacity:.28}
 @media (hover:none),(pointer:coarse),(max-width:1200px){.pv{display:none}}
@@ -167,15 +184,30 @@ a.h.on{color:var(--fg-dim);pointer-events:none}
    reads as a settle rather than a jump. */
 html{scroll-snap-type:y mandatory}
 
-.plates{padding:0;opacity:1;transition:opacity .3s var(--ease)}
+.plates{padding:0;opacity:1;transition:opacity .55s var(--ease)}
 .plates.pre{opacity:0}          /* held blank while the intro plays */
 
 .plate{
+  position:relative;
   min-height:100svh;
   display:grid;place-items:center;
   padding:0 var(--edge-r) 0 var(--edge-l);
   scroll-snap-align:center;
   scroll-snap-stop:always;
+}
+
+/* A hairline exactly on the seam between two slots — which is the
+   midpoint between two photographs. Without it, consecutive portraits
+   are the same width, vertically stacked, and read as one continuous
+   strip however much air you put between them. The gap alone doesn't
+   separate them; an edge does.
+   Delete this rule if it's too much — the extra space stays either way. */
+.plate + .plate::before{
+  content:'';
+  position:absolute;top:0;
+  left:var(--edge-l);right:var(--edge-r);
+  height:1px;
+  background:var(--rule);
 }
 .frame{
   position:relative;overflow:hidden;background:var(--sunk);
@@ -190,7 +222,7 @@ html{scroll-snap-type:y mandatory}
 .frame.auto img{position:static;height:auto}
 .frame img{
   position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
-  opacity:0;transition:opacity .7s var(--ease),transform .8s var(--ease);
+  opacity:0;transition:opacity 1.1s var(--ease),transform 1s var(--ease);
 }
 .frame img.ready{opacity:1}
 .open{display:block;cursor:zoom-in}
@@ -217,7 +249,7 @@ html{scroll-snap-type:y mandatory}
 
 /* ---- Lightbox ---- */
 .lb{position:fixed;inset:0;z-index:200;background:var(--bg);display:none;opacity:0;
-  transition:opacity .28s var(--ease);overscroll-behavior:contain;touch-action:none}
+  transition:opacity .45s var(--ease);overscroll-behavior:contain;touch-action:none}
 .lb.open{display:block}
 .lb.shown{opacity:1}
 /* The chrome the picture has to clear, declared once so the CSS below
@@ -239,7 +271,7 @@ html{scroll-snap-type:y mandatory}
   max-width:calc(100vw - var(--lb-pad-x));
   max-height:calc(100svh - var(--lb-pad-y));
   object-fit:contain;
-  opacity:0;transition:opacity .28s var(--ease);
+  opacity:0;transition:opacity .45s var(--ease);
 }
 .lb-body img.ready{opacity:1}
 .lb-bar{position:absolute;top:50%;left:0;right:0;transform:translateY(-50%);
@@ -253,11 +285,20 @@ html{scroll-snap-type:y mandatory}
    NARROW SCREENS
 
    The centred bar depends on wide empty margins either side of the
-   picture. Below 1200px there aren't any, so it relocates to the bottom
-   rather than sitting on top of a photograph.
+   picture, so it relocates to the bottom when they run out.
+
+   The threshold moved from 1200px to 1600px, and that is a real trade.
+   On a 1440 laptop you cannot have both a bar living in the margins and
+   a landscape photograph of any size — the bar needs ~340px each side,
+   which leaves the picture 640px wide and about half the screen height.
+   Below 1600 the picture now wins and the bar goes to the bottom, where
+   a landscape frame reaches 72% of the screen instead of 48%.
    ============================================================================ */
-@media (max-width:1200px){
-  :root{--imgw:100%;--imgh:72svh}
+@media (max-width:1600px){
+  /* 76, not 72: with the bar at the bottom there is more vertical room
+     to give back, and it keeps portraits exactly the size they were
+     before the threshold moved. Still clears the bar by ~100px. */
+  :root{--imgw:100%;--imgh:76svh}
   .bar{
     top:auto;bottom:0;transform:none;
     padding:16px var(--edge-r) calc(14px + var(--sa-b)) var(--edge-l);
@@ -390,16 +431,18 @@ const INTRO = {
   oncePerVisit: true,   // false = replay every time you open a group
   count:        7,      // how many photographs scatter (rest wait below)
   cardVW:       15,     // scattered card width, % of viewport width
-  popStagger:   50,     // ms between each one appearing
-  popDuration:  400,
-  hold:         200,    // beat before it collects itself
-  convergeBase: 680,    // first photograph's flight time
-  convergeStep: 28      // each subsequent one leaves slightly later
+  popStagger:   75,     // ms between each one appearing
+  popDuration:  620,
+  hold:         380,    // beat before it collects itself
+  convergeBase: 1000,   // first photograph's flight time
+  convergeStep: 45      // each subsequent one leaves slightly later
 };
-/* Total ≈ 1.9s. That is already near the ceiling for something standing
-   between a visitor and the work — much past two seconds and a first-time
-   viewer starts wondering whether the site is broken. If you want it
-   calmer, raise `hold`; if you want it shorter, drop `count`. */
+/* Total ≈ 3.0s, up from 1.9. Slower and gentler is what makes it read as
+   smooth rather than sharp — but understand the trade: three seconds is
+   a long time to stand between someone and the work. It only plays once
+   per group per visit, and any input skips it, which is what makes the
+   length affordable. If it drags, lower `count` before you shorten the
+   durations — fewer cards trims both phases at once and keeps the pace. */
 
 const mq = q => (window.matchMedia ? window.matchMedia(q) : { matches:false });
 const REDUCED = mq('(prefers-reduced-motion: reduce)').matches;
@@ -690,7 +733,7 @@ function runIntro(scope, series) {
       [{ opacity:0, transform:`scale(.72) rotate(${c.rot}deg)` },
        { opacity:1, transform:`scale(1) rotate(${c.rot}deg)` }],
       { duration: INTRO.popDuration, delay: i * INTRO.popStagger,
-        easing:'cubic-bezier(.22,1,.36,1)', fill:'forwards' });
+        easing:'cubic-bezier(.4,0,.2,1)', fill:'forwards' });
   });
 
   const settled = (n - 1) * INTRO.popStagger + INTRO.popDuration + INTRO.hold;
@@ -714,7 +757,9 @@ function runIntro(scope, series) {
          { transform:`translate(${dx}px, ${dy}px) scale(${s}) rotate(0deg)` }],
         { duration: INTRO.convergeBase + i * INTRO.convergeStep,
           delay: i * INTRO.convergeStep,
-          easing:'cubic-bezier(.16,1,.3,1)', fill:'forwards' });
+          // Eases in as well as out, so the cards drift into motion
+          // rather than being flung.
+          easing:'cubic-bezier(.45,0,.15,1)', fill:'forwards' });
     });
 
     // Swap to the real column on the frame the flight ends. The overlay
