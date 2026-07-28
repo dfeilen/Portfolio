@@ -1,2381 +1,787 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Devin Feilen</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    :root {
-      --bg: #f5f5f3;
-      --text: #111;
-      --text-muted: #888;
-      --border: #ddd;
-    }
-
-    [data-theme="dark"] {
-      --bg: #111;
-      --text: #f5f5f3;
-      --text-muted: #888;
-      --border: #333;
-    }
-
-    html, body {
-      height: 100%;
-      overflow: hidden;
-    }
-
-    body {
-      font-family: 'Space Mono', monospace;
-      background: var(--bg);
-      color: var(--text);
-      transition: background 0.4s ease, color 0.4s ease;
-    }
-
-    /* Dark Mode Toggle */
-    .theme-toggle {
-      position: fixed;
-      bottom: 24px;
-      left: 32px;
-      z-index: 100;
-      background: none;
-      border: none;
-      font-family: inherit;
-      font-size: 14px;
-      letter-spacing: 0.12em;
-      color: var(--text);
-      cursor: pointer;
-      text-transform: uppercase;
-      padding: 0;
-      opacity: 0.5;
-      transition: opacity 0.3s ease;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .theme-toggle:hover {
-      opacity: 1;
-    }
-
-    .theme-toggle-icon {
-      font-size: 16px;
-      transition: transform 0.4s ease;
-    }
-
-    [data-theme="dark"] .theme-toggle-icon {
-      transform: rotate(180deg);
-    }
-
-    /* Navigation */
-    .nav {
-      position: fixed;
-      top: 24px;
-      left: 32px;
-      z-index: 100;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 8px;
-      font-size: 16px;
-      letter-spacing: 0.12em;
-    }
-
-    .category-btn {
-      background: none;
-      border: none;
-      font-family: inherit;
-      font-size: inherit;
-      letter-spacing: inherit;
-      color: var(--text);
-      cursor: pointer;
-      text-transform: uppercase;
-      padding: 6px 0;
-      text-decoration: none;
-      position: relative;
-      opacity: 0.4;
-      transition: opacity 0.3s ease;
-    }
-
-    .category-btn span {
-      display: inline-block;
-      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-
-    .category-btn:hover span:nth-child(1) { transform: translate(-6px, -10px) rotate(-15deg); }
-    .category-btn:hover span:nth-child(2) { transform: translate(3px, -12px) rotate(12deg); }
-    .category-btn:hover span:nth-child(3) { transform: translate(-2px, 8px) rotate(-8deg); }
-    .category-btn:hover span:nth-child(4) { transform: translate(5px, -6px) rotate(18deg); }
-    .category-btn:hover span:nth-child(5) { transform: translate(-4px, 10px) rotate(-12deg); }
-    .category-btn:hover span:nth-child(6) { transform: translate(6px, -4px) rotate(8deg); }
-
-    .category-btn:hover {
-      opacity: 0.7;
-    }
-
-    .category-btn.active {
-      opacity: 1;
-    }
-
-    /* Refresh Button */
-    .refresh-btn {
-      position: fixed;
-      bottom: 24px;
-      right: 32px;
-      z-index: 100;
-      background: none;
-      border: none;
-      font-family: inherit;
-      font-size: 14px;
-      letter-spacing: 0.12em;
-      color: var(--text);
-      cursor: pointer;
-      text-transform: uppercase;
-      padding: 0;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      opacity: 0.5;
-      transition: opacity 0.3s ease;
-    }
-
-    .refresh-btn:hover {
-      opacity: 1;
-    }
-
-    .refresh-exclaim {
-      font-weight: bold;
-      animation: pulse 1s ease-in-out infinite;
-    }
-
-    .refresh-exclaim.hidden {
-      display: none;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
-    }
-
-    /* Organize Toggle Button */
-    .organize-toggle {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 100;
-      background: none;
-      border: 2px solid var(--text);
-      border-radius: 50%;
-      width: 44px;
-      height: 44px;
-      color: var(--text);
-      cursor: pointer;
-      opacity: 0.5;
-      transition: opacity 0.3s ease, background 0.3s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0;
-    }
-
-    .organize-toggle:hover {
-      opacity: 1;
-    }
-
-    .organize-toggle.active {
-      background: var(--text);
-      opacity: 0.8;
-    }
-
-    .organize-toggle.active:hover {
-      opacity: 1;
-    }
-
-    .organize-toggle svg {
-      width: 20px;
-      height: 20px;
-      stroke: var(--text);
-      fill: none;
-      stroke-width: 2;
-      transition: stroke 0.3s ease;
-    }
-
-    .organize-toggle.active svg {
-      stroke: var(--bg);
-    }
-
-    .organize-icon-scatter,
-    .organize-icon-grid {
-      position: absolute;
-      transition: opacity 0.3s ease, transform 0.3s ease;
-    }
-
-    .organize-icon-scatter {
-      opacity: 0;
-      transform: rotate(-90deg);
-    }
-
-    .organize-toggle.active .organize-icon-grid {
-      opacity: 0;
-      transform: rotate(90deg);
-    }
-
-    .organize-toggle.active .organize-icon-scatter {
-      opacity: 1;
-      transform: rotate(0deg);
-    }
-
-    /* Organized image state */
-    .float-img.organized {
-      transition: left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
-                  top 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
-                  width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
-                  opacity 0.5s ease,
-                  transform 0.5s ease;
-    }
-
-    .float-img.unorganizing {
-      transition: left 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
-                  top 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
-                  width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
-                  opacity 0.5s ease,
-                  transform 0.5s ease;
-    }
-
-    /* Popup Notice */
-    .popup-notice {
-      position: fixed;
-      top: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 11px;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      z-index: 100;
-      opacity: 0;
-      transition: opacity 0.5s ease;
-      pointer-events: none;
-    }
-
-    .popup-notice.visible {
-      opacity: 1;
-    }
-
-    /* A&B Link - Floating Badge */
-    .ab-link {
-      position: fixed;
-      top: 24px;
-      right: 32px;
-      font-size: 12px;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      color: var(--text);
-      text-decoration: none;
-      z-index: 100;
-      opacity: 0;
-      transition: opacity 0.5s ease;
-      pointer-events: none;
-      background: var(--bg);
-      padding: 12px 16px;
-      border: 2px solid var(--text);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .ab-link.visible {
-      opacity: 1;
-      pointer-events: auto;
-      animation: badgePulse 2s ease-in-out infinite;
-    }
-
-    .ab-link-arrow {
-      display: inline-block;
-      animation: arrowBounce 1s ease-in-out infinite;
-    }
-
-    @keyframes badgePulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(26, 26, 26, 0.2); }
-      50% { box-shadow: 0 0 0 8px rgba(26, 26, 26, 0); }
-    }
-
-    [data-theme="dark"] .ab-link.visible {
-      animation: badgePulseDark 2s ease-in-out infinite;
-    }
-
-    @keyframes badgePulseDark {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(245, 245, 243, 0.2); }
-      50% { box-shadow: 0 0 0 8px rgba(245, 245, 243, 0); }
-    }
-
-    @keyframes arrowBounce {
-      0%, 100% { transform: translateX(0); }
-      50% { transform: translateX(5px); }
-    }
-
-    /* About Box */
-    .about-box {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 90%;
-      max-width: 500px;
-      background: var(--bg);
-      padding: 40px;
-      z-index: 60;
-      opacity: 0;
-      transition: opacity 0.5s ease, background 0.4s ease;
-      pointer-events: none;
-    }
-
-    .about-box.visible {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .about-box h2 {
-      font-size: 14px;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      margin-bottom: 24px;
-    }
-
-    .about-box p {
-      font-size: 13px;
-      line-height: 1.8;
-      margin-bottom: 16px;
-      color: var(--text);
-    }
-
-    .about-box a {
-      color: var(--text);
-      text-decoration: underline;
-    }
-
-    .about-box a:hover {
-      color: var(--text-muted);
-    }
-
-    /* Canvas Area */
-    .canvas {
-      position: fixed;
-      inset: 0;
-      overflow: hidden;
-    }
-
-    /* Floating Images */
-    .float-img {
-      position: absolute;
-      opacity: 0;
-      transform: scale(0.9);
-      transition: opacity 0.5s ease, transform 0.5s ease, box-shadow 0.4s ease;
-      pointer-events: auto;
-      cursor: grab;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-      touch-action: none; /* Prevent browser gestures on touch */
-    }
-
-    [data-theme="dark"] .float-img {
-      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-    }
-
-    .float-img.visible {
-      opacity: 1;
-      transform: scale(1);
-    }
-
-    .float-img.dragging {
-      cursor: grabbing;
-      transition: none;
-    }
-
-    .float-img img {
-      display: block;
-      height: auto;
-      max-width: 100%;
-      pointer-events: none;
-      user-select: none;
-      -webkit-user-drag: none;
-    }
-
-    .float-img:hover {
-      z-index: 50 !important;
-    }
-
-    /* Resize Handle */
-    .resize-handle {
-      position: absolute;
-      bottom: -6px;
-      right: -6px;
-      width: 12px;
-      height: 12px;
-      background: var(--text);
-      border: 2px solid var(--bg);
-      border-radius: 50%;
-      cursor: nwse-resize;
-      opacity: 0;
-      transition: opacity 0.2s ease;
-      z-index: 10;
-    }
-
-    .float-img:hover .resize-handle {
-      opacity: 1;
-    }
-
-    .resize-handle:hover {
-      transform: scale(1.2);
-    }
-
-    /* Show resize handle on touch devices (coarse pointer = finger) */
-    @media (pointer: coarse) {
-      .resize-handle {
-        opacity: 0.6;
-        width: 16px;
-        height: 16px;
-        bottom: -8px;
-        right: -8px;
-      }
-      
-      .float-img:active .resize-handle {
-        opacity: 1;
-      }
-    }
-
-    /* Loading */
-    .loading {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      text-align: center;
-      z-index: 50;
-      opacity: 1;
-      transition: opacity 0.4s ease;
-    }
-
-    .loading.hidden {
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .loading-text {
-      font-size: 11px;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-    }
-
-    /* Lightbox */
-    .lightbox {
-      position: fixed;
-      inset: 0;
-      background: var(--bg);
-      z-index: 1000;
-      display: none;
-      flex-direction: column;
-      opacity: 0;
-      transition: opacity 0.4s ease, background 0.4s ease;
-    }
-
-    .lightbox.active {
-      display: flex;
-    }
-
-    .lightbox.visible {
-      opacity: 1;
-    }
-
-    .lightbox-header {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      padding: 24px 32px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      z-index: 10;
-    }
-
-    .lightbox-counter {
-      font-size: 11px;
-      letter-spacing: 0.05em;
-      color: var(--text-muted);
-      text-transform: uppercase;
-    }
-
-    .lightbox-close {
-      font-size: 11px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      background: none;
-      border: 1px solid var(--border);
-      padding: 10px 20px;
-      cursor: pointer;
-      font-family: inherit;
-      color: var(--text);
-      transition: all 0.2s ease;
-    }
-
-    .lightbox-close:hover {
-      border-color: var(--text);
-      background: var(--text);
-      color: var(--bg);
-    }
-
-    /* Larger touch targets on touch devices */
-    @media (pointer: coarse) {
-      .lightbox-close {
-        padding: 14px 28px;
-        font-size: 12px;
-      }
-      
-      .lightbox-nav {
-        width: 56px;
-        height: 56px;
-      }
-      
-      .category-btn {
-        padding: 8px 4px;
-      }
-    }
-
-    .lightbox-content {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 80px 100px;
-    }
-
-    .lightbox-content img {
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
-      opacity: 0;
-      transform: translateY(10px);
-      transition: all 0.4s ease;
-    }
-
-    .lightbox.visible .lightbox-content img {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .lightbox-nav {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: 1px solid var(--border);
-      width: 48px;
-      height: 48px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .lightbox-nav:hover {
-      border-color: var(--text);
-      background: var(--text);
-    }
-
-    .lightbox-nav:hover svg {
-      stroke: var(--bg);
-    }
-
-    .lightbox-nav svg {
-      width: 20px;
-      height: 20px;
-      stroke: var(--text);
-      stroke-width: 1.5;
-      fill: none;
-    }
-
-    .lightbox-prev {
-      left: 32px;
-    }
-
-    .lightbox-next {
-      right: 32px;
-    }
-
-    /* Hide scroll hint on desktop */
-    .scroll-hint {
-      display: none;
-    }
-
-    /* Mobile Styles */
-    @media (max-width: 768px) {
-      html, body {
-        height: 100%;
-        overflow: hidden;
-      }
-
-      .nav {
-        top: 20px;
-        left: auto;
-        right: 20px;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 10px;
-        font-size: 12px;
-        letter-spacing: 0.1em;
-      }
-
-      .category-btn {
-        opacity: 0.4;
-      }
-
-      .category-btn:hover span {
-        transform: none !important;
-      }
-
-      .category-btn:hover {
-        opacity: 0.7;
-      }
-
-      .category-btn.active {
-        opacity: 1;
-      }
-
-      .refresh-btn {
-        display: none;
-      }
-
-      .organize-toggle {
-        display: none;
-      }
-
-      .popup-notice {
-        display: none;
-      }
-
-      .ab-link {
-        bottom: 24px;
-        top: auto;
-        right: auto;
-        left: 50%;
-        transform: translateX(-50%);
-        font-size: 11px;
-        padding: 10px 14px;
-      }
-
-      .ab-link.visible {
-        animation: badgePulse 2s ease-in-out infinite;
-      }
-
-      [data-theme="dark"] .ab-link.visible {
-        animation: badgePulseDark 2s ease-in-out infinite;
-      }
-
-      .theme-toggle {
-        bottom: auto;
-        top: 20px;
-        left: 20px;
-        font-size: 12px;
-      }
-
-      .canvas {
-        position: fixed;
-        inset: 0;
-        overflow-y: auto;
-        overflow-x: hidden;
-        -webkit-overflow-scrolling: auto;
-        overscroll-behavior: contain;
-        padding: 0;
-        transition: opacity 0.3s ease;
-      }
-
-      .canvas.transitioning {
-        opacity: 0;
-      }
-
-      .mobile-scroll-container {
-        position: relative;
-        width: 100%;
-        min-height: 100vh;
-      }
-
-      .float-img {
-        position: absolute;
-        opacity: 1;
-        cursor: pointer;
-        box-shadow: 0 4px 24px rgba(0,0,0,0.15);
-        will-change: transform, opacity;
-        border: 2px solid rgba(255,255,255,0.85);
-        transition: box-shadow 0.4s ease, transform 0.3s ease;
-      }
-
-      [data-theme="dark"] .float-img {
-        border-color: rgba(40,40,40,0.85);
-        box-shadow: 0 4px 24px rgba(0,0,0,0.4);
-      }
-
-      .float-img img {
-        width: 100%;
-        height: auto;
-        display: block;
-        pointer-events: none;
-        filter: blur(0);
-        transition: filter 0.5s ease, transform 0.4s ease;
-      }
-
-      /* Blur-up progressive loading */
-      .float-img img.loading {
-        filter: blur(15px);
-        transform: scale(1.02);
-      }
-
-      .float-img img.loaded {
-        filter: blur(0);
-        transform: scale(1);
-      }
-
-      .resize-handle {
-        display: none;
-      }
-
-      .about-box {
-        width: 85%;
-        padding: 30px;
-        max-height: 80vh;
-        overflow-y: auto;
-      }
-
-      .about-box h2 {
-        font-size: 13px;
-        margin-bottom: 20px;
-      }
-
-      .about-box p {
-        font-size: 12px;
-        line-height: 1.7;
-        margin-bottom: 14px;
-      }
-
-      .lightbox-content {
-        padding: 60px 15px;
-      }
-
-      .lightbox-nav {
-        display: none;
-      }
-
-      .lightbox-header {
-        padding: 16px 20px;
-      }
-
-      .lightbox-close {
-        padding: 8px 16px;
-        font-size: 10px;
-      }
-
-      /* Scroll hint */
-      .scroll-hint {
-        position: fixed;
-        bottom: 20%;
-        left: 50%;
-        transform: translateX(-50%);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 16px;
-        z-index: 50;
-        opacity: 1;
-        transition: opacity 0.5s ease;
-        pointer-events: none;
-      }
-
-      .scroll-hint.hidden {
-        opacity: 0;
-      }
-
-      .scroll-hint-arrow {
-        width: 30px;
-        height: 30px;
-        border-right: 2px solid var(--text);
-        border-top: 2px solid var(--text);
-        transform: rotate(-45deg);
-        animation: scrollBounce 1s ease-in-out infinite;
-      }
-
-      .scroll-hint-text {
-        font-size: 13px;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: var(--text);
-      }
-
-      @keyframes scrollBounce {
-        0%, 100% { transform: translateY(0) rotate(-45deg); opacity: 1; }
-        50% { transform: translateY(-12px) rotate(-45deg); opacity: 0.6; }
-      }
-    }
-
-    /* ===== EASTER EGG STYLES ===== */
-
-    /* 5AM Sunrise Theme */
-    [data-easter="sunrise"] {
-      --bg: #ffecd2;
-      --text: #4a3728;
-      --text-muted: #8b7355;
-      --border: #e8d4bc;
-    }
-
-    [data-easter="sunrise"]::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background: linear-gradient(to top, #fcb69f 0%, #ffecd2 50%, #a1c4fd 100%);
-      opacity: 0.3;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .sunrise-message {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 14px;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--text);
-      z-index: 200;
-      text-align: center;
-      opacity: 0;
-      animation: sunriseMsg 4s ease forwards;
-      pointer-events: none;
-    }
-
-    @keyframes sunriseMsg {
-      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
-      20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-      80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-      100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
-    }
-
-    /* Friday the 13th - Spooky */
-    [data-easter="spooky"] {
-      --bg: #1a1a1a;
-      --text: #c9c9c9;
-      --text-muted: #666;
-      --border: #333;
-    }
-
-    [data-easter="spooky"] .float-img {
-      box-shadow: 0 8px 40px rgba(139, 0, 0, 0.3), 0 0 60px rgba(0, 0, 0, 0.5);
-    }
-
-    [data-easter="spooky"] .float-img:nth-child(odd) {
-      transform: rotate(-2deg) scale(1);
-    }
-
-    [data-easter="spooky"] .float-img:nth-child(even) {
-      transform: rotate(2deg) scale(1);
-    }
-
-    [data-easter="spooky"] .float-img.visible:nth-child(odd) {
-      transform: rotate(-2deg) scale(1);
-    }
-
-    [data-easter="spooky"] .float-img.visible:nth-child(even) {
-      transform: rotate(2deg) scale(1);
-    }
-
-    /* April Fools - Upside Down */
-    [data-easter="aprilfools"] .float-img img {
-      transform: rotate(180deg);
-    }
-
-    [data-easter="aprilfools"] .float-img img.loading {
-      transform: rotate(180deg) scale(1.02);
-      filter: blur(15px);
-    }
-
-    [data-easter="aprilfools"] .float-img img.loaded {
-      transform: rotate(180deg) scale(1);
-      filter: blur(0);
-    }
-
-    /* Birthday Confetti */
-    .confetti-container {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 9999;
-      overflow: hidden;
-    }
-
-    .confetti {
-      position: absolute;
-      width: 10px;
-      height: 10px;
-      top: -20px;
-      opacity: 0;
-      animation: confettiFall linear forwards;
-    }
-
-    .confetti:nth-child(odd) {
-      border-radius: 50%;
-    }
-
-    @keyframes confettiFall {
-      0% { 
-        opacity: 1; 
-        top: -20px; 
-        transform: rotate(0deg) translateX(0);
-      }
-      100% { 
-        opacity: 0.7; 
-        top: 110vh; 
-        transform: rotate(720deg) translateX(100px);
-      }
-    }
-
-    .birthday-message {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 18px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--text);
-      z-index: 10000;
-      text-align: center;
-      opacity: 0;
-      animation: birthdayMsg 5s ease forwards;
-      pointer-events: none;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-
-    @keyframes birthdayMsg {
-      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-      15% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
-      25% { transform: translate(-50%, -50%) scale(1); }
-      85% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-      100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
-    }
-
-    /* Bounce back animation for drag off screen */
-    .float-img.bounce-back {
-      transition: left 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), 
-                  top 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-    }
-  </style>
+<meta charset="UTF-8">
+<!-- viewport-fit=cover lets the black run under the notch and home
+     indicator; every fixed element then pads itself back out with
+     env(safe-area-inset-*) below. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Devin Feilen</title>
+<meta name="description" content="Devin Feilen is a photographer based in Portland, Oregon.">
+<meta name="theme-color" content="#0a0a0a">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Devin Feilen">
+<meta property="og:description" content="Photographer based in Portland, Oregon.">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://devinfeilen.b-cdn.net" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+/* ============================================================================
+   ONE TYPE SIZE. ONE COLOUR. ONE RULE.
+
+   The whole site is 13px / 15.6px / weight 400. There are no headings —
+   not on the index, not on Information, not anywhere. That single
+   constraint is most of the look: nothing on the page competes with a
+   photograph for attention, so the photographs are the only thing with
+   any visual weight.
+
+   Resist adding a second size. It is the first thing that breaks this.
+   ============================================================================ */
+:root{
+  --bg:#0a0a0a;
+  --fg:#ffffff;
+  --fg-dim:#8a8a8a;      /* 5.7:1 on --bg — secondary and disabled only */
+  --sunk:#161616;
+
+  --font:'Space Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --size:13px;
+  --lh:15.6px;
+  --track:0.01em;
+
+  --edge:clamp(10px,2vw,28px);
+  --gap:20px;             /* between frames, exactly as measured */
+  --imgh:84svh;           /* frame height cap */
+  --imgw:38vw;            /* frame width cap — leaves the side margins
+                             that the centred bar lives in */
+  --ease:cubic-bezier(.22,1,.36,1);
+  --fade:340ms;
+
+  /* Safe areas. Zero on everything that isn't a notched phone. */
+  --sa-l:env(safe-area-inset-left,0px);
+  --sa-r:env(safe-area-inset-right,0px);
+  --sa-b:env(safe-area-inset-bottom,0px);
+  --sa-t:env(safe-area-inset-top,0px);
+  --edge-l:calc(var(--edge) + var(--sa-l));
+  --edge-r:calc(var(--edge) + var(--sa-r));
+}
+[data-theme="light"]{
+  --bg:#f0f0ed; --fg:#0a0a0a; --fg-dim:#686862; --sunk:#e2e2dd;  /* dim 4.9:1 */
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body,p,figure,figcaption,ul,li,h1,h2{margin:0;padding:0}
+ul{list-style:none}
+img{display:block;max-width:100%}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+
+html,body{background:var(--bg)}
+body{
+  color:var(--fg);
+  font-family:var(--font);
+  font-size:var(--size);
+  line-height:var(--lh);
+  letter-spacing:var(--track);
+  font-weight:400;
+  -webkit-font-smoothing:antialiased;
+  transition:background .45s var(--ease),color .45s var(--ease);
+  overflow-x:hidden;
+  /* No grey flash on tap, and no 300ms wait for a double-tap that
+     never comes — the page can't be pinch-zoomed into anyway. */
+  -webkit-tap-highlight-color:transparent;
+  text-size-adjust:100%;
+}
+::selection{background:var(--fg);color:var(--bg)}
+:focus-visible{outline:1px solid var(--fg);outline-offset:3px}
+
+a,button{touch-action:manipulation}
+a{color:inherit;text-decoration:none}
+.dim{color:var(--fg-dim)}
+.tab{font-variant-numeric:tabular-nums}
+
+/* Links dim on hover rather than underlining. At 13px an underline is
+   noise; a change in weight would reflow. Opacity is the only move that
+   costs nothing. */
+a.h,button.h{transition:color .3s var(--ease)}
+a.h:hover,button.h:hover,a.h:focus-visible,button.h:focus-visible{color:var(--fg-dim)}
+a.h.on{color:var(--fg-dim);pointer-events:none}
+
+.skip{position:absolute;left:-9999px;top:0;z-index:99;background:var(--fg);color:var(--bg);padding:10px}
+.skip:focus{left:0}
+
+/* ============================================================================
+   THE BAR
+   Fixed at the vertical centre of the viewport, pinned to both edges.
+   It sits in the empty margins either side of the picture — which is why
+   the frame is capped at 38vw rather than filling the screen.
+   ============================================================================ */
+.bar{
+  position:fixed;top:50%;left:0;right:0;
+  transform:translateY(-50%);
+  display:flex;justify-content:space-between;align-items:baseline;gap:20px;
+  padding:0 var(--edge-r) 0 var(--edge-l);
+  z-index:50;pointer-events:none;
+}
+.bar > *{pointer-events:auto}
+.bar-l{display:flex;gap:14px;min-width:0}
+.bar-r{display:flex;gap:8px;white-space:nowrap;align-items:baseline}
+.count{opacity:0;transition:opacity .3s var(--ease)}
+.count.show{opacity:1}
+
+/* Tap targets. The padding grows the hit area to ~38×38 without moving
+   the text a pixel — the negative margin cancels it visually. 13px of
+   bare text is a 16px-tall target, which is unusable with a thumb. */
+.bar-r a,.bar-r button{
+  padding:12px 6px;margin:-12px -6px;
+  display:inline-block;line-height:var(--lh);
+}
+
+/* ============================================================================
+   VIEWS
+   ============================================================================ */
+#view{opacity:1;transition:opacity var(--fade) var(--ease)}
+#view.out{opacity:0}
+
+/* ---- Index: three lines, same 13px as everything else ---- */
+.index{min-height:100svh;display:grid;place-items:center;padding:0 var(--edge-r) 0 var(--edge-l)}
+.index-inner{display:grid;gap:0;justify-items:center}
+.index a{display:block;padding:3px 0;transition:color .3s var(--ease)}
+@media (hover:hover) and (pointer:fine){
+  .index-inner:hover a{color:var(--fg-dim)}
+  .index-inner:hover a:hover{color:var(--fg)}
+}
+.index .n{margin-right:10px}
+
+/* Hover preview — fills the frame slot behind the three names.
+   All three images are created up front, so hovering only toggles a
+   class. Never fires on touch; on touch the names simply stand alone. */
+.pv{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;z-index:-1}
+.pv img{
+  max-width:var(--imgw);max-height:var(--imgh);
+  width:auto;height:auto;object-fit:contain;
+  position:absolute;opacity:0;transition:opacity .5s var(--ease);
+}
+.pv img.on{opacity:.28}
+@media (hover:none),(pointer:coarse),(max-width:1200px){.pv{display:none}}
+
+/* ---- Series: one picture per screen, centred ---- */
+.plates{padding:8vh 0 12vh}
+.plate{
+  min-height:100svh;
+  display:grid;place-items:center;
+  padding:0 var(--edge-r) 0 var(--edge-l);
+}
+.frame{
+  position:relative;overflow:hidden;background:var(--sunk);
+  /* Capped two ways at once: never wider than 38vw, never taller than
+     84svh. Whichever binds first wins, so a portrait and a landscape
+     both end up occupying one screen without either being cropped. */
+  width:min(var(--imgw),calc(var(--imgh) * var(--arn,1.5)));
+  max-width:100%;
+  aspect-ratio:var(--ar,3/2);
+}
+.frame.auto{aspect-ratio:auto}
+.frame.auto img{position:static;height:auto}
+.frame img{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  opacity:0;transition:opacity .7s var(--ease),transform .8s var(--ease);
+}
+.frame img.ready{opacity:1}
+.open{display:block;cursor:zoom-in}
+@media (hover:hover) and (pointer:fine){
+  /* 2% inside a frame that never moves. Nothing reflows. */
+  .open:hover .frame img.ready{transform:scale(1.02)}
+}
+.series-end{min-height:60svh;display:grid;place-items:center;padding:0 var(--edge-r) 0 var(--edge-l)}
+
+/* ---- Information: five lines, vertically centred ---- */
+.info{min-height:100svh;display:grid;place-items:center;padding:0 var(--edge-r) 0 var(--edge-l)}
+.info-inner{max-width:34rem}
+.info-inner p + p{margin-top:0}
+
+/* ---- Lightbox ---- */
+.lb{position:fixed;inset:0;z-index:200;background:var(--bg);display:none;opacity:0;
+  transition:opacity .28s var(--ease);overscroll-behavior:contain;touch-action:none}
+.lb.open{display:block}
+.lb.shown{opacity:1}
+/* The chrome the picture has to clear, declared once so the CSS below
+   and the JS that sizes the download can never drift apart. */
+.lb{--lb-pad-x:calc(var(--edge-l) + var(--edge-r));
+    --lb-pad-y:calc(112px + var(--sa-t) + var(--sa-b))}   /* 56 top + 56 bottom */
+
+.lb-body{position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  padding:calc(56px + var(--sa-t)) var(--edge-r) calc(56px + var(--sa-b)) var(--edge-l)}
+
+/* max-height:100% cannot be used here. In a grid or flex container whose
+   row is auto-sized, the percentage resolves against a track that is
+   itself sized by the image — circular, so browsers drop it and a tall
+   portrait runs straight off the bottom of the screen. Measuring
+   against the viewport instead is unambiguous in every layout mode. */
+.lb-body img{
+  display:block;width:auto;height:auto;
+  max-width:calc(100vw - var(--lb-pad-x));
+  max-height:calc(100svh - var(--lb-pad-y));
+  object-fit:contain;
+  opacity:0;transition:opacity .28s var(--ease);
+}
+.lb-body img.ready{opacity:1}
+.lb-bar{position:absolute;top:50%;left:0;right:0;transform:translateY(-50%);
+  display:flex;justify-content:space-between;align-items:baseline;
+  padding:0 var(--edge-r) 0 var(--edge-l);gap:20px;pointer-events:none}
+.lb-bar > *{pointer-events:auto}
+.lb-nav{display:flex;gap:8px;align-items:baseline}
+.lb-bar button{padding:12px 6px;margin:-12px -6px;display:inline-block}
+
+/* ============================================================================
+   NARROW SCREENS
+
+   The centred bar depends on wide empty margins either side of the
+   picture. Below 1200px there aren't any, so it relocates to the bottom
+   rather than sitting on top of a photograph.
+   ============================================================================ */
+@media (max-width:1200px){
+  :root{--imgw:100%;--imgh:72svh}
+  .bar{
+    top:auto;bottom:0;transform:none;
+    padding:16px var(--edge-r) calc(14px + var(--sa-b)) var(--edge-l);
+    background:linear-gradient(to top,var(--bg) 58%,transparent);
+  }
+  .lb-bar{
+    top:auto;bottom:0;transform:none;
+    padding:16px var(--edge-r) calc(14px + var(--sa-b)) var(--edge-l);
+    background:linear-gradient(to top,var(--bg) 58%,transparent);
+  }
+  /* Bar is at the bottom now, so the picture needs more room below. */
+  .lb{--lb-pad-y:calc(126px + var(--sa-t) + var(--sa-b))}   /* 48 top + 78 bottom */
+  .lb-body{padding:calc(48px + var(--sa-t)) var(--edge-r) calc(78px + var(--sa-b)) var(--edge-l)}
+}
+
+/* ---- Phones ---- */
+@media (max-width:700px){
+  :root{--edge:16px;--imgh:64svh}
+
+  /* Two rows: the counter above, navigation below. Three nav items fit
+     one line at 13px on a 360px screen. */
+  .bar{flex-direction:column;align-items:stretch;gap:6px}
+  .bar-l{gap:10px}
+  .bar-r{justify-content:space-between;gap:4px}
+
+  /* Plates stop being full-screen slots. One-per-screen is a desktop
+     luxury; on a phone it means a lot of scrolling past empty space. */
+  .plate{min-height:auto;padding:0 var(--edge-r) 0 var(--edge-l)}
+  .plates{
+    display:flex;flex-direction:column;gap:11vh;
+    padding:12vh 0 calc(30vh + var(--sa-b));
+  }
+  .index{padding-bottom:calc(22vh + var(--sa-b))}
+  .index a{padding:9px 0}          /* 31px tap target on three short words */
+  .info{padding:0 var(--edge-r) calc(24vh + var(--sa-b)) var(--edge-l)}
+  .info-inner p{padding:5px 0}
+  .series-end{min-height:auto;padding:2vh var(--edge-r) 0 var(--edge-l)}
+}
+
+/* ---- Landscape phones: very little height, so give it back ---- */
+@media (max-width:900px) and (orientation:landscape) and (max-height:520px){
+  :root{--imgh:78svh}
+  .plates{gap:8vh;padding:8vh 0 calc(24vh + var(--sa-b))}
+  .bar{flex-direction:row;align-items:baseline}
+}
+
+/* ============================================================================
+   REDUCED MOTION
+   ============================================================================ */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition-duration:.001ms!important;animation-duration:.001ms!important}
+  .frame img,.pv img{opacity:1}
+  .pv img{opacity:0}
+  .pv img.on{opacity:.28}
+  #view.out{opacity:1}
+}
+.boot{min-height:100svh;display:grid;place-items:center;padding:0 var(--edge-r) 0 var(--edge-l)}
+</style>
+<noscript><style>#view,.bar{display:none}</style></noscript>
 </head>
+
 <body>
-  <!-- Navigation -->
-  <nav class="nav">
-    <button class="category-btn active" data-category="racing"><span>R</span><span>a</span><span>c</span><span>i</span><span>n</span><span>g</span></button>
-    <button class="category-btn" data-category="bikes"><span>B</span><span>i</span><span>k</span><span>e</span><span>s</span></button>
-    <button class="category-btn" data-category="ab"><span>A</span><span>&</span><span>B</span></button>
-    <button class="category-btn" data-category="people"><span>P</span><span>e</span><span>o</span><span>p</span><span>l</span><span>e</span></button>
-    <button class="category-btn" data-category="life"><span>L</span><span>i</span><span>f</span><span>e</span></button>
-    <button class="category-btn" data-category="walls"><span>W</span><span>a</span><span>l</span><span>l</span><span>s</span></button>
-    <button class="category-btn" data-category="devin"><span>D</span><span>e</span><span>v</span><span>i</span><span>n</span></button>
+<a class="skip" href="#/">Skip to content</a>
+
+<div class="pv" id="pv" aria-hidden="true"></div>
+
+<main id="view"><div class="boot"><p class="dim">Loading</p></div></main>
+
+<div class="bar" id="bar">
+  <div class="bar-l">
+    <span class="count tab" id="count"></span>
+  </div>
+  <nav class="bar-r" aria-label="Primary">
+    <a class="h" href="#/" data-nav="index">Devin Feilen</a>
+    <a class="h" href="#/information" data-nav="information">Information</a>
+    <button class="h" id="theme">Light mode</button>
   </nav>
+</div>
 
-  <!-- Refresh Button (desktop only) -->
-  <button class="refresh-btn" id="refresh-btn">
-    <span class="refresh-exclaim" id="refresh-exclaim">!</span>
-    <span>Refresh Images</span>
-  </button>
-
-  <!-- Theme Toggle -->
-  <button class="theme-toggle" id="theme-toggle">
-    <span class="theme-toggle-icon">◐</span>
-    <span class="theme-toggle-text">Dark</span>
-  </button>
-
-  <!-- Organize Toggle (desktop only) -->
-  <button class="organize-toggle" id="organize-toggle" title="Organize images">
-    <!-- Grid icon (default state) -->
-    <svg class="organize-icon-grid" viewBox="0 0 24 24">
-      <rect x="3" y="3" width="7" height="7" rx="1"/>
-      <rect x="14" y="3" width="7" height="7" rx="1"/>
-      <rect x="3" y="14" width="7" height="7" rx="1"/>
-      <rect x="14" y="14" width="7" height="7" rx="1"/>
-    </svg>
-    <!-- Scatter icon (organized state) -->
-    <svg class="organize-icon-scatter" viewBox="0 0 24 24">
-      <rect x="2" y="4" width="5" height="5" rx="1" transform="rotate(-12 4.5 6.5)"/>
-      <rect x="14" y="2" width="6" height="6" rx="1" transform="rotate(8 17 5)"/>
-      <rect x="4" y="14" width="5" height="5" rx="1" transform="rotate(15 6.5 16.5)"/>
-      <rect x="15" y="13" width="6" height="6" rx="1" transform="rotate(-6 18 16)"/>
-    </svg>
-  </button>
-
-  <!-- Popup Notice (desktop only) -->
-  <div class="popup-notice" id="popup-notice">click drag & resize photos</div>
-
-  <!-- A&B Link -->
-  <a href="https://a-and-b.bike/" target="_blank" class="ab-link" id="ab-link">Visit a-and-b.bike <span class="ab-link-arrow">→</span></a>
-
-  <!-- Loading -->
-  <div class="loading" id="loading">
-    <p class="loading-text">Loading</p>
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Image viewer">
+  <div class="lb-body"><img id="lb-img" alt=""></div>
+  <div class="lb-bar">
+    <span class="tab" id="lb-count"></span>
+    <span class="lb-nav">
+      <button class="h" id="lb-prev">Prev</button>
+      <button class="h" id="lb-next">Next</button>
+      <button class="h" id="lb-close">Close</button>
+    </span>
   </div>
+</div>
 
-  <!-- Canvas -->
-  <div class="canvas" id="canvas"></div>
+<script>
+(() => {
+'use strict';
 
-  <!-- About Box -->
-  <div class="about-box" id="about-box">
-    <h2>About</h2>
-    <p>Devin Feilen is a photographer based in Portland, Oregon. He can typically be found at bicycle races around the PNW or wandering around with a Ricoh GR.</p>
-    <p>Site design by yours truly.</p>
-    <p>You can support me at <a href="https://buymeacoffee.com/devinfeilen" target="_blank">buymeacoffee.com/devinfeilen</a></p>
-    <p>For usage/licensing or any questions, please contact me via Instagram <a href="https://instagram.com/devinfeilen" target="_blank">@devinfeilen</a> or via email at dfeeilen@gmail.com</p>
-    <p>Thank you for visiting :)</p>
-  </div>
+/* ============================================================================
+   CONFIGURATION
+   ============================================================================ */
+const CDN = 'https://devinfeilen.b-cdn.net';
 
-  <!-- Scroll Hint (mobile only) -->
-  <div class="scroll-hint" id="scroll-hint">
-    <div class="scroll-hint-arrow"></div>
-    <span class="scroll-hint-text">Swipe up</span>
-  </div>
+// Bunny Optimizer resizes via ?width=. If it is off on your pull zone the
+// parameter is ignored and you get originals — safe either way.
+const USE_OPTIMIZER = true;
+const WIDTHS = [640, 1000, 1500, 2200];
 
-  <!-- Lightbox -->
-  <div class="lightbox" id="lightbox">
-    <div class="lightbox-header">
-      <span class="lightbox-counter">
-        <span id="lightbox-current">01</span> / <span id="lightbox-total">00</span>
-      </span>
-      <button class="lightbox-close" id="lightbox-close">Close</button>
+// Hard cap per group. Curation happens in the JSON; this only stops a
+// stale file dumping eighty frames into one scroll.
+const MAX_PER_SERIES = 14;
+
+/* THREE GROUPS.
+   `sources` lists which of your existing JSON files feed each group, so
+   nothing on your side needs renaming. Move a source from one line to
+   another and the site regroups. Later you can consolidate into three
+   real files — bikes.json / life.json / work.json — and set a single
+   source each. */
+const SERIES = [
+  { slug:'bikes', title:'Bikes',        sources:['bikes','racing'] },
+  { slug:'life',  title:'Life',         sources:['life','walls','people'] },
+  { slug:'work',  title:'Professional', sources:['ab'] }
+];
+
+const mq = q => (window.matchMedia ? window.matchMedia(q) : { matches:false });
+const REDUCED = mq('(prefers-reduced-motion: reduce)').matches;
+
+/* ============================================================================
+   UTILITIES
+   ============================================================================ */
+const $  = (s,r=document) => r.querySelector(s);
+const $$ = (s,r=document) => Array.from(r.querySelectorAll(s));
+const pad = n => String(n).padStart(2,'0');
+const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const wait = ms => new Promise(r => setTimeout(r, ms));
+
+const urlFor = (slug,f) => /^https?:\/\//i.test(f) ? f : `${CDN}/${slug}/${f}`;
+const sized  = (u,w) => USE_OPTIMIZER ? u + (u.includes('?')?'&':'?') + 'width=' + w : u;
+const srcset = u => USE_OPTIMIZER ? WIDTHS.map(w=>`${sized(u,w)} ${w}w`).join(', ') : '';
+
+function mount(img, url, { sizes, eager } = {}) {
+  img.decoding = 'async';
+  img.loading = eager ? 'eager' : 'lazy';
+  if (eager) img.fetchPriority = 'high';
+  const ss = srcset(url);
+  if (ss) { img.srcset = ss; img.sizes = sizes || '40vw'; }
+  img.src = USE_OPTIMIZER ? sized(url, 1500) : url;
+  const show = () => img.classList.add('ready');
+  if (img.complete && img.naturalWidth) show();
+  else { img.addEventListener('load', show, {once:true});
+         img.addEventListener('error', show, {once:true}); }
+}
+
+/* ============================================================================
+   DATA — reads the new object schema or your existing flat string arrays
+   ============================================================================ */
+const DATA = new Map();
+let FLAT = [];
+
+async function loadFile(slug) {
+  try {
+    const res = await fetch(`${slug}.json`, { cache:'no-cache' });
+    if (!res.ok) throw new Error(res.status);
+    const raw = await res.json();
+    const body = Array.isArray(raw) ? { photos: raw } : raw;
+    const list = body.photos || body.images || [];
+    return list.map(item => {
+      const o = typeof item === 'string' ? { file:item } : item;
+      const w = Number(o.w)||null, h = Number(o.h)||null;
+      return {
+        src: slug,
+        url: urlFor(slug, o.file || o.src || ''),
+        ar:  (w&&h) ? `${w} / ${h}` : null,
+        arn: (w&&h) ? (w/h) : null
+        /* `caption` and `place` in the JSON are read by nothing. The
+           pictures are numbered and otherwise unannotated. Leaving the
+           fields in your files is harmless — they are simply ignored. */
+      };
+    }).filter(p => p.url);
+  } catch (e) {
+    console.warn(`[${slug}] ${slug}.json did not load`, e);
+    return [];
+  }
+}
+
+async function loadSeries(def) {
+  const parts = await Promise.all(def.sources.map(loadFile));
+  const photos = parts.flat().slice(0, MAX_PER_SERIES);
+  return photos.length ? { ...def, photos } : null;
+}
+
+/* ============================================================================
+   VIEWS
+   ============================================================================ */
+const view = $('#view'), pv = $('#pv');
+
+function renderIndex() {
+  const list = SERIES.map(s => DATA.get(s.slug)).filter(Boolean);
+  const el = document.createElement('div');
+  el.className = 'index';
+  el.innerHTML = `<div class="index-inner">${
+    list.map((s,i)=>`<a class="h" href="#/w/${s.slug}" data-slug="${s.slug}"><span class="n tab dim">${pad(i+1)}</span>${esc(s.title)}</a>`).join('')
+  }</div>`;
+
+  // Hover preview: one <img> per group, built once, cross-faded by class.
+  pv.innerHTML = '';
+  const layers = new Map();
+  list.forEach(s => {
+    if (!s.photos[0]) return;
+    const img = document.createElement('img');
+    img.alt = '';
+    pv.appendChild(img);
+    layers.set(s.slug, img);
+    mount(img, s.photos[0].url, { sizes:'40vw' });
+  });
+  const show = slug => layers.forEach((img,k)=>img.classList.toggle('on', k===slug));
+  const clear = () => layers.forEach(img=>img.classList.remove('on'));
+  $$('a[data-slug]', el).forEach(a => {
+    a.addEventListener('pointerenter', e => { if (e.pointerType !== 'touch') show(a.dataset.slug); });
+    a.addEventListener('focus', () => show(a.dataset.slug));
+  });
+  $('.index-inner', el).addEventListener('pointerleave', clear);
+
+  setBar('');
+  return el;
+}
+
+function renderSeries(slug) {
+  const s = DATA.get(slug);
+  if (!s) return renderMissing('No such series.');
+  pv.innerHTML = '';
+
+  const i = SERIES.findIndex(x => x.slug === slug);
+  const next = SERIES[(i+1) % SERIES.length];
+
+  const el = document.createElement('div');
+  el.innerHTML = `<div class="plates" id="plates"></div>
+    <div class="series-end"><a class="h" href="#/w/${next.slug}">${esc(next.title)} &rarr;</a></div>`;
+  const plates = $('#plates', el);
+
+  s.photos.forEach((p, n) => {
+    const gi = FLAT.indexOf(p);
+
+    const fig = document.createElement('figure');
+    fig.className = 'plate';
+    fig.dataset.n = n + 1;
+
+    const btn = document.createElement('button');
+    btn.className = 'open';
+    btn.type = 'button';
+    /* A screen reader still needs to know what the control does and
+       which picture it opens. That is function, not caption. */
+    btn.setAttribute('aria-label', `Open photograph ${pad(n+1)}`);
+
+    const frame = document.createElement('div');
+    frame.className = 'frame' + (p.ar ? '' : ' auto');
+    if (p.ar)  frame.style.setProperty('--ar', p.ar);
+    if (p.arn) frame.style.setProperty('--arn', p.arn);
+
+    const img = document.createElement('img');
+    img.alt = `Photograph ${pad(n+1)}`;
+
+    frame.appendChild(img);
+    btn.appendChild(frame);
+    fig.appendChild(btn);
+    plates.appendChild(fig);
+
+    mount(img, p.url, { sizes:'(max-width:1200px) 92vw, 38vw', eager: n===0 });
+    btn.addEventListener('click', () => openLB(gi < 0 ? 0 : gi));
+  });
+
+  setBar(`01/${pad(s.photos.length)}`);
+  return el;
+}
+
+function renderInformation() {
+  pv.innerHTML = '';
+  const el = document.createElement('div');
+  el.className = 'info';
+  el.innerHTML = `<div class="info-inner">
+    <p>Devin Feilen is a photographer based in Portland, Oregon.</p>
+    <p><a class="h" href="mailto:dfeeilen@gmail.com">dfeeilen@gmail.com</a></p>
+    <p><a class="h" href="https://instagram.com/devinfeilen" target="_blank" rel="noopener">instagram</a></p>
+    <p><a class="h" href="https://buymeacoffee.com/devinfeilen" target="_blank" rel="noopener">buy me a coffee</a></p>
+  </div>`;
+  setBar('');
+  return el;
+}
+
+function renderMissing(msg) {
+  pv.innerHTML = '';
+  const el = document.createElement('div');
+  el.className = 'info';
+  el.innerHTML = `<div class="info-inner"><p>${esc(msg)}</p><p><a class="h" href="#/">Index</a></p></div>`;
+  setBar('');
+  return el;
+}
+
+/* ============================================================================
+   THE COUNTER — reports which photograph is at the vertical centre, and
+   nothing else. No title, no place, no year. Reports only; it never
+   moves anything.
+   ============================================================================ */
+const countEl = $('#count');
+let countIO = null;
+
+function setBar(count) {
+  countEl.textContent = count || '';
+  countEl.classList.toggle('show', !!count);
+}
+
+function initCounter(scope, total) {
+  if (countIO) { countIO.disconnect(); countIO = null; }
+  const plates = $$('.plate', scope);
+  if (!plates.length || !('IntersectionObserver' in window)) return;
+  countIO = new IntersectionObserver(ents => {
+    ents.forEach(e => {
+      if (!e.isIntersecting) return;
+      setBar(`${pad(e.target.dataset.n)}/${pad(total)}`);
+    });
+  }, { rootMargin:'-45% 0px -45% 0px' });
+  plates.forEach(p => countIO.observe(p));
+}
+
+/* ============================================================================
+   LIGHTBOX
+   ============================================================================ */
+const lb = $('#lb'), lbImg = $('#lb-img');
+let lbi = 0, lastFocus = null, lockedY = 0;
+
+/* iOS Safari ignores overflow:hidden on the root — the page keeps
+   scrolling behind the overlay and you lose your place. Pinning the
+   body at a negative offset is the only thing that actually holds,
+   and the offset is what lets us restore the exact scroll position. */
+function lockScroll() {
+  lockedY = window.scrollY || 0;
+  const b = document.body;
+  b.style.position = 'fixed';
+  b.style.top = `-${lockedY}px`;
+  b.style.left = '0';
+  b.style.right = '0';
+  b.style.width = '100%';
+}
+function unlockScroll() {
+  const b = document.body;
+  b.style.position = b.style.top = b.style.left = b.style.right = b.style.width = '';
+  window.scrollTo(0, lockedY);
+}
+
+function openLB(i) {
+  if (!FLAT.length) return;
+  lbi = i; lastFocus = document.activeElement;
+  lockScroll();
+  lb.classList.add('open');
+  requestAnimationFrame(() => lb.classList.add('shown'));
+  drawLB();
+  $('#lb-close').focus();
+}
+function closeLB() {
+  lb.classList.remove('shown');
+  setTimeout(() => {
+    lb.classList.remove('open');
+    unlockScroll();
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }, REDUCED ? 0 : 280);
+}
+function stepLB(d) { lbi = (lbi + d + FLAT.length) % FLAT.length; drawLB(); }
+
+/* ---------------------------------------------------------------------------
+   Sizing the download.
+
+   srcset + sizes is the right tool for an image that fills a known slice
+   of the page, but it cannot describe this one. `sizes` only ever
+   expresses a WIDTH, and a contained image is usually limited by HEIGHT
+   instead — a portrait on a wide desktop displays at ~30vw while
+   sizes:100vw tells the browser to fetch as though it were full-bleed.
+   That is the bug: the viewer always pulled the largest file on the
+   ladder no matter how small the window was.
+
+   We know the aspect ratio from the JSON, so the displayed size can just
+   be computed and one exact file requested.
+--------------------------------------------------------------------------- */
+const DPR_CAP = 2;   // 3× on a phone is invisible and costs ~2.2× the bytes
+let loadedLBWidth = 0;
+
+// Measured, not hardcoded, so it always agrees with the CSS above.
+function lbAvailable() {
+  const el = $('.lb-body');
+  if (!el || !el.clientWidth) return { w: innerWidth, h: innerHeight };
+  const cs = getComputedStyle(el);
+  const w = el.clientWidth  - parseFloat(cs.paddingLeft || 0) - parseFloat(cs.paddingRight  || 0);
+  const h = el.clientHeight - parseFloat(cs.paddingTop  || 0) - parseFloat(cs.paddingBottom || 0);
+  return { w: w > 0 ? w : innerWidth, h: h > 0 ? h : innerHeight };
+}
+
+// Displayed width of a contained image, then snapped up the ladder.
+// Snapping (rather than asking for an arbitrary width) keeps the CDN
+// cache working — everyone requests the same four sizes.
+function lbTargetWidth(f) {
+  const a = lbAvailable();
+  const arn = f.arn || 1.5;
+  const cssW = Math.min(a.w, a.h * arn);
+  const need = Math.ceil(cssW * Math.min(window.devicePixelRatio || 1, DPR_CAP));
+  return WIDTHS.find(w => w >= need) || WIDTHS[WIDTHS.length - 1];
+}
+
+function drawLB() {
+  const f = FLAT[lbi]; if (!f) return;
+  lbImg.classList.remove('ready');
+  // No srcset here — the width is computed, not negotiated.
+  lbImg.removeAttribute('srcset');
+  lbImg.removeAttribute('sizes');
+  lbImg.alt = `Photograph ${pad(lbi+1)}`;
+  lbImg.decoding = 'async';
+  lbImg.fetchPriority = 'high';
+
+  loadedLBWidth = lbTargetWidth(f);
+  lbImg.src = sized(f.url, loadedLBWidth);
+
+  const show = () => lbImg.classList.add('ready');
+  if (lbImg.complete && lbImg.naturalWidth) show();
+  else { lbImg.addEventListener('load', show, { once:true });
+         lbImg.addEventListener('error', show, { once:true }); }
+
+  $('#lb-count').textContent = `${pad(lbi+1)}/${pad(FLAT.length)}`;
+}
+
+/* Rotating a phone can double the available width. Upgrade when that
+   happens, but never re-request a smaller file — the bigger one is
+   already cached and downscales for free. */
+let lbResizeTimer = null;
+addEventListener('resize', () => {
+  if (!lb.classList.contains('open')) return;
+  clearTimeout(lbResizeTimer);
+  lbResizeTimer = setTimeout(() => {
+    const f = FLAT[lbi]; if (!f) return;
+    const need = lbTargetWidth(f);
+    if (need > loadedLBWidth) { loadedLBWidth = need; lbImg.src = sized(f.url, need); }
+  }, 250);
+}, { passive:true });
+$('#lb-close').addEventListener('click', closeLB);
+$('#lb-prev').addEventListener('click', () => stepLB(-1));
+$('#lb-next').addEventListener('click', () => stepLB(1));
+lb.addEventListener('click', e => { if (e.target === lb || e.target.closest('.lb-body')) closeLB(); });
+addEventListener('keydown', e => {
+  if (!lb.classList.contains('open')) return;
+  if (e.key === 'Escape')     closeLB();
+  if (e.key === 'ArrowLeft')  stepLB(-1);
+  if (e.key === 'ArrowRight') stepLB(1);
+  if (e.key === 'Tab') { e.preventDefault(); $('#lb-close').focus(); }
+});
+let tx=0, ty=0;
+lb.addEventListener('touchstart', e => { tx=e.touches[0].clientX; ty=e.touches[0].clientY; }, {passive:true});
+lb.addEventListener('touchend', e => {
+  const dx=e.changedTouches[0].clientX-tx, dy=e.changedTouches[0].clientY-ty;
+  if (Math.abs(dx)>Math.abs(dy) && Math.abs(dx)>45) stepLB(dx>0?-1:1);
+}, {passive:true});
+
+/* ============================================================================
+   ROUTER
+   ============================================================================ */
+function parseRoute() {
+  const parts = (location.hash || '#/').replace(/^#\/?/, '').split('/').filter(Boolean);
+  if (!parts.length)               return { name:'index' };
+  if (parts[0] === 'w')            return { name:'series', slug:parts[1] };
+  if (parts[0] === 'information')  return { name:'information' };
+  return { name:'missing' };
+}
+
+let current = '';
+async function route() {
+  const r = parseRoute();
+  const key = JSON.stringify(r);
+  if (key === current) return;
+  current = key;
+
+  const navKey = r.name === 'series' ? 'index' : r.name;
+  $$('[data-nav]').forEach(a => a.classList.toggle('on', a.dataset.nav === navKey));
+
+  view.classList.add('out');
+  await wait(REDUCED ? 0 : 340);
+
+  let el;
+  switch (r.name) {
+    case 'series':      el = renderSeries(r.slug);  break;
+    case 'information': el = renderInformation();   break;
+    case 'index':       el = renderIndex();         break;
+    default:            el = renderMissing('That page does not exist.');
+  }
+
+  view.replaceChildren(el);
+  scrollTo({ top:0, behavior:'auto' });
+
+  if (countIO) { countIO.disconnect(); countIO = null; }
+  if (r.name === 'series') {
+    const s = DATA.get(r.slug);
+    if (s) initCounter(view, s.photos.length);
+  }
+
+  requestAnimationFrame(() => view.classList.remove('out'));
+  document.title = r.name === 'series' && DATA.get(r.slug)
+    ? `${DATA.get(r.slug).title} — Devin Feilen` : 'Devin Feilen';
+}
+addEventListener('hashchange', route);
+
+/* ============================================================================
+   THEME — dark is the default here, so the button offers Light mode
+   ============================================================================ */
+const themeBtn = $('#theme');
+function applyTheme(t) {
+  if (t === 'light') document.documentElement.setAttribute('data-theme','light');
+  else document.documentElement.removeAttribute('data-theme');
+  themeBtn.textContent = t === 'light' ? 'Dark mode' : 'Light mode';
+  const m = $('meta[name="theme-color"]');
+  if (m) m.content = t === 'light' ? '#f0f0ed' : '#0a0a0a';
+}
+let theme = 'dark';
+try { theme = localStorage.getItem('theme') || 'dark'; } catch(_) {}
+applyTheme(theme);
+themeBtn.addEventListener('click', () => {
+  theme = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  applyTheme(theme);
+  try { localStorage.setItem('theme', theme); } catch(_) {}
+});
+
+/* ============================================================================
+   BOOT
+   ============================================================================ */
+(async function init() {
+  const loaded = (await Promise.all(SERIES.map(loadSeries))).filter(Boolean);
+  loaded.forEach(s => { DATA.set(s.slug, s); s.photos.forEach(p => FLAT.push(p)); });
+
+  if (!loaded.length) {
+    view.replaceChildren(renderMissing('Nothing loaded. Serve this over http rather than opening the file directly.'));
+    return;
+  }
+  route();
+})();
+})();
+</script>
+
+<noscript>
+  <div style="min-height:100svh;display:grid;place-items:center;padding:0 var(--edge)">
+    <div>
+      <p>Devin Feilen is a photographer based in Portland, Oregon.</p>
+      <p><a href="mailto:dfeeilen@gmail.com">dfeeilen@gmail.com</a></p>
+      <p><a href="https://instagram.com/devinfeilen" rel="noopener">instagram</a></p>
     </div>
-    <button class="lightbox-nav lightbox-prev" id="lightbox-prev">
-      <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
-    </button>
-    <div class="lightbox-content">
-      <img id="lightbox-img" alt="Photography by Devin Feilen">
-    </div>
-    <button class="lightbox-nav lightbox-next" id="lightbox-next">
-      <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
-    </button>
   </div>
-
-  <script>
-    // State
-    let allPhotos = [];
-    let displayedPhotos = [];
-    let currentCategory = 'racing';
-    let lightboxIndex = 0;
-    let isMobile = window.innerWidth <= 768;
-    const imageCount = 15;
-
-    // ===== BUNNY.NET CONFIGURATION =====
-    // Replace with your Bunny.net Pull Zone URL
-    const BUNNY_CDN_URL = 'https://devinfeilen.b-cdn.net';
-
-    // Mobile state
-    let mobileImages = [];
-    let photoQueue = [];
-    let savedScrollPosition = 0; // Remember scroll position for lightbox
-
-    // Haptic feedback helper
-    function triggerHaptic(duration = 10) {
-      if (navigator.vibrate) {
-        navigator.vibrate(duration);
-      }
-    }
-
-    // Elements
-    const canvas = document.getElementById('canvas');
-    const loading = document.getElementById('loading');
-    const lightbox = document.getElementById('lightbox');
-    const lightboxImg = document.getElementById('lightbox-img');
-    const lightboxCurrent = document.getElementById('lightbox-current');
-    const lightboxTotal = document.getElementById('lightbox-total');
-    const scrollHint = document.getElementById('scroll-hint');
-    const aboutBox = document.getElementById('about-box');
-    const popupNotice = document.getElementById('popup-notice');
-    const abLink = document.getElementById('ab-link');
-    const themeToggle = document.getElementById('theme-toggle');
-    const themeToggleText = themeToggle.querySelector('.theme-toggle-text');
-
-    // ===== THEME TOGGLE =====
-    function initTheme() {
-      const savedTheme = localStorage.getItem('theme');
-      
-      if (savedTheme === 'dark') {
-        document.documentElement.setAttribute('data-theme', 'dark');
-        updateThemeButton('dark');
-      }
-    }
-
-    function updateThemeButton(theme) {
-      if (theme === 'dark') {
-        themeToggleText.textContent = 'Light';
-      } else {
-        themeToggleText.textContent = 'Dark';
-      }
-    }
-
-    function toggleTheme() {
-      const currentTheme = document.documentElement.getAttribute('data-theme');
-      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-      
-      if (newTheme === 'light') {
-        document.documentElement.removeAttribute('data-theme');
-      } else {
-        document.documentElement.setAttribute('data-theme', newTheme);
-      }
-      
-      localStorage.setItem('theme', newTheme === 'light' ? '' : newTheme);
-      updateThemeButton(newTheme);
-    }
-
-    themeToggle.addEventListener('click', toggleTheme);
-    initTheme();
-
-    // ===== DATE-BASED EASTER EGGS =====
-    const BIRTHDAY_MONTH = 1; // January (1-12)
-    const BIRTHDAY_DAY = 1;   // Day of month - CHANGE THIS TO YOUR BIRTHDAY
-    
-    function initEasterEggs() {
-      const now = new Date();
-      const hour = now.getHours();
-      const minute = now.getMinutes();
-      const month = now.getMonth() + 1; // 0-indexed, so add 1
-      const day = now.getDate();
-      const dayOfWeek = now.getDay(); // 0 = Sunday, 5 = Friday
-      
-      // 5:00 AM - 5:59 AM: Sunrise theme
-      if (hour === 5) {
-        document.documentElement.setAttribute('data-easter', 'sunrise');
-        showSunriseMessage();
-        return; // Only one easter egg at a time
-      }
-      
-      // Friday the 13th: Spooky theme
-      if (dayOfWeek === 5 && day === 13) {
-        document.documentElement.setAttribute('data-easter', 'spooky');
-        return;
-      }
-      
-      // April 1st: April Fools - upside down
-      if (month === 4 && day === 1) {
-        document.documentElement.setAttribute('data-easter', 'aprilfools');
-        return;
-      }
-      
-      // Birthday: Confetti!
-      if (month === BIRTHDAY_MONTH && day === BIRTHDAY_DAY) {
-        triggerBirthdayConfetti();
-        return;
-      }
-    }
-    
-    function showSunriseMessage() {
-      const msg = document.createElement('div');
-      msg.className = 'sunrise-message';
-      msg.textContent = "You're up early ☀";
-      document.body.appendChild(msg);
-      
-      // Remove after animation
-      setTimeout(() => msg.remove(), 4500);
-    }
-    
-    function triggerBirthdayConfetti() {
-      // Create confetti container
-      const container = document.createElement('div');
-      container.className = 'confetti-container';
-      document.body.appendChild(container);
-      
-      // Birthday message
-      const msg = document.createElement('div');
-      msg.className = 'birthday-message';
-      msg.textContent = "Happy Birthday! 🎂";
-      document.body.appendChild(msg);
-      
-      // Confetti colors
-      const colors = ['#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3', '#54a0ff', '#5f27cd', '#00d2d3', '#ff9f43'];
-      
-      // Generate confetti pieces
-      for (let i = 0; i < 100; i++) {
-        setTimeout(() => {
-          const confetti = document.createElement('div');
-          confetti.className = 'confetti';
-          confetti.style.left = Math.random() * 100 + 'vw';
-          confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-          confetti.style.animationDuration = (Math.random() * 3 + 2) + 's';
-          confetti.style.animationDelay = '0s';
-          confetti.style.width = (Math.random() * 10 + 5) + 'px';
-          confetti.style.height = (Math.random() * 10 + 5) + 'px';
-          container.appendChild(confetti);
-          
-          // Remove after animation
-          setTimeout(() => confetti.remove(), 5000);
-        }, i * 50);
-      }
-      
-      // Remove message after animation
-      setTimeout(() => msg.remove(), 5500);
-      
-      // Remove container after all confetti done
-      setTimeout(() => container.remove(), 10000);
-    }
-    
-    initEasterEggs();
-
-    // Initialize
-    loadCategory(currentCategory);
-
-    // ===== ORGANIZE TOGGLE (declare early for use in handlers) =====
-    const organizeToggle = document.getElementById('organize-toggle');
-    let isOrganized = false;
-
-    // ===== EASTER EGG: Rapid Devin clicks =====
-    let devinClickCount = 0;
-    let devinClickTimer = null;
-    const DEVIN_CLICKS_NEEDED = 5;
-    const DEVIN_CLICK_WINDOW = 1500; // 1.5 seconds to click 5 times
-
-    // Category buttons
-    document.querySelectorAll('.category-btn[data-category]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        // Easter egg: rapid clicks on Devin
-        if (btn.dataset.category === 'devin') {
-          devinClickCount++;
-          
-          if (devinClickCount === 1) {
-            // Start the timer on first click
-            devinClickTimer = setTimeout(() => {
-              devinClickCount = 0;
-            }, DEVIN_CLICK_WINDOW);
-          }
-          
-          if (devinClickCount >= DEVIN_CLICKS_NEEDED) {
-            // Easter egg triggered!
-            clearTimeout(devinClickTimer);
-            devinClickCount = 0;
-            window.location.href = 'secret.html';
-            return;
-          }
-        } else {
-          // Reset counter if clicking other categories
-          devinClickCount = 0;
-          if (devinClickTimer) clearTimeout(devinClickTimer);
-        }
-        
-        document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        // Reset organized state when changing categories
-        isOrganized = false;
-        if (organizeToggle) organizeToggle.classList.remove('active');
-        loadCategory(btn.dataset.category);
-      });
-    });
-
-    // Refresh button (desktop only)
-    const refreshExclaim = document.getElementById('refresh-exclaim');
-    document.getElementById('refresh-btn').addEventListener('click', () => {
-      if (!isMobile) {
-        // Hide exclamation after first click
-        if (refreshExclaim) {
-          refreshExclaim.classList.add('hidden');
-        }
-        displayImages();
-        // Reset organized state when refreshing
-        isOrganized = false;
-        organizeToggle.classList.remove('active');
-      }
-    });
-
-    // ===== ORGANIZE TOGGLE HANDLER =====
-    organizeToggle.addEventListener('click', () => {
-      if (isMobile) return;
-      
-      const images = canvas.querySelectorAll('.float-img');
-      if (images.length === 0) return;
-      
-      isOrganized = !isOrganized;
-      organizeToggle.classList.toggle('active', isOrganized);
-      
-      if (isOrganized) {
-        organizeToMasonry(images);
-      } else {
-        scatterImages(images);
-      }
-    });
-
-    function organizeToMasonry(images) {
-      const padding = 20;
-      const navWidth = 180; // Space for left nav
-      const bottomPadding = 80; // Space for bottom buttons
-      const topPadding = 24;
-      
-      // Calculate available space
-      const availableWidth = window.innerWidth - navWidth - padding * 2;
-      const availableHeight = window.innerHeight - topPadding - bottomPadding;
-      
-      // Determine number of columns based on screen width
-      const targetColumnWidth = 280;
-      const numColumns = Math.max(2, Math.floor(availableWidth / targetColumnWidth));
-      const columnWidth = (availableWidth - (numColumns - 1) * padding) / numColumns;
-      const gutter = padding;
-      
-      // Initialize column heights
-      const columnHeights = new Array(numColumns).fill(topPadding);
-      
-      // Sort images by their current position (top to bottom, left to right) for consistent ordering
-      const imageArray = Array.from(images);
-      
-      imageArray.forEach((wrapper, index) => {
-        // Find the shortest column
-        const shortestColumn = columnHeights.indexOf(Math.min(...columnHeights));
-        
-        // Calculate position
-        const x = navWidth + padding + shortestColumn * (columnWidth + gutter);
-        const y = columnHeights[shortestColumn];
-        
-        // Get aspect ratio
-        const aspectRatio = parseFloat(wrapper.dataset.aspectRatio) || 1.5;
-        const newHeight = columnWidth / aspectRatio;
-        
-        // Add transition class and animate
-        wrapper.classList.add('organized');
-        wrapper.classList.remove('unorganizing');
-        
-        // Animate to new position
-        wrapper.style.left = x + 'px';
-        wrapper.style.top = y + 'px';
-        wrapper.style.width = columnWidth + 'px';
-        wrapper.style.zIndex = index + 1;
-        
-        // Update column height
-        columnHeights[shortestColumn] += newHeight + gutter;
-      });
-    }
-
-    function scatterImages(images) {
-      images.forEach((wrapper, index) => {
-        // Add unorganizing class for transition
-        wrapper.classList.remove('organized');
-        wrapper.classList.add('unorganizing');
-        
-        // Get original positions
-        const originalLeft = wrapper.dataset.originalLeft;
-        const originalTop = wrapper.dataset.originalTop;
-        const originalWidth = wrapper.dataset.originalWidth;
-        
-        // Animate back to original position
-        wrapper.style.left = originalLeft + 'px';
-        wrapper.style.top = originalTop + 'px';
-        wrapper.style.width = originalWidth + 'px';
-        wrapper.style.zIndex = index + 1;
-        
-        // Remove transition class after animation
-        setTimeout(() => {
-          wrapper.classList.remove('unorganizing');
-        }, 500);
-      });
-    }
-
-    // Reset organized state when changing categories
-    function resetOrganizedState() {
-      isOrganized = false;
-      organizeToggle.classList.remove('active');
-    }
-
-    // Lightbox controls
-    document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
-    document.getElementById('lightbox-prev').addEventListener('click', () => navigateLightbox(-1));
-    document.getElementById('lightbox-next').addEventListener('click', () => navigateLightbox(1));
-    lightbox.addEventListener('click', (e) => {
-      if (e.target === lightbox || e.target.closest('.lightbox-content')) {
-        if (!isMobile) {
-          closeLightbox();
-        }
-      }
-    });
-
-    // Mobile lightbox swipe gestures
-    let lightboxTouchStartX = 0;
-    let lightboxTouchStartY = 0;
-    
-    lightbox.addEventListener('touchstart', (e) => {
-      lightboxTouchStartX = e.touches[0].clientX;
-      lightboxTouchStartY = e.touches[0].clientY;
-    }, { passive: true });
-    
-    lightbox.addEventListener('touchend', (e) => {
-      if (!lightbox.classList.contains('active')) return;
-      
-      const touchEndX = e.changedTouches[0].clientX;
-      const touchEndY = e.changedTouches[0].clientY;
-      const deltaX = touchEndX - lightboxTouchStartX;
-      const deltaY = touchEndY - lightboxTouchStartY;
-      
-      // Only trigger if horizontal swipe is greater than vertical
-      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
-        if (deltaX > 0) {
-          navigateLightbox(-1); // Swipe right = previous
-        } else {
-          navigateLightbox(1); // Swipe left = next
-        }
-      } else if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) {
-        // Tap to close
-        closeLightbox();
-      }
-    }, { passive: true });
-
-    // Keyboard navigation
-    document.addEventListener('keydown', (e) => {
-      if (lightbox.classList.contains('active')) {
-        if (e.key === 'Escape') closeLightbox();
-        if (e.key === 'ArrowLeft') navigateLightbox(-1);
-        if (e.key === 'ArrowRight') navigateLightbox(1);
-      }
-    });
-
-    // Mobile tap to open most recently caught image
-    canvas.addEventListener('click', (e) => {
-      if (!isMobile) return;
-      if (!canvas.mobileImageData) return;
-      
-      // Find the most recently caught image (highest caughtOrder)
-      const imageData = canvas.mobileImageData;
-      const caughtImages = imageData.filter(d => d.caught && d.wrapper.style.visibility !== 'hidden');
-      if (caughtImages.length > 0) {
-        caughtImages.sort((a, b) => b.caughtOrder - a.caughtOrder);
-        const mostRecent = caughtImages[0];
-        if (mostRecent && mostRecent.src) {
-          openMobileLightbox(mostRecent.src);
-        }
-      }
-    });
-
-    function loadCategory(category) {
-      currentCategory = category;
-      
-      // Smooth transition out
-      canvas.classList.add('transitioning');
-      
-      setTimeout(() => {
-        canvas.innerHTML = '';
-        canvas.scrollTop = 0; // Reset scroll position on category change
-        displayedPhotos = [];
-        mobileImages = [];
-        
-        // Show/hide A&B link
-        if (category === 'ab') {
-          abLink.classList.add('visible');
-        } else {
-          abLink.classList.remove('visible');
-        }
-        
-        // Show/hide refresh button (desktop only, not on about page)
-        const refreshBtn = document.getElementById('refresh-btn');
-        if (category === 'devin') {
-          refreshBtn.style.display = 'none';
-        } else if (!isMobile) {
-          refreshBtn.style.display = 'flex';
-        }
-        
-        // Handle about page (devin) - no photos
-        if (category === 'devin') {
-          aboutBox.classList.add('visible');
-          loading.classList.add('hidden');
-          if (isMobile && scrollHint) {
-            scrollHint.classList.add('hidden');
-          }
-          // Transition back in
-          setTimeout(() => canvas.classList.remove('transitioning'), 50);
-          return;
-        }
-        
-        // Hide about box for other categories
-        aboutBox.classList.remove('visible');
-        loading.classList.remove('hidden');
-        
-        const jsonFile = category + '.json';
-        
-        // Fetch category photos from static JSON file
-        fetch(jsonFile)
-          .then(res => {
-            if (!res.ok) throw new Error('Not found');
-            return res.json();
-          })
-          .then(data => {
-            // Data can be either:
-            // 1. Array of full URLs (current format)
-            // 2. Array of filenames (new format - will prepend CDN URL)
-            allPhotos = data.map(item => {
-              // If it's already a full URL, use as-is
-              if (item.startsWith('http')) {
-                return item;
-              }
-              // Otherwise, prepend the Bunny CDN URL
-              return `${BUNNY_CDN_URL}/${category}/${item}`;
-            });
-            
-            photoQueue = shuffleArray([...allPhotos]);
-            loading.classList.add('hidden');
-            
-            // Transition back in before displaying
-            canvas.classList.remove('transitioning');
-            
-            setTimeout(() => {
-              if (isMobile) {
-                initMobileExperience();
-              } else {
-                displayImages();
-              }
-            }, 50);
-          })
-          .catch(err => {
-            console.error('Error loading photos:', err);
-            loading.classList.add('hidden');
-            canvas.classList.remove('transitioning');
-          });
-      }, 300); // Wait for fade out
-    }
-
-    // ===== ABOUT SECTION =====
-    
-    function spawnAboutPhotos() {
-      // Show popup notice
-      showPopupNotice();
-      
-      // Get about box dimensions for collision avoidance
-      const boxRect = aboutBox.getBoundingClientRect();
-      const boxPadding = 40; // Extra padding around the box
-      const excludeZone = {
-        left: boxRect.left - boxPadding,
-        right: boxRect.right + boxPadding,
-        top: boxRect.top - boxPadding,
-        bottom: boxRect.bottom + boxPadding
-      };
-      
-      // Shuffle and pick 5 images
-      const shuffled = shuffleArray([...allPhotos]);
-      const selected = shuffled.slice(0, 5);
-      
-      // Spawn images avoiding the center
-      selected.forEach((src, i) => {
-        setTimeout(() => {
-          spawnAboutImage(src, i, excludeZone);
-        }, i * 150);
-      });
-    }
-
-    function spawnAboutImage(src, index, excludeZone) {
-      const wrapper = document.createElement('div');
-      wrapper.className = 'float-img';
-      
-      const img = document.createElement('img');
-      img.src = src;
-      img.alt = 'Photography by Devin Feilen';
-      img.loading = 'eager';
-      
-      // Smaller size for about page: 180-280px
-      const targetWidth = 180 + Math.random() * 100;
-      wrapper.style.width = targetWidth + 'px';
-      
-      // Add resize handle
-      const resizeHandle = document.createElement('div');
-      resizeHandle.className = 'resize-handle';
-      wrapper.appendChild(resizeHandle);
-      
-      wrapper.appendChild(img);
-      canvas.appendChild(wrapper);
-      
-      // Wait for image to load to get actual dimensions
-      img.onload = () => {
-        const aspectRatio = img.naturalWidth / img.naturalHeight;
-        const actualHeight = targetWidth / aspectRatio;
-        
-        // Find position that doesn't overlap with center box
-        let x, y;
-        let attempts = 0;
-        const padding = 60;
-        
-        do {
-          x = padding + Math.random() * (window.innerWidth - targetWidth - padding * 2);
-          y = padding + Math.random() * (window.innerHeight - actualHeight - padding * 2);
-          attempts++;
-        } while (
-          attempts < 50 &&
-          x < excludeZone.right &&
-          x + targetWidth > excludeZone.left &&
-          y < excludeZone.bottom &&
-          y + actualHeight > excludeZone.top
-        );
-        
-        wrapper.style.left = x + 'px';
-        wrapper.style.top = y + 'px';
-        wrapper.style.zIndex = index + 1;
-        
-        // Make draggable
-        makeDraggable(wrapper);
-        
-        // Make resizable
-        makeResizable(wrapper, img, resizeHandle);
-        
-        // Fade in after positioning
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            wrapper.classList.add('visible');
-          });
-        });
-      };
-      
-      // Double-click to open lightbox
-      wrapper.addEventListener('dblclick', () => {
-        openLightbox(src);
-      });
-      
-      displayedPhotos.push(src);
-    }
-
-    // ===== MOBILE EXPERIENCE =====
-    
-    function initMobileExperience() {
-      canvas.innerHTML = '';
-      mobileImages = [];
-      displayedPhotos = [];
-      
-      // Show scroll hint
-      if (scrollHint) {
-        scrollHint.classList.remove('hidden');
-      }
-      
-      // Create scroll container
-      const scrollContainer = document.createElement('div');
-      scrollContainer.className = 'mobile-scroll-container';
-      scrollContainer.id = 'mobile-scroll-container';
-      canvas.appendChild(scrollContainer);
-      
-      // Shuffle photos
-      const shuffled = shuffleArray([...allPhotos]);
-      
-      const baseSpacing = window.innerHeight * 0.8; // Much larger spacing - 80% of screen height
-      const imageData = [];
-      
-      // Start photos below the visible area so screen is empty initially
-      let currentY = window.innerHeight + 50;
-      
-      shuffled.forEach((src, index) => {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'float-img';
-        
-        const img = document.createElement('img');
-        img.alt = 'Photography by Devin Feilen';
-        
-        // Random size between 55-80% of screen width
-        const widthPercent = 0.55 + Math.random() * 0.25;
-        const size = window.innerWidth * widthPercent;
-        wrapper.style.width = size + 'px';
-        
-        // Random horizontal position with buffer (larger on right to avoid nav)
-        const leftBuffer = 15;
-        const rightBuffer = 100; // Extra buffer for nav buttons
-        const maxX = window.innerWidth - size - rightBuffer;
-        const x = leftBuffer + Math.random() * Math.max(0, maxX - leftBuffer);
-        wrapper.style.left = x + 'px';
-        
-        // Position sequentially with estimated height
-        const estimatedHeight = size * 0.7;
-        wrapper.style.top = currentY + 'px';
-        
-        // Set high z-index so uncaught images appear above the pile
-        wrapper.style.zIndex = 500 + index;
-        
-        wrapper.appendChild(img);
-        scrollContainer.appendChild(wrapper);
-        
-        const data = {
-          wrapper,
-          img,
-          src,
-          index,
-          initialY: currentY,
-          initialX: x,
-          estimatedHeight,
-          randomOffset: Math.random() * 100 - 50,
-          caught: false,
-          caughtScrollPos: 0,
-          caughtOrder: 0
-        };
-        
-        imageData.push(data);
-        
-        // Update Y for next image
-        currentY += estimatedHeight + baseSpacing + data.randomOffset;
-        
-        mobileImages.push(data);
-        displayedPhotos.push(src);
-        
-        // Blur-up progressive loading
-        img.classList.add('loading');
-        img.loading = index < 15 ? 'eager' : 'lazy';
-        img.src = src;
-        
-        img.onload = () => {
-          img.classList.remove('loading');
-          img.classList.add('loaded');
-        };
-      });
-      
-      // Store imageData reference for tap handler
-      canvas.mobileImageData = imageData;
-      
-      // Set initial container height
-      scrollContainer.style.height = (currentY + 200) + 'px';
-      
-      // After images load, recalculate positions
-      setTimeout(() => {
-        repositionMobileImages(imageData, scrollContainer, baseSpacing);
-      }, 500);
-      
-      setTimeout(() => {
-        repositionMobileImages(imageData, scrollContainer, baseSpacing);
-      }, 1500);
-      
-      // Handle scroll for pile-up effect
-      let ticking = false;
-      let lastScrollTop = 0;
-      
-      canvas.addEventListener('scroll', () => {
-        const currentScrollTop = canvas.scrollTop;
-        
-        if (!ticking) {
-          requestAnimationFrame(() => {
-            handleMobileScroll(canvas.scrollTop, imageData);
-            ticking = false;
-          });
-          ticking = true;
-        }
-        
-        lastScrollTop = currentScrollTop;
-        
-        // Hide scroll hint
-        if (scrollHint && canvas.scrollTop > 20) {
-          scrollHint.classList.add('hidden');
-        }
-      }, { passive: true });
-    }
-    
-    function handleMobileScroll(scrollTop, imageData) {
-      const maxPile = 10;
-      const catchZoneY = window.innerHeight * 0.5; // Trigger point at middle of screen
-      
-      let caughtCount = imageData.filter(d => d.caught).length;
-      
-      imageData.forEach((data) => {
-        if (!data.wrapper) return;
-        
-        // Get image height
-        const imgHeight = data.wrapper.offsetHeight || data.estimatedHeight;
-        const halfHeight = imgHeight / 2;
-        
-        // Calculate current TOP position on screen
-        const currentTopY = data.initialY - scrollTop;
-        
-        // Calculate where CENTER of image is on screen
-        const centerScreenY = currentTopY + halfHeight;
-        
-        if (!data.caught) {
-          data.wrapper.style.zIndex = 500 + data.index;
-          
-          // Catch when center of image reaches catch zone
-          if (centerScreenY <= catchZoneY) {
-            data.caught = true;
-            data.caughtScrollPos = scrollTop;
-            caughtCount++;
-            data.caughtOrder = caughtCount;
-            
-            // Haptic feedback when image catches
-            triggerHaptic(15);
-            
-            // FREEZE at exact current screen position - no adjustment
-            data.wrapper.style.position = 'fixed';
-            data.wrapper.style.top = currentTopY + 'px';
-            data.wrapper.style.left = data.initialX + 'px';
-            data.wrapper.style.zIndex = 100 + data.caughtOrder;
-            data.wrapper.style.visibility = 'visible';
-            data.wrapper.style.opacity = 1;
-          }
-        } else {
-          // Check if scrolling back up enough to uncatch
-          const scrollSinceCaught = scrollTop - data.caughtScrollPos;
-          
-          if (scrollSinceCaught < -30) {
-            data.caught = false;
-            data.caughtOrder = 0;
-            data.wrapper.style.position = 'absolute';
-            data.wrapper.style.top = data.initialY + 'px';
-            data.wrapper.style.left = data.initialX + 'px';
-            data.wrapper.style.opacity = 1;
-            data.wrapper.style.visibility = 'visible';
-            data.wrapper.style.zIndex = 500 + data.index;
-            data.wrapper.style.transform = 'scale(1)';
-            data.wrapper.style.boxShadow = '0 4px 24px rgba(0,0,0,0.15)';
-          }
-        }
-      });
-      
-      // Count caught images that are visible and apply visual depth
-      const caughtImages = imageData.filter(d => d.caught);
-      const visibleCaught = caughtImages.filter(d => d.wrapper.style.visibility !== 'hidden');
-      
-      // Sort by catch order for depth effects
-      visibleCaught.sort((a, b) => a.caughtOrder - b.caughtOrder);
-      
-      // Apply scale and shadow variation based on pile position (with smooth CSS transitions)
-      visibleCaught.forEach((data, idx) => {
-        const pilePosition = idx / Math.max(visibleCaught.length - 1, 1); // 0 = oldest, 1 = newest
-        
-        // Scale: older images slightly smaller (0.92 to 1.0)
-        const scale = 0.92 + (pilePosition * 0.08);
-        data.wrapper.style.transform = `scale(${scale})`;
-        
-        // Shadow: newer images have stronger shadows (smooth transition via CSS)
-        const shadowBlur = 12 + (pilePosition * 20);
-        const shadowOpacity = 0.1 + (pilePosition * 0.2);
-        data.wrapper.style.boxShadow = `0 ${4 + pilePosition * 8}px ${shadowBlur}px rgba(0,0,0,${shadowOpacity})`;
-      });
-      
-      if (visibleCaught.length > maxPile) {
-        // Sort by catch order (lowest = caught first)
-        visibleCaught.sort((a, b) => a.caughtScrollPos - b.caughtScrollPos);
-        
-        // Hide oldest caught images
-        const toHide = visibleCaught.slice(0, visibleCaught.length - maxPile);
-        
-        toHide.forEach(data => {
-          data.wrapper.style.visibility = 'hidden';
-        });
-      }
-      
-      // Restore visibility for caught images that should be visible based on pile limit
-      // (in case user scrolled back and pile has room)
-      const hiddenCaught = caughtImages.filter(d => d.wrapper.style.visibility === 'hidden');
-      if (hiddenCaught.length > 0 && visibleCaught.length < maxPile) {
-        // Sort hidden by catch order (most recent first to restore)
-        hiddenCaught.sort((a, b) => b.caughtScrollPos - a.caughtScrollPos);
-        
-        const canRestore = maxPile - visibleCaught.length;
-        const toRestore = hiddenCaught.slice(0, canRestore);
-        
-        toRestore.forEach(data => {
-          data.wrapper.style.visibility = 'visible';
-        });
-      }
-    }
-    
-    function repositionMobileImages(imageData, scrollContainer, baseSpacing) {
-      let yPos = window.innerHeight + 50;
-      
-      imageData.forEach((data) => {
-        const actualHeight = data.wrapper.offsetHeight;
-        const height = actualHeight > 0 ? actualHeight : data.estimatedHeight;
-        
-        data.initialY = yPos;
-        if (!data.caught) {
-          data.wrapper.style.top = yPos + 'px';
-        }
-        
-        // Use large spacing for one-at-a-time loading feel
-        yPos += height + baseSpacing + data.randomOffset;
-      });
-      
-      scrollContainer.style.height = (yPos + 200) + 'px';
-    }
-
-    function openMobileLightbox(src) {
-      // Save scroll position before opening lightbox
-      savedScrollPosition = canvas.scrollTop;
-      
-      // Find the index in allPhotos array
-      lightboxIndex = allPhotos.indexOf(src);
-      if (lightboxIndex === -1) lightboxIndex = 0;
-      
-      lightboxImg.src = src;
-      lightboxCurrent.textContent = String(lightboxIndex + 1).padStart(2, '0');
-      lightboxTotal.textContent = String(allPhotos.length).padStart(2, '0');
-      
-      lightbox.classList.add('active');
-      document.body.style.overflow = 'hidden';
-      
-      setTimeout(() => lightbox.classList.add('visible'), 10);
-    }
-
-    // ===== DESKTOP EXPERIENCE =====
-
-    function displayImages() {
-      // Clear existing
-      canvas.innerHTML = '';
-      displayedPhotos = [];
-      
-      // Show popup notice
-      showPopupNotice();
-      
-      // Shuffle and pick images
-      const shuffled = shuffleArray([...allPhotos]);
-      const selected = shuffled.slice(0, imageCount);
-      
-      // Staggered reveal
-      selected.forEach((src, i) => {
-        setTimeout(() => {
-          spawnImage(src, i);
-        }, i * 120);
-      });
-    }
-    
-    function showPopupNotice() {
-      if (!isMobile && popupNotice) {
-        // Detect touch capability for appropriate message
-        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-        
-        if (isTouchDevice) {
-          popupNotice.textContent = 'drag & resize photos • double-tap to view';
-        } else {
-          popupNotice.textContent = 'click drag & resize photos';
-        }
-        
-        popupNotice.classList.add('visible');
-        setTimeout(() => {
-          popupNotice.classList.remove('visible');
-        }, 5000);
-      }
-    }
-
-    function spawnImage(src, index) {
-      const wrapper = document.createElement('div');
-      wrapper.className = 'float-img';
-      
-      const img = document.createElement('img');
-      img.src = src;
-      img.alt = 'Photography by Devin Feilen';
-      img.loading = 'eager';
-      
-      // Random width between 250-400px
-      const targetWidth = 250 + Math.random() * 150;
-      wrapper.style.width = targetWidth + 'px';
-      
-      // Add resize handle
-      const resizeHandle = document.createElement('div');
-      resizeHandle.className = 'resize-handle';
-      wrapper.appendChild(resizeHandle);
-      
-      wrapper.appendChild(img);
-      canvas.appendChild(wrapper);
-      
-      // Wait for image to load to get actual dimensions
-      img.onload = () => {
-        const aspectRatio = img.naturalWidth / img.naturalHeight;
-        const actualHeight = targetWidth / aspectRatio;
-        
-        // Random position with padding from edges, accounting for actual height
-        const padding = 60;
-        const maxX = Math.max(padding, window.innerWidth - targetWidth - padding);
-        const maxY = Math.max(padding, window.innerHeight - actualHeight - padding);
-        const x = padding + Math.random() * (maxX - padding);
-        const y = padding + Math.random() * (maxY - padding);
-        
-        wrapper.style.left = x + 'px';
-        wrapper.style.top = y + 'px';
-        wrapper.style.zIndex = index + 1;
-        
-        // Store original positions for organize toggle
-        wrapper.dataset.originalLeft = x;
-        wrapper.dataset.originalTop = y;
-        wrapper.dataset.originalWidth = targetWidth;
-        wrapper.dataset.aspectRatio = aspectRatio;
-        
-        // Make draggable
-        makeDraggable(wrapper);
-        
-        // Make resizable
-        makeResizable(wrapper, img, resizeHandle);
-        
-        // Fade in after positioning
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            wrapper.classList.add('visible');
-          });
-        });
-      };
-      
-      // Double-click to open lightbox (mouse)
-      wrapper.addEventListener('dblclick', () => {
-        openLightbox(src);
-      });
-      
-      // Double-tap to open lightbox (touch)
-      let lastTapTime = 0;
-      let lastTapMoved = false;
-      
-      wrapper.addEventListener('touchstart', () => {
-        lastTapMoved = false;
-      }, { passive: true });
-      
-      wrapper.addEventListener('touchmove', () => {
-        lastTapMoved = true;
-      }, { passive: true });
-      
-      wrapper.addEventListener('touchend', (e) => {
-        // Only trigger double-tap if finger didn't move (wasn't a drag)
-        if (lastTapMoved) {
-          lastTapTime = 0;
-          return;
-        }
-        
-        const currentTime = new Date().getTime();
-        const tapInterval = currentTime - lastTapTime;
-        
-        // Check if it's a double tap (within 300ms)
-        if (tapInterval < 300 && tapInterval > 0) {
-          e.preventDefault();
-          openLightbox(src);
-          lastTapTime = 0; // Reset to prevent triple-tap issues
-        } else {
-          lastTapTime = currentTime;
-        }
-      }, { passive: false });
-      
-      displayedPhotos.push(src);
-    }
-
-    function makeDraggable(wrapper) {
-      let isDragging = false;
-      let hasMoved = false;
-      let startX, startY, initialLeft, initialTop;
-      
-      // Check if image is off screen and bounce back
-      function checkBounceBack() {
-        const rect = wrapper.getBoundingClientRect();
-        const padding = 50; // Keep at least 50px visible
-        let needsBounce = false;
-        let newLeft = wrapper.offsetLeft;
-        let newTop = wrapper.offsetTop;
-        
-        // Check if dragged too far off each edge
-        if (rect.right < padding) {
-          // Too far left
-          newLeft = padding - rect.width + padding;
-          needsBounce = true;
-        } else if (rect.left > window.innerWidth - padding) {
-          // Too far right
-          newLeft = window.innerWidth - padding - padding;
-          needsBounce = true;
-        }
-        
-        if (rect.bottom < padding) {
-          // Too far up
-          newTop = padding - rect.height + padding;
-          needsBounce = true;
-        } else if (rect.top > window.innerHeight - padding) {
-          // Too far down
-          newTop = window.innerHeight - padding - padding;
-          needsBounce = true;
-        }
-        
-        if (needsBounce) {
-          // Add bounce class for elastic animation
-          wrapper.classList.add('bounce-back');
-          wrapper.style.left = newLeft + 'px';
-          wrapper.style.top = newTop + 'px';
-          
-          // Show "nice try" message
-          showNiceTryMessage();
-          
-          // Remove class after animation
-          setTimeout(() => {
-            wrapper.classList.remove('bounce-back');
-          }, 500);
-        }
-      }
-      
-      // Mouse events
-      wrapper.addEventListener('mousedown', (e) => {
-        // Ignore if clicking resize handle
-        if (e.target.classList.contains('resize-handle')) return;
-        
-        isDragging = true;
-        hasMoved = false;
-        wrapper.classList.add('dragging');
-        
-        startX = e.clientX;
-        startY = e.clientY;
-        initialLeft = wrapper.offsetLeft;
-        initialTop = wrapper.offsetTop;
-        
-        // Bring to front
-        wrapper.style.zIndex = getMaxZIndex() + 1;
-        
-        e.preventDefault();
-      });
-      
-      document.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-        
-        const deltaX = e.clientX - startX;
-        const deltaY = e.clientY - startY;
-        
-        if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
-          hasMoved = true;
-        }
-        
-        wrapper.style.left = (initialLeft + deltaX) + 'px';
-        wrapper.style.top = (initialTop + deltaY) + 'px';
-      });
-      
-      document.addEventListener('mouseup', () => {
-        if (isDragging) {
-          isDragging = false;
-          wrapper.classList.remove('dragging');
-          checkBounceBack();
-        }
-      });
-      
-      // Touch events for iPad/touch screens
-      wrapper.addEventListener('touchstart', (e) => {
-        // Ignore if touching resize handle
-        if (e.target.classList.contains('resize-handle')) return;
-        
-        isDragging = true;
-        hasMoved = false;
-        wrapper.classList.add('dragging');
-        
-        const touch = e.touches[0];
-        startX = touch.clientX;
-        startY = touch.clientY;
-        initialLeft = wrapper.offsetLeft;
-        initialTop = wrapper.offsetTop;
-        
-        // Bring to front
-        wrapper.style.zIndex = getMaxZIndex() + 1;
-      }, { passive: true });
-      
-      wrapper.addEventListener('touchmove', (e) => {
-        if (!isDragging) return;
-        
-        const touch = e.touches[0];
-        const deltaX = touch.clientX - startX;
-        const deltaY = touch.clientY - startY;
-        
-        if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
-          hasMoved = true;
-        }
-        
-        wrapper.style.left = (initialLeft + deltaX) + 'px';
-        wrapper.style.top = (initialTop + deltaY) + 'px';
-        
-        // Prevent page scroll while dragging
-        e.preventDefault();
-      }, { passive: false });
-      
-      wrapper.addEventListener('touchend', () => {
-        if (isDragging) {
-          isDragging = false;
-          wrapper.classList.remove('dragging');
-          checkBounceBack();
-        }
-      }, { passive: true });
-    }
-    
-    // "Nice try" message for bounce back easter egg
-    let niceTryTimeout = null;
-    function showNiceTryMessage() {
-      // Don't show if one is already visible
-      if (document.querySelector('.nice-try-message')) return;
-      
-      const msg = document.createElement('div');
-      msg.className = 'nice-try-message';
-      msg.textContent = 'Nice try 😏';
-      msg.style.cssText = `
-        position: fixed;
-        bottom: 80px;
-        left: 50%;
-        transform: translateX(-50%);
-        font-size: 12px;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-        color: var(--text);
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        pointer-events: none;
-        z-index: 1000;
-      `;
-      document.body.appendChild(msg);
-      
-      // Fade in
-      requestAnimationFrame(() => {
-        msg.style.opacity = '0.7';
-      });
-      
-      // Fade out and remove
-      clearTimeout(niceTryTimeout);
-      niceTryTimeout = setTimeout(() => {
-        msg.style.opacity = '0';
-        setTimeout(() => msg.remove(), 300);
-      }, 1500);
-    }
-
-    function makeResizable(wrapper, img, handle) {
-      let isResizing = false;
-      let startX, startY, startWidth, startHeight, aspectRatio;
-      
-      // Mouse events
-      handle.addEventListener('mousedown', (e) => {
-        isResizing = true;
-        startX = e.clientX;
-        startY = e.clientY;
-        startWidth = wrapper.offsetWidth;
-        startHeight = img.offsetHeight;
-        aspectRatio = img.naturalWidth / img.naturalHeight;
-        
-        // Bring to front
-        wrapper.style.zIndex = getMaxZIndex() + 1;
-        
-        e.preventDefault();
-        e.stopPropagation();
-      });
-      
-      document.addEventListener('mousemove', (e) => {
-        if (!isResizing) return;
-        
-        const deltaX = e.clientX - startX;
-        const deltaY = e.clientY - startY;
-        const delta = Math.max(deltaX, deltaY);
-        
-        let newWidth = startWidth + delta;
-        newWidth = Math.max(100, Math.min(newWidth, window.innerWidth * 0.8));
-        
-        wrapper.style.width = newWidth + 'px';
-      });
-      
-      document.addEventListener('mouseup', () => {
-        isResizing = false;
-      });
-      
-      // Touch events for iPad/touch screens
-      handle.addEventListener('touchstart', (e) => {
-        isResizing = true;
-        const touch = e.touches[0];
-        startX = touch.clientX;
-        startY = touch.clientY;
-        startWidth = wrapper.offsetWidth;
-        startHeight = img.offsetHeight;
-        aspectRatio = img.naturalWidth / img.naturalHeight;
-        
-        // Bring to front
-        wrapper.style.zIndex = getMaxZIndex() + 1;
-        
-        e.stopPropagation();
-      }, { passive: true });
-      
-      handle.addEventListener('touchmove', (e) => {
-        if (!isResizing) return;
-        
-        const touch = e.touches[0];
-        const deltaX = touch.clientX - startX;
-        const deltaY = touch.clientY - startY;
-        const delta = Math.max(deltaX, deltaY);
-        
-        let newWidth = startWidth + delta;
-        newWidth = Math.max(100, Math.min(newWidth, window.innerWidth * 0.8));
-        
-        wrapper.style.width = newWidth + 'px';
-        
-        e.preventDefault();
-      }, { passive: false });
-      
-      handle.addEventListener('touchend', () => {
-        isResizing = false;
-      }, { passive: true });
-    }
-
-    function getMaxZIndex() {
-      let max = 0;
-      document.querySelectorAll('.float-img').forEach(el => {
-        const z = parseInt(el.style.zIndex) || 0;
-        if (z > max) max = z;
-      });
-      return max;
-    }
-
-    function openLightbox(src) {
-      // Save scroll position before opening lightbox
-      savedScrollPosition = canvas.scrollTop;
-      
-      lightboxIndex = allPhotos.indexOf(src);
-      if (lightboxIndex === -1) lightboxIndex = 0;
-      
-      lightboxImg.src = src;
-      lightboxCurrent.textContent = String(lightboxIndex + 1).padStart(2, '0');
-      lightboxTotal.textContent = String(allPhotos.length).padStart(2, '0');
-      
-      lightbox.classList.add('active');
-      document.body.style.overflow = 'hidden';
-      
-      setTimeout(() => lightbox.classList.add('visible'), 10);
-    }
-
-    function closeLightbox() {
-      lightbox.classList.remove('visible');
-      setTimeout(() => {
-        lightbox.classList.remove('active');
-        document.body.style.overflow = '';
-        
-        // Restore scroll position
-        if (savedScrollPosition > 0) {
-          canvas.scrollTop = savedScrollPosition;
-        }
-      }, 400);
-    }
-
-    function navigateLightbox(dir) {
-      lightboxIndex = (lightboxIndex + dir + allPhotos.length) % allPhotos.length;
-      
-      lightboxImg.style.opacity = '0';
-      lightboxImg.style.transform = 'translateY(10px)';
-      
-      setTimeout(() => {
-        lightboxImg.src = allPhotos[lightboxIndex];
-        lightboxCurrent.textContent = String(lightboxIndex + 1).padStart(2, '0');
-        lightboxImg.style.opacity = '1';
-        lightboxImg.style.transform = 'translateY(0)';
-      }, 200);
-    }
-
-    function shuffleArray(array) {
-      for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-      }
-      return array;
-    }
-
-    // Handle resize
-    window.addEventListener('resize', () => {
-      const wasMobile = isMobile;
-      isMobile = window.innerWidth <= 768;
-      
-      if (wasMobile !== isMobile) {
-        loadCategory(currentCategory);
-      }
-    });
-  </script>
+</noscript>
 </body>
 </html>
