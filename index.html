@@ -229,8 +229,29 @@ html{scroll-snap-type:y mandatory}
   max-width:100%;
   aspect-ratio:var(--ar,3/2);
 }
-.frame.auto{aspect-ratio:auto}
-.frame.auto img{position:static;height:auto}
+/* When a photograph's dimensions aren't in the JSON we can't reserve its
+   space — but we must still bound it. The old rule left height entirely
+   to the image: the frame width was computed from the --arn fallback of
+   1.5, then `aspect-ratio:auto` let a portrait become 1.5× taller than
+   that width. Landscape matched the fallback and looked correct;
+   portraits ran hundreds of pixels off the bottom of the screen.
+
+   Here nothing is computed from a guessed ratio. Both dimensions are
+   capped directly, so any shape fits whatever its real proportions turn
+   out to be. */
+.frame.auto{
+  width:auto;
+  max-width:var(--imgw);
+  aspect-ratio:auto;
+  background:none;        /* no placeholder box — its size isn't known */
+}
+.frame.auto img{
+  position:static;
+  width:auto;height:auto;
+  max-width:var(--imgw);
+  max-height:var(--imgh);
+  object-fit:contain;
+}
 .frame img{
   position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
   opacity:0;transition:opacity 1.1s var(--ease);
@@ -436,20 +457,24 @@ const SERIES = [
 const INTRO = {
   enabled:      true,
   oncePerVisit: true,   // false = replay every time you open a group
-  count:        7,      // how many photographs scatter (rest wait below)
-  cardVW:       15,     // scattered card width, % of viewport width
-  popStagger:   75,     // ms between each one appearing
-  popDuration:  620,
-  hold:         380,    // beat before it collects itself
-  convergeBase: 1000,   // first photograph's flight time
-  convergeStep: 45      // each subsequent one leaves slightly later
+  cardVW:           15,   // scattered card width at 7 photos; scales down
+  popStagger:       85,   // ms between each one appearing…
+  popWindow:       800,   // …but the whole scatter fits in this window
+  popDuration:     700,
+  hold:            350,   // beat before it collects itself
+  convergeDuration: 950,  // every card's flight time (only departure varies)
+  convergeStagger:  55,   // …
+  convergeWindow:  520,   // …compressed to this in total
+  platesFade:      550,   // must match the .plates transition in the CSS
+  handoffFade:     260,   // overlay cross-fade at the very end
+  readyTimeout:   1400    // longest we'll wait on the first full-size image
 };
-/* Total ≈ 3.0s, up from 1.9. Slower and gentler is what makes it read as
-   smooth rather than sharp — but understand the trade: three seconds is
-   a long time to stand between someone and the work. It only plays once
-   per group per visit, and any input skips it, which is what makes the
-   length affordable. If it drags, lower `count` before you shorten the
-   durations — fewer cards trims both phases at once and keeps the pace. */
+/* Roughly 3.3s for a group of eight, 3.5s for fourteen — the windows
+   above keep it from growing with the number of photographs. It plays
+   once per group per visit and any input skips it, which is what makes
+   that length affordable. If it drags, cut `popWindow` and
+   `convergeWindow` first; they compress the queue without touching how
+   softly any individual card moves. */
 
 const mq = q => (window.matchMedia ? window.matchMedia(q) : { matches:false });
 const REDUCED = mq('(prefers-reduced-motion: reduce)').matches;
@@ -466,6 +491,24 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 const urlFor = (slug,f) => /^https?:\/\//i.test(f) ? f : `${CDN}/${slug}/${f}`;
 const sized  = (u,w) => USE_OPTIMIZER ? u + (u.includes('?')?'&':'?') + 'width=' + w : u;
 const srcset = u => USE_OPTIMIZER ? WIDTHS.map(w=>`${sized(u,w)} ${w}w`).join(', ') : '';
+
+/* If the JSON didn't carry dimensions, learn them from the file itself
+   the moment it decodes and promote the frame to a real aspect-ratio.
+   The photo object is shared with FLAT and DATA, so the viewer and the
+   intro get the correct ratio too — and every later visit to the group
+   is already correct. Migrating the JSON is still better (it reserves
+   the space *before* the image arrives, so nothing shifts), but the
+   site is no longer broken without it. */
+function adoptRatio(frame, img, p) {
+  if (p.ar) return;
+  const w = img.naturalWidth, h = img.naturalHeight;
+  if (!w || !h) return;
+  p.ar  = `${w} / ${h}`;
+  p.arn = w / h;
+  frame.style.setProperty('--ar', p.ar);
+  frame.style.setProperty('--arn', p.arn);
+  frame.classList.remove('auto');
+}
 
 function mount(img, url, { sizes, eager } = {}) {
   img.decoding = 'async';
@@ -596,7 +639,12 @@ function renderSeries(slug) {
     fig.appendChild(btn);
     plates.appendChild(fig);
 
-    mount(img, p.url, { sizes:'(max-width:1200px) 92vw, 38vw', eager: n===0 });
+    mount(img, p.url, { sizes:'(max-width:1600px) 96vw, 52vw', eager: n===0 });
+    if (!p.ar) {
+      const learn = () => adoptRatio(frame, img, p);
+      if (img.complete && img.naturalWidth) learn();
+      else img.addEventListener('load', learn, { once:true });
+    }
     btn.addEventListener('click', () => openLB(gi < 0 ? 0 : gi));
   });
 
@@ -664,20 +712,32 @@ function shouldRunIntro(slug) {
   return true;
 }
 
-/* Scatter positions: a loose grid with jitter. Pure random clumps and
-   leaves holes; a jittered grid reads as scattered but stays even. */
+/* Scatter positions.
+
+   Still built on a grid underneath, because pure random clumps in one
+   corner and leaves holes in another — it looks like a bug, not a
+   scatter. What makes it read as random is everything layered on top:
+   cells are dealt out in shuffled order so nothing appears left to
+   right, jitter now covers most of each cell, and each card gets its
+   own size and rotation. */
 function scatterLayout(n, rnd) {
-  const cols = n <= 4 ? 2 : n <= 6 ? 3 : 4;
+  const cols = Math.max(2, Math.round(Math.sqrt(n * 1.7)));
   const rows = Math.ceil(n / cols);
   const cw = 100 / cols, ch = 100 / rows;
-  return Array.from({ length: n }, (_, i) => {
-    const cx = (i % cols) * cw, cy = Math.floor(i / cols) * ch;
-    return {
-      x: cx + cw * (0.10 + rnd() * 0.45),
-      y: cy + ch * (0.12 + rnd() * 0.40),
-      rot: (rnd() * 2 - 1) * 7
-    };
-  });
+
+  const cells = Array.from({ length: n }, (_, i) => i);
+  for (let i = cells.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [cells[i], cells[j]] = [cells[j], cells[i]];
+  }
+
+  return cells.map(cell => ({
+    x:     (cell % cols) * cw + cw * (0.02 + rnd() * 0.60),
+    y:     Math.floor(cell / cols) * ch + ch * (0.02 + rnd() * 0.55),
+    rot:   (rnd() * 2 - 1) * 14,
+    size:  0.70 + rnd() * 0.60,   // each card its own size
+    when:  rnd()                  // and its own place in the queue
+  }));
 }
 
 function runIntro(scope, series) {
@@ -690,96 +750,145 @@ function runIntro(scope, series) {
   platesEl.classList.add('pre');
   document.body.style.overflow = 'hidden';   // no scrolling mid-flight
 
-  const n = Math.min(INTRO.count, plates.length);
-  const rnd = seededRandom(SEED);
+  // Every photograph in the group takes part — none are held back.
+  const n = plates.length;
+  const rnd = seededRandom(SEED + n);
   const spots = scatterLayout(n, rnd);
+
+  // Cards shrink as the group grows, so fourteen still fit on screen,
+  // and the queue compresses so the opening beat doesn't stretch out.
+  const baseVW = Math.max(6.5, INTRO.cardVW * Math.sqrt(7 / n));
+  const popStep = Math.min(INTRO.popStagger,      INTRO.popWindow / n);
+  const cvStep  = Math.min(INTRO.convergeStagger, INTRO.convergeWindow / n);
 
   const layer = document.createElement('div');
   layer.className = 'intro';
   document.body.appendChild(layer);
 
-  const cards = [];
-  for (let i = 0; i < n; i++) {
-    const p = series.photos[i];
+  // Appearance order is shuffled, so they don't arrive in reading order.
+  const queue = spots.map((s, i) => ({ i, when: s.when }))
+                     .sort((a, b) => a.when - b.when);
+  const place = new Array(n);
+  queue.forEach((q, k) => { place[q.i] = k; });
+
+  const cards = series.photos.slice(0, n).map((p, i) => {
     const fig = document.createElement('figure');
-    fig.style.left = spots[i].x + '%';
-    fig.style.top  = spots[i].y + '%';
-    fig.style.width = INTRO.cardVW + 'vw';
+    fig.style.left  = spots[i].x + '%';
+    fig.style.top   = spots[i].y + '%';
+    fig.style.width = (baseVW * spots[i].size).toFixed(2) + 'vw';
     const img = document.createElement('img');
     img.alt = '';
     if (p.ar) img.style.aspectRatio = p.ar;
     img.src = USE_OPTIMIZER ? sized(p.url, 640) : p.url;   // thumbnails only
     fig.appendChild(img);
     layer.appendChild(fig);
-    cards.push({ fig, rot: spots[i].rot });
-  }
+    return { fig, rot: spots[i].rot, queued: place[i] };
+  });
 
-  // Any deliberate input ends it immediately. Never trap someone in an
-  // animation they did not ask for.
-  const finish = () => {
-    if (!introRunning) return;
-    introRunning = false;
+  const timers = [];
+  const at = (ms, fn) => timers.push(setTimeout(fn, ms));
+
+  const detach = () => {
     removeEventListener('wheel', finish);
     removeEventListener('touchstart', finish);
     removeEventListener('keydown', finish);
     removeEventListener('click', finish);
+  };
+
+  // Any deliberate input ends it immediately. Never trap someone in an
+  // animation they did not ask for.
+  function finish() {
+    if (!introRunning) return;
+    introRunning = false;
+    detach();
+    timers.forEach(clearTimeout);
     cards.forEach(c => c.fig.getAnimations().forEach(a => a.cancel()));
     layer.remove();
     document.body.style.overflow = '';
     platesEl.classList.remove('pre');
-  };
+  }
   introAbort = finish;
   addEventListener('wheel', finish, { once:true, passive:true });
   addEventListener('touchstart', finish, { once:true, passive:true });
   addEventListener('keydown', finish, { once:true });
   addEventListener('click', finish, { once:true });
 
-  // Phase 1 — arrive, scattered
-  cards.forEach((c, i) => {
+  /* ---- Phase 1: arrive, scattered ---- */
+  cards.forEach(c => {
     c.fig.animate(
-      [{ opacity:0, transform:`scale(.72) rotate(${c.rot}deg)` },
+      [{ opacity:0, transform:`scale(.62) rotate(${c.rot}deg)` },
        { opacity:1, transform:`scale(1) rotate(${c.rot}deg)` }],
-      { duration: INTRO.popDuration, delay: i * INTRO.popStagger,
+      { duration: INTRO.popDuration, delay: c.queued * popStep,
         easing:'cubic-bezier(.4,0,.2,1)', fill:'forwards' });
   });
 
-  const settled = (n - 1) * INTRO.popStagger + INTRO.popDuration + INTRO.hold;
+  const settled = (n - 1) * popStep + INTRO.popDuration + INTRO.hold;
 
-  // Phase 2 — collect into the column
-  setTimeout(() => {
+  /* ---- Phase 2: collect into the column ---- */
+  at(settled, () => {
     if (!introRunning) return;
 
-    const targets = plates.slice(0, n).map(p => $('.frame', p).getBoundingClientRect());
+    const targets = plates.map(p => $('.frame', p).getBoundingClientRect());
 
     cards.forEach((c, i) => {
       const from = c.fig.getBoundingClientRect();
       const to = targets[i];
       if (!from.width || !to.width) return;
-      const dx = (to.left + to.width / 2) - (from.left + from.width / 2);
+      const dx = (to.left + to.width  / 2) - (from.left + from.width  / 2);
       const dy = (to.top  + to.height / 2) - (from.top  + from.height / 2);
       const s  = to.width / from.width;
 
       c.fig.animate(
         [{ transform:`translate(0,0) scale(1) rotate(${c.rot}deg)` },
          { transform:`translate(${dx}px, ${dy}px) scale(${s}) rotate(0deg)` }],
-        { duration: INTRO.convergeBase + i * INTRO.convergeStep,
-          delay: i * INTRO.convergeStep,
-          // Eases in as well as out, so the cards drift into motion
-          // rather than being flung.
+        // Same duration for everyone, only the departure staggered. The
+        // first photograph therefore always lands first and alone.
+        { duration: INTRO.convergeDuration, delay: i * cvStep,
           easing:'cubic-bezier(.45,0,.15,1)', fill:'forwards' });
     });
 
-    // Swap to the real column on the frame the flight ends. The overlay
-    // card and the real frame are the same picture at the same size and
-    // position by then, so nothing visibly changes hands.
-    const flight = INTRO.convergeBase + (n - 1) * INTRO.convergeStep * 2;
-    setTimeout(() => {
+    /* ---- Phase 3: the hand-off ----
+
+       This is what used to snap. The real column's fade is a 550ms CSS
+       transition, but the overlay was being removed one frame after it
+       started — so the picture vanished and reappeared from nothing.
+
+       Now the fade *starts early enough to finish* exactly as the first
+       card lands, and the overlay is then cross-faded out on top of an
+       already-solid image. Two identical pictures in the same place, so
+       there is nothing to see. */
+    const heroLands = INTRO.convergeDuration;
+    const allLand   = INTRO.convergeDuration + (n - 1) * cvStep;
+
+    const reveal = () => { if (introRunning) platesEl.classList.remove('pre'); };
+    const firstImg = $('.frame img', plates[0]);
+    const loaded = () => firstImg && firstImg.complete && firstImg.naturalWidth;
+
+    at(Math.max(0, heroLands - INTRO.platesFade), () => {
       if (!introRunning) return;
-      platesEl.classList.remove('pre');
-      requestAnimationFrame(() => { layer.remove(); introRunning = false;
-                                    document.body.style.overflow = ''; });
-    }, flight - 60);
-  }, settled);
+      // Never fade into an empty frame: if the full-size first image is
+      // still in flight, hold the reveal until it lands.
+      if (loaded()) return reveal();
+      let done = false;
+      const go = () => { if (!done) { done = true; reveal(); } };
+      firstImg.addEventListener('load', go, { once:true });
+      firstImg.addEventListener('error', go, { once:true });
+      at(INTRO.readyTimeout, go);
+    });
+
+    at(allLand + 80, () => {
+      if (!introRunning) return;
+      const out = layer.animate([{ opacity:1 }, { opacity:0 }],
+        { duration: INTRO.handoffFade, easing:'linear', fill:'forwards' });
+      const end = () => {
+        layer.remove();
+        introRunning = false;
+        detach();
+        document.body.style.overflow = '';
+      };
+      out.finished.then(end).catch(end);
+    });
+  });
 }
 
 /* ============================================================================
