@@ -36,7 +36,6 @@
   --fg:#ffffff;
   --fg-dim:#8a8a8a;      /* 5.7:1 on --bg — secondary and disabled only */
   --sunk:#161616;
-  --rule:#242424;        /* the divider between photographs */
 
   --font:'Space Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
   --size:13px;
@@ -80,7 +79,6 @@
 }
 [data-theme="light"]{
   --bg:#f0f0ed; --fg:#0a0a0a; --fg-dim:#686862; --sunk:#e2e2dd;  /* dim 4.9:1 */
-  --rule:#dcdcd7;
 }
 
 *,*::before,*::after{box-sizing:border-box}
@@ -190,8 +188,12 @@ html{scroll-snap-type:y mandatory}
 
 .plates{padding:0}
 
+/* Nothing separates the photographs but the background. The hairline
+   that used to sit on the seam is gone — on a near-black page any rule
+   light enough to see reads as a white line, and once the frames came
+   down to 66svh the 34% of empty screen between them does the job on
+   its own. */
 .plate{
-  position:relative;
   min-height:100svh;
   display:grid;place-items:center;
   padding:0 var(--edge-r) 0 var(--edge-l);
@@ -199,19 +201,6 @@ html{scroll-snap-type:y mandatory}
   scroll-snap-stop:always;
 }
 
-/* A hairline exactly on the seam between two slots — which is the
-   midpoint between two photographs. Without it, consecutive portraits
-   are the same width, vertically stacked, and read as one continuous
-   strip however much air you put between them. The gap alone doesn't
-   separate them; an edge does.
-   Delete this rule if it's too much — the extra space stays either way. */
-.plate + .plate::before{
-  content:'';
-  position:absolute;top:0;
-  left:var(--edge-l);right:var(--edge-r);
-  height:1px;
-  background:var(--rule);
-}
 .frame{
   position:relative;overflow:hidden;background:var(--sunk);
   /* Capped two ways at once: never wider than 38vw, never taller than
