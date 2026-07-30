@@ -486,11 +486,24 @@ const MAX_PER_SERIES = 14;
    another and the site regroups. Later you can consolidate into three
    real files — bikes.json / life.json / work.json — and set a single
    source each. */
+/* `title` is the only word anyone sees. `slug` is the URL segment.
+   `sources` is which JSON files feed the group — unrelated to both, so
+   your existing filenames never have to change.
+
+   A group whose JSON is missing or empty simply doesn't appear, and the
+   link at the end of the previous group skips over it, so a line can sit
+   here before its photographs are uploaded. */
 const SERIES = [
-  { slug:'bikes', title:'Bikes',        sources:['bikes','racing'] },
-  { slug:'life',  title:'Life',         sources:['life','walls','people'] },
-  { slug:'work',  title:'Professional', sources:['ab'] }
+  { slug:'racing',  title:'Racing',       sources:['bikes','racing'] },
+  { slug:'couples', title:'Couples',      sources:['couples'] },
+  { slug:'life',    title:'Life',         sources:['life','walls','people'] },
+  { slug:'work',    title:'Professional', sources:['ab'] }
 ];
+
+/* Old URLs that are already out in the world. The site has been live
+   under #/w/bikes, so that link keeps working rather than landing on
+   "No such series". Delete once you're confident nobody holds one. */
+const ALIASES = { bikes: 'racing', weddings: 'couples' };
 
 
 const mq = q => (window.matchMedia ? window.matchMedia(q) : { matches:false });
@@ -690,8 +703,13 @@ function renderSeries(slug) {
   if (!s) return renderMissing('No such series.');
   pv.innerHTML = '';
 
-  const i = SERIES.findIndex(x => x.slug === slug);
-  const next = SERIES[(i+1) % SERIES.length];
+  /* Step through the groups that actually loaded, not the ones merely
+     configured. Otherwise a group whose JSON isn't uploaded yet still
+     gets linked from the end of the previous one, and the visitor lands
+     on "No such series." */
+  const live = SERIES.filter(x => DATA.has(x.slug));
+  const i = live.findIndex(x => x.slug === slug);
+  const next = live[(i + 1) % live.length];
 
   const el = document.createElement('div');
   el.innerHTML = `<div class="plates" id="plates"></div>
@@ -931,7 +949,7 @@ lb.addEventListener('touchend', e => {
 function parseRoute() {
   const parts = (location.hash || '#/').replace(/^#\/?/, '').split('/').filter(Boolean);
   if (!parts.length)               return { name:'index' };
-  if (parts[0] === 'w')            return { name:'series', slug:parts[1] };
+  if (parts[0] === 'w')            return { name:'series', slug: ALIASES[parts[1]] || parts[1] };
   if (parts[0] === 'information')  return { name:'information' };
   return { name:'missing' };
 }
