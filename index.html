@@ -308,6 +308,20 @@ html{scroll-snap-type:y mandatory}
   padding:0 var(--edge-r) 0 var(--edge-l);scroll-snap-align:center}
 
 
+/* ---- The renovation notice ----
+   No new type size, no new colour. Just the same 13px held in the middle
+   of the same empty screen as everything else. */
+.reno{min-height:100svh;display:grid;place-items:center;
+  padding:0 var(--edge-r) 0 var(--edge-l)}
+.reno-inner{display:grid;justify-items:center;gap:22px;text-align:center;max-width:30rem}
+.reno-toggle{padding:10px 14px;margin:-10px -14px}   /* thumb-sized target */
+.reno-info{
+  display:grid;gap:2px;
+  opacity:0;transform:translateY(-4px);
+  transition:opacity .45s var(--ease),transform .45s var(--ease);
+}
+.reno-info.open{opacity:1;transform:none}
+
 /* ---- Information: five lines, vertically centred ---- */
 .info{min-height:100svh;display:grid;place-items:center;padding:0 var(--edge-r) 0 var(--edge-l)}
 .info-inner{max-width:34rem}
@@ -629,6 +643,7 @@ function mount(img, url, { sizes, eager } = {}) {
    ============================================================================ */
 const DATA = new Map();
 let FLAT = [];
+let RENOVATING = false;   // the photographs can't be reached
 
 async function loadFile(slug) {
   try {
@@ -760,16 +775,43 @@ function renderSeries(slug) {
   return el;
 }
 
+/* Written once and used by both the Information view and the fallback
+   screen, so the two can never drift apart. */
+const INFORMATION = `
+    <p>Devin Feilen is a photographer based in Portland, Oregon.</p>
+    <p><a class="h" href="mailto:dfeeilen@gmail.com">dfeeilen@gmail.com</a></p>
+    <p><a class="h" href="https://instagram.com/devinfeilen" target="_blank" rel="noopener">instagram</a></p>
+    <p><a class="h" href="https://buymeacoffee.com/devinfeilen" target="_blank" rel="noopener">buy me a coffee</a></p>`;
+
 function renderInformation() {
   pv.innerHTML = '';
   const el = document.createElement('div');
   el.className = 'info';
-  el.innerHTML = `<div class="info-inner">
-    <p>Devin Feilen is a photographer based in Portland, Oregon.</p>
-    <p><a class="h" href="mailto:dfeeilen@gmail.com">dfeeilen@gmail.com</a></p>
-    <p><a class="h" href="https://instagram.com/devinfeilen" target="_blank" rel="noopener">instagram</a></p>
-    <p><a class="h" href="https://buymeacoffee.com/devinfeilen" target="_blank" rel="noopener">buy me a coffee</a></p>
-  </div>`;
+  el.innerHTML = `<div class="info-inner">${INFORMATION}</div>`;
+  setBar('');
+  return el;
+}
+
+/* Shown when the photographs can't be reached — either no list loaded at
+   all, or the CDN answered but every image failed. Same 13px, same
+   colour, nothing new introduced. */
+function renderRenovation() {
+  pv.innerHTML = '';
+  const el = document.createElement('div');
+  el.className = 'reno';
+  el.innerHTML = `
+    <div class="reno-inner">
+      <p>Under renovations</p>
+      <button class="h reno-toggle" id="reno-contact" aria-expanded="false">Contact</button>
+      <div class="reno-info" id="reno-info" hidden>${INFORMATION}</div>
+    </div>`;
+  const btn = $('#reno-contact', el), box = $('#reno-info', el);
+  btn.addEventListener('click', () => {
+    const open = btn.getAttribute('aria-expanded') === 'true';
+    btn.setAttribute('aria-expanded', String(!open));
+    if (open) { box.hidden = true; box.classList.remove('open'); }
+    else { box.hidden = false; requestAnimationFrame(() => box.classList.add('open')); }
+  });
   setBar('');
   return el;
 }
@@ -968,7 +1010,11 @@ async function route() {
   await wait(REDUCED ? 0 : 340);
 
   let el;
-  switch (r.name) {
+  if (RENOVATING && r.name !== 'information') {
+    // Information needs no photographs, so it keeps working. Everything
+    // else has nothing to show.
+    el = renderRenovation();
+  } else switch (r.name) {
     case 'series':      el = renderSeries(r.slug);  break;
     case 'information': el = renderInformation();   break;
     case 'index':       el = renderIndex();         break;
@@ -1025,17 +1071,80 @@ themeBtn.addEventListener('click', () => {
 });
 
 /* ============================================================================
+   IS THE CDN ANSWERING?
+
+   The photo lists live on GitHub Pages but the photographs live on Bunny,
+   so the two can fail independently: the site can load perfectly and then
+   show nothing but empty frames.
+
+   A handful of photographs are probed, spread across different groups so
+   one bad file can't speak for the whole library. The bias is deliberate:
+
+     any one loads   -> the site is fine, show it
+     all of them ERROR -> the CDN is genuinely refusing, show the notice
+     they time out   -> assume a slow connection and show the site anyway
+
+   Falsely announcing renovations on a slow phone would be far worse than
+   briefly showing empty frames, so a timeout never triggers it.
+   ============================================================================ */
+const CDN_PROBES = 3;
+const CDN_TIMEOUT = 9000;
+
+function cdnAnswering(urls) {
+  if (!urls.length) return Promise.resolve(false);
+  return new Promise(resolve => {
+    let errors = 0, settled = false;
+    const done = v => { if (!settled) { settled = true; resolve(v); } };
+    const timer = setTimeout(() => done(true), CDN_TIMEOUT);   // slow ≠ dead
+    urls.forEach(u => {
+      const probe = new Image();
+      probe.onload  = () => { clearTimeout(timer); done(true); };
+      probe.onerror = () => {
+        if (++errors === urls.length) { clearTimeout(timer); done(false); }
+      };
+      probe.src = USE_OPTIMIZER ? sized(u, 640) : u;
+    });
+  });
+}
+
+// One photograph from each group, so the sample isn't all from one folder.
+function probeUrls(groups) {
+  const out = [];
+  for (const g of groups) {
+    if (g.photos[0]) out.push(g.photos[0].url);
+    if (out.length === CDN_PROBES) break;
+  }
+  const first = groups[0];
+  if (first) for (const p of first.photos.slice(1)) {      // top up if needed
+    if (out.length === CDN_PROBES) break;
+    out.push(p.url);
+  }
+  return out;
+}
+
+/* ============================================================================
    BOOT
    ============================================================================ */
 (async function init() {
   const loaded = (await Promise.all(SERIES.map(loadSeries))).filter(Boolean);
   loaded.forEach(s => { DATA.set(s.slug, s); s.photos.forEach(p => FLAT.push(p)); });
 
-  if (!loaded.length) {
-    swapIn(view, renderMissing('Nothing loaded. Serve this over http rather than opening the file directly.'));
-    return;
-  }
+  // No lists at all — nothing to show and nothing to probe.
+  if (!loaded.length) { RENOVATING = true; swapIn(view, renderRenovation()); return; }
+
+  // Render straight away. The probe must never sit between a visitor and
+  // the work — on a slow connection that would be seconds of nothing for
+  // a site that is perfectly fine. It runs alongside instead, and only
+  // takes over if the CDN turns out to be genuinely refusing.
   route();
+
+  cdnAnswering(probeUrls(loaded)).then(alive => {
+    if (alive || RENOVATING) return;
+    RENOVATING = true;
+    console.warn('No photographs reachable on the CDN — showing the renovation notice.');
+    if (parseRoute().name !== 'information') swapIn(view, renderRenovation());
+    current = '';        // let the next navigation re-evaluate
+  });
 })();
 })();
 </script>
