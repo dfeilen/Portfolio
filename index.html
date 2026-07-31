@@ -632,10 +632,16 @@ function mount(img, url, { sizes, eager } = {}) {
   const ss = srcset(url);
   if (ss) { img.srcset = ss; img.sizes = sizes || '40vw'; }
   img.src = USE_OPTIMIZER ? sized(url, 1500) : url;
-  const show = () => img.classList.add('ready');
-  if (img.complete && img.naturalWidth) show();
-  else { img.addEventListener('load', show, {once:true});
-         img.addEventListener('error', show, {once:true}); }
+
+  /* A failed image used to be revealed anyway, which is why a missing
+     photograph showed up as the words "Photograph 01" — that's the alt
+     text of a broken image. It now stays at opacity 0, so you see the
+     empty frame rather than a label. */
+  const ok  = () => { img.classList.add('ready'); noteImage(true); };
+  const bad = () => { img.classList.remove('ready'); noteImage(false); };
+  if (img.complete && img.naturalWidth) ok();
+  else { img.addEventListener('load',  ok,  {once:true});
+         img.addEventListener('error', bad, {once:true}); }
 }
 
 /* ============================================================================
@@ -1090,6 +1096,37 @@ themeBtn.addEventListener('click', () => {
 const CDN_PROBES = 3;
 const CDN_TIMEOUT = 9000;
 
+/* The probe above samples three photographs. That's a fast check for a
+   pull zone that's entirely dead, but it's only a sample — if those three
+   happen to still be cached at the visitor's edge while the rest have
+   gone, the site sails on and shows empty frames.
+
+   So the real photographs report back as well. Every image the visitor is
+   actually shown counts itself, and once enough have been tried and every
+   single one has failed, the notice takes over. This is ground truth
+   rather than a sample: it reacts to what is genuinely on the screen. */
+const FAIL_SAMPLE = 3;      // don't judge on fewer than this
+let imgTried = 0, imgFailed = 0;
+
+function noteImage(ok) {
+  imgTried++;
+  if (!ok) imgFailed++;
+  if (RENOVATING) return;
+  if (imgTried >= FAIL_SAMPLE && imgFailed === imgTried) {
+    declareRenovation('every photograph attempted so far has failed to load');
+  }
+}
+
+function declareRenovation(why) {
+  if (RENOVATING) return;
+  RENOVATING = true;
+  console.warn('Showing the renovation notice — ' + why + '.');
+  if (windowIO) { windowIO.disconnect(); windowIO = null; }
+  if (countIO)  { countIO.disconnect();  countIO  = null; }
+  if (parseRoute().name !== 'information') swapIn(view, renderRenovation());
+  current = '';
+}
+
 function cdnAnswering(urls) {
   if (!urls.length) return Promise.resolve(false);
   return new Promise(resolve => {
@@ -1139,11 +1176,7 @@ function probeUrls(groups) {
   route();
 
   cdnAnswering(probeUrls(loaded)).then(alive => {
-    if (alive || RENOVATING) return;
-    RENOVATING = true;
-    console.warn('No photographs reachable on the CDN — showing the renovation notice.');
-    if (parseRoute().name !== 'information') swapIn(view, renderRenovation());
-    current = '';        // let the next navigation re-evaluate
+    if (!alive) declareRenovation('no photograph on the CDN answered');
   });
 })();
 })();
