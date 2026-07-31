@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<!-- viewport-fit=cover lets the black run under the notch and home
-     indicator; every fixed element then pads itself back out with
+<!-- viewport-fit=cover lets the page run under the notch and home
+     indicator; every fixed element pads itself back out with
      env(safe-area-inset-*) below. -->
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Devin Feilen</title>
 <meta name="description" content="Devin Feilen is a photographer based in Portland, Oregon.">
-<meta name="theme-color" content="#0a0a0a">
+<meta name="theme-color" content="#EAE7E2">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Devin Feilen">
 <meta property="og:description" content="Photographer based in Portland, Oregon.">
@@ -19,28 +19,22 @@
 <link rel="preconnect" href="https://devinfeilen.b-cdn.net" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 
-<!-- Applies the saved theme before the first paint. Without this the
-     page renders dark, the main script runs at the end of the body, and
-     a light-mode visitor watches it flip on every single page load. -->
-<script>try{if(localStorage.getItem('theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+<!-- Applies the saved theme before the first paint, so a returning visitor
+     never watches the page flip palettes on load. -->
+<script>try{if(localStorage.getItem('theme')==='dark')document.documentElement.setAttribute('data-theme','dark')}catch(e){}</script>
 
 <style>
 /* ============================================================================
-   ONE TYPE SIZE. ONE COLOUR. ONE RULE.
-
-   The whole site is 13px / 15.6px / weight 400. There are no headings —
-   not on the index, not on Information, not anywhere. That single
-   constraint is most of the look: nothing on the page competes with a
-   photograph for attention, so the photographs are the only thing with
-   any visual weight.
-
-   Resist adding a second size. It is the first thing that breaks this.
+   ONE TYPE SIZE. ONE FACE.
+   13px / 15.6px / weight 400, everywhere. No headings, no captions, no
+   numbers on the work. Resist adding a second size — it is the first
+   thing that breaks this.
    ============================================================================ */
 :root{
-  --bg:#0a0a0a;
-  --fg:#ffffff;
-  --fg-dim:#8a8a8a;      /* 5.7:1 on --bg — secondary and disabled only */
-  --sunk:#161616;
+  --bg:#EAE7E2;
+  --fg:#1B1B1C;          /* 13.9:1 */
+  --fg-dim:#6B675F;      /* 4.6:1  */
+  --sunk:#DEDAD3;
 
   --font:'Space Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
   --size:13px;
@@ -48,33 +42,15 @@
   --track:0.01em;
 
   --edge:clamp(10px,2vw,28px);
-  /* Frame height cap.
 
-     A bare percentage of the viewport scales, but it scales without
-     limit: 80svh is 725px on a laptop and 1152px on a 27" monitor, which
-     is more photograph than anyone wants at once. clamp() gives it a
-     floor and a ceiling, so it tracks the window between them and stops.
+  /* A bare percentage scales without limit — 78svh is 750px on a laptop
+     and 1120px on a 27" monitor. clamp() lets it track the window between
+     a floor and a ceiling and then stop. */
+  --imgh:clamp(180px, 78svh, 900px);
 
-     66%, down from 80%. Two things come out of that: the picture stops
-     crowding the screen, and the background between consecutive frames
-     opens from 20% of the screen to 34% — which is what stops two
-     portraits reading as one continuous strip. */
-  --imgh:clamp(180px, 66svh, 800px);
-
-  /* Frame width cap. Portraits never reach it — they're limited by
-     height — so this number only governs landscape and square, which
-     were previously stuck at 38vw and reached barely half the screen
-     height while a portrait filled it.
-
-     The `100vw - 800px` term is what keeps the centred bar safe: it
-     holds 400px of margin either side, and the right-hand nav needs
-     about 337px. The bar is the only reason this cap exists at all. */
-  --imgw:min(52vw, calc(100vw - 800px), 1000px);
-  /* Eases gently in as well as out, so nothing jerks into motion. */
   --ease:cubic-bezier(.4,0,.2,1);
   --fade:520ms;
 
-  /* Safe areas. Zero on everything that isn't a notched phone. */
   --sa-l:env(safe-area-inset-left,0px);
   --sa-r:env(safe-area-inset-right,0px);
   --sa-b:env(safe-area-inset-bottom,0px);
@@ -82,14 +58,13 @@
   --edge-l:calc(var(--edge) + var(--sa-l));
   --edge-r:calc(var(--edge) + var(--sa-r));
 }
-[data-theme="light"]{
-  --bg:#f0f0ed; --fg:#0a0a0a; --fg-dim:#686862; --sunk:#e2e2dd;  /* dim 4.9:1 */
+[data-theme="dark"]{
+  --bg:#0a0a0a; --fg:#ffffff; --fg-dim:#8a8a8a; --sunk:#161616;
 }
 
 *,*::before,*::after{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
-body,p,figure,figcaption,ul,li,h1,h2{margin:0;padding:0}
-ul{list-style:none}
+body,p,figure,ul,li,h1,h2{margin:0;padding:0}
 img{display:block;max-width:100%}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
 
@@ -103,27 +78,28 @@ body{
   font-weight:400;
   -webkit-font-smoothing:antialiased;
   overflow-x:hidden;
-  /* No grey flash on tap, and no 300ms wait for a double-tap that
-     never comes — the page can't be pinch-zoomed into anyway. */
   -webkit-tap-highlight-color:transparent;
   text-size-adjust:100%;
 }
 ::selection{background:var(--fg);color:var(--bg)}
 :focus-visible{outline:1px solid var(--fg);outline-offset:3px}
 
+a,button{touch-action:manipulation}
+a{color:inherit;text-decoration:none}
+.dim{color:var(--fg-dim)}
+
+a.h,button.h{transition:color .45s var(--ease)}
+a.h:hover,button.h:hover,a.h:focus-visible,button.h:focus-visible{color:var(--fg-dim)}
+a.h.on{color:var(--fg-dim)}
+
+.skip{position:absolute;left:-9999px;top:0;z-index:99;background:var(--fg);color:var(--bg);padding:10px}
+.skip:focus{left:0}
+
 /* ============================================================================
    THEME SWITCHING
-
    Only `body` used to carry a colour transition, so its text faded while
-   everything that sets a colour of its own — the html background, every
-   `.dim` element, the frame placeholder, the lightbox, the two gradient
-   bars — changed instantly. Half the page eased and half of it snapped.
-
-   Rather than remembering to add a transition to each of those rules
-   (and to every rule added later), the switch turns one on for
-   everything, for exactly as long as it takes. `!important` is needed to
-   beat the per-element transitions that already exist, and the class is
-   removed afterwards so it can never interfere with hover or loading.
+   everything setting a colour of its own snapped. One rule turns a
+   transition on for everything, for exactly as long as the switch takes.
    ============================================================================ */
 html.theming, html.theming *, html.theming *::before, html.theming *::after{
   transition:background-color .45s var(--ease),
@@ -133,55 +109,37 @@ html.theming, html.theming *, html.theming *::before, html.theming *::after{
              outline-color .45s var(--ease) !important;
 }
 
-a,button{touch-action:manipulation}
-a{color:inherit;text-decoration:none}
-.dim{color:var(--fg-dim)}
-.tab{font-variant-numeric:tabular-nums}
-
-/* Links dim on hover rather than underlining. At 13px an underline is
-   noise; a change in weight would reflow. Opacity is the only move that
-   costs nothing. */
-a.h,button.h{transition:color .45s var(--ease)}
-a.h:hover,button.h:hover,a.h:focus-visible,button.h:focus-visible{color:var(--fg-dim)}
-a.h.on{color:var(--fg-dim);pointer-events:none}
-
-.skip{position:absolute;left:-9999px;top:0;z-index:99;background:var(--fg);color:var(--bg);padding:10px}
-.skip:focus{left:0}
-
 /* ============================================================================
-   THE BAR
-   Fixed at the vertical centre of the viewport, pinned to both edges.
-   It sits in the empty margins either side of the picture — which is why
-   the frame is capped at 38vw rather than filling the screen.
+   THE HEADER
+   Two centred lines, fixed to the top: the name, and beneath it the two
+   destinations. Photographs run to the edges below it, so it carries a
+   short wash of background to stay legible over a full-bleed frame.
    ============================================================================ */
-.bar{
-  position:fixed;top:50%;left:0;right:0;
-  transform:translateY(-50%);
-  display:flex;justify-content:space-between;align-items:baseline;gap:20px;
-  padding:0 var(--edge-r) 0 var(--edge-l);
-  z-index:50;pointer-events:none;
+.head{
+  position:fixed;top:0;left:0;right:0;z-index:50;
+  text-align:center;
+  padding:calc(18px + var(--sa-t)) var(--edge-r) 20px var(--edge-l);
+  background:linear-gradient(to bottom,var(--bg) 55%,transparent);
+  pointer-events:none;
 }
-.bar > *{pointer-events:auto}
-.bar-l{display:flex;gap:14px;min-width:0}
-.bar-r{display:flex;gap:8px;white-space:nowrap;align-items:baseline}
-.count{opacity:0;transition:opacity .5s var(--ease)}
-.count.show{opacity:1}
+.head a,.head button{pointer-events:auto}
+.head .name{display:inline-block;font-weight:700;letter-spacing:.06em}
+.head .to{display:block;margin-top:2px;letter-spacing:.06em}
+/* Tap targets. 13px of bare text is a 16px-tall target — unusable with a
+   thumb. Padding grows the hit area without moving the text a pixel. */
+.head a{padding:8px 5px;margin:-8px -5px;display:inline-block}
 
-/* Tap targets. The padding grows the hit area to ~38×38 without moving
-   the text a pixel — the negative margin cancels it visually. 13px of
-   bare text is a 16px-tall target, which is unusable with a thumb. */
-.bar-r a,.bar-r button{
-  padding:12px 6px;margin:-12px -6px;
-  display:inline-block;line-height:var(--lh);
+/* The toggle sits out of the way in the corner rather than joining the
+   header, which would break its symmetry. */
+.corner{
+  position:fixed;right:var(--edge-r);bottom:calc(14px + var(--sa-b));z-index:50;
 }
+.corner button{padding:12px 6px;margin:-12px -6px;display:inline-block}
+/* "Light mode" is 10 characters and "Dark mode" is 9; a reserved width
+   stops that one character shifting the corner on every switch. */
+#theme{min-width:calc(10ch + 12px);text-align:right}
 
-/* The toggle's label changes between "Light mode" (10 characters) and
-   "Dark mode" (9). The bar is right-anchored, so that one character was
-   sliding the whole navigation ~8px sideways on every switch — most
-   obvious on Information, where nothing else is moving. Reserving the
-   wider of the two labels holds it still. `ch` is exact here because
-   the face is monospaced. */
-#theme{min-width:calc(10ch + 12px);text-align:left}
+html.renovating .head .to{display:none}
 
 /* ============================================================================
    VIEWS
@@ -189,170 +147,91 @@ a.h.on{color:var(--fg-dim);pointer-events:none}
 #view{opacity:1;transition:opacity var(--fade) var(--ease)}
 #view.out{opacity:0}
 
-/* ---- Index: three lines, same 13px as everything else ---- */
-.index{min-height:100svh;display:grid;place-items:center;padding:0 var(--edge-r) 0 var(--edge-l)}
-.index-inner{display:grid;gap:0;justify-items:center}
-.index a{display:block;padding:3px 0;transition:color .45s var(--ease)}
+/* ---- The category list ---- */
+.cats{min-height:100svh;display:grid;place-items:center;
+  padding:0 var(--edge-r) 0 var(--edge-l)}
+.cats-inner{display:grid;justify-items:center;gap:0;text-align:center}
+.cats a{display:block;padding:7px 0;transition:color .45s var(--ease)}
 @media (hover:hover) and (pointer:fine){
-  .index-inner:hover a{color:var(--fg-dim)}
-  .index-inner:hover a:hover{color:var(--fg)}
+  .cats-inner:hover a{color:var(--fg-dim)}
+  .cats-inner:hover a:hover{color:var(--fg)}
 }
-.index .n{margin-right:10px}
 
-/* Hover preview — fills the frame slot behind the three names.
-   All three images are created up front, so hovering only toggles a
-   class. Never fires on touch; on touch the names simply stand alone. */
-.pv{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;z-index:-1}
-.pv img{
-  max-width:var(--imgw);max-height:var(--imgh);
-  width:auto;height:auto;object-fit:contain;
-  position:absolute;opacity:0;transition:opacity .75s var(--ease);
+/* ============================================================================
+   THE FLOW
+
+   Position and scale come from a fixed thirteen-step rhythm. Where frames
+   overlap, the pair is always horizontally disjoint — the narrow frame
+   sits beside the wide one, never on top of it. Overlap breaks the
+   column; it doesn't hide photographs.
+   ============================================================================ */
+.flow{
+  padding:calc(16vh + var(--sa-t)) var(--edge-r) calc(20vh + var(--sa-b)) var(--edge-l);
 }
-.pv img.on{opacity:.28}
-@media (hover:none),(pointer:coarse),(max-width:1200px){.pv{display:none}}
-
-/* ---- Series: one picture per screen, centred ---- */
-/* ---- One picture per screen, and the scroll rests on each ----
-   `mandatory` guarantees you always land on a photograph rather than
-   between two. `scroll-snap-stop:always` is the important half: without
-   it a hard flick skips three or four frames at once, which defeats the
-   whole idea. The easing of the snap is the browser's own — it already
-   reads as a settle rather than a jump. */
-html{scroll-snap-type:y mandatory}
-
-.plates{padding:0}
-
-/* Nothing separates the photographs but the background. The hairline
-   that used to sit on the seam is gone — on a near-black page any rule
-   light enough to see reads as a white line, and once the frames came
-   down to 66svh the 34% of empty screen between them does the job on
-   its own. */
 .plate{
-  min-height:100svh;
-  display:grid;place-items:center;
-  padding:0 var(--edge-r) 0 var(--edge-l);
-  scroll-snap-align:center;
-  scroll-snap-stop:always;
+  /* --w is a percentage of the flow; the calc caps it so a tall portrait
+     can never outgrow the window. Whichever binds first wins. */
+  width:min(var(--w,60%), calc(var(--imgh) * var(--arn,1.5)));
+  margin-left:var(--ml,0%);
+  margin-top:calc(var(--mt,14) * 1vh);
 }
+.plate:first-child{margin-top:0}
+
+/* width:100% is load-bearing. A <button> is shrink-to-fit, so without it
+   the frame's percentage width resolves against a button whose width
+   depends on the frame — circular, resolved at zero, and the photograph
+   loads but is invisible. */
+.open{display:block;width:100%;cursor:zoom-in}
 
 .frame{
   position:relative;overflow:hidden;background:var(--sunk);
-  /* Capped by width and by height at once; whichever binds first wins,
-     so any shape occupies one screen without being cropped. */
-  width:min(var(--imgw),calc(var(--imgh) * var(--arn,1.5)));
-  max-width:100%;
-  margin-inline:auto;     /* the button now fills the row; this centres us in it */
+  width:100%;
   aspect-ratio:var(--ar,3/2);
 }
-/* When a photograph's dimensions aren't in the JSON we can't reserve its
-   space — but we must still bound it. The old rule left height entirely
-   to the image: the frame width was computed from the --arn fallback of
-   1.5, then `aspect-ratio:auto` let a portrait become 1.5× taller than
-   that width. Landscape matched the fallback and looked correct;
-   portraits ran hundreds of pixels off the bottom of the screen.
+/* Without dimensions in the JSON we can't reserve the true shape, but we
+   must reserve something — a frame with no size is a blank page until the
+   file lands. adoptRatio() corrects this the moment the image decodes. */
+.frame.auto{aspect-ratio:3/2}
+.frame.auto img{object-fit:contain}
 
-   Here nothing is computed from a guessed ratio. Both dimensions are
-   capped directly, so any shape fits whatever its real proportions turn
-   out to be. */
-/* Before this, an unsized frame reserved nothing at all: width auto,
-   aspect-ratio auto, no background. Every frame was 0×0 until its file
-   arrived, so an unmigrated site is a completely blank page for as long
-   as the images take — which on a phone, over cellular, reads as "the
-   images aren't loading."
-
-   It now holds a provisional 3:2 box of roughly the right size with the
-   placeholder visible, and `object-fit:contain` so a portrait sits
-   letterboxed inside it rather than being cropped. The moment the file
-   decodes, adoptRatio() replaces this with the true ratio. */
-.frame.auto{
-  width:min(var(--imgw), calc(var(--imgh) * 1.5));
-  max-width:100%;
-  margin-inline:auto;
-  aspect-ratio:3/2;
-  background:var(--sunk);
-}
-.frame.auto img{
-  position:absolute;inset:0;
-  width:100%;height:100%;
-  object-fit:contain;     /* contain, not cover — the ratio is a guess */
-}
 .frame img{
   position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
-  /* The whole entrance, now that the intro is gone: each photograph
-     simply fades up once it has decoded. Nothing moves, nothing is
-     staged, nothing waits on a queue. The first frame is eager-loaded,
-     so this is what you see on arriving at a group. */
+  /* The whole entrance: each photograph fades up once decoded. A failed
+     image stays at 0, so you see an empty frame rather than its alt text. */
   opacity:0;transition:opacity 1.2s var(--ease);
 }
 .frame img.ready{opacity:1}
 
-/* Photographs do not move on hover. The zoom-in cursor is the whole
-   affordance — it says "this opens" without touching the picture.
+.flow-end{padding:14vh 0 0;text-align:center}
 
-   `width:100%` is load-bearing and not cosmetic. A <button> is
-   shrink-to-fit, so without it the button's width is decided by its
-   content — and its content is .frame, whose own width is `min(100%, …)`
-   on any screen under 1600px. That percentage then resolves against a
-   button whose width depends on the frame: circular. The browser
-   resolves the cycle at zero, the frame collapses to 0×0, and the
-   photograph is loaded and decoded but invisible.
-
-   Desktop never hit it because --imgw is all absolute units up there, so
-   the frame has a definite width and the button simply wraps it. Below
-   1600px --imgw becomes 100% and the whole column silently disappears. */
-.open{display:block;width:100%;cursor:zoom-in}
-/* The closing link has to be a snap target too. Under `mandatory` the
-   scroller must rest on one, so without this the last photograph becomes
-   a floor you cannot scroll past. */
-.series-end{min-height:60svh;display:grid;place-items:center;
-  padding:0 var(--edge-r) 0 var(--edge-l);scroll-snap-align:center}
-
-
-/* While the notice is up there is nowhere to navigate to, so the name and
-   Information come out of the bar and only the theme toggle remains. It
-   stays right-aligned at every width, including the two-row phone bar
-   where a lone item would otherwise fall to the left. */
-html.renovating .bar-r a{display:none}
-html.renovating .bar-r{justify-content:flex-end}
-
-/* ---- The renovation notice ----
-   No new type size, no new colour. Just the same 13px held in the middle
-   of the same empty screen as everything else. */
-.reno{min-height:100svh;display:grid;place-items:center;
-  padding:0 var(--edge-r) 0 var(--edge-l)}
-.reno-inner{display:grid;justify-items:center;gap:22px;text-align:center;max-width:30rem}
-.reno-toggle{padding:10px 14px;margin:-10px -14px}   /* thumb-sized target */
-.reno-info{
-  display:grid;gap:2px;
-  opacity:0;transform:translateY(-4px);
-  transition:opacity .45s var(--ease),transform .45s var(--ease);
-}
-.reno-info.open{opacity:1;transform:none}
-
-/* ---- Information: five lines, vertically centred ---- */
+/* ============================================================================
+   INFORMATION + THE RENOVATION NOTICE
+   ============================================================================ */
 .info{min-height:100svh;display:grid;place-items:center;padding:0 var(--edge-r) 0 var(--edge-l)}
 .info-inner{max-width:34rem}
-.info-inner p + p{margin-top:0}
+.info-inner p{padding:2px 0}
 
-/* ---- Lightbox ---- */
-.lb{position:fixed;inset:0;z-index:200;background:var(--bg);display:none;opacity:0;
-  transition:opacity .45s var(--ease);overscroll-behavior:contain;touch-action:none}
+.reno{min-height:100svh;display:grid;place-items:center;padding:0 var(--edge-r) 0 var(--edge-l)}
+.reno-inner{display:grid;justify-items:center;gap:22px;text-align:center;max-width:30rem}
+.reno-toggle{padding:10px 14px;margin:-10px -14px}
+.reno-info{display:grid;gap:2px;opacity:0;transform:translateY(-4px);
+  transition:opacity .45s var(--ease),transform .45s var(--ease)}
+.reno-info.open{opacity:1;transform:none}
+
+/* ============================================================================
+   LIGHTBOX
+   ============================================================================ */
+.lb{--lb-pad-x:calc(var(--edge-l) + var(--edge-r));
+    --lb-pad-y:calc(112px + var(--sa-t) + var(--sa-b));
+    position:fixed;inset:0;z-index:200;background:var(--bg);display:none;opacity:0;
+    transition:opacity .45s var(--ease);overscroll-behavior:contain;touch-action:none}
 .lb.open{display:block}
 .lb.shown{opacity:1}
-/* The chrome the picture has to clear, declared once so the CSS below
-   and the JS that sizes the download can never drift apart. */
-.lb{--lb-pad-x:calc(var(--edge-l) + var(--edge-r));
-    --lb-pad-y:calc(112px + var(--sa-t) + var(--sa-b))}   /* 56 top + 56 bottom */
-
-.lb-body{position:absolute;inset:0;
-  display:flex;align-items:center;justify-content:center;
+.lb-body{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   padding:calc(56px + var(--sa-t)) var(--edge-r) calc(56px + var(--sa-b)) var(--edge-l)}
-
-/* max-height:100% cannot be used here. In a grid or flex container whose
-   row is auto-sized, the percentage resolves against a track that is
-   itself sized by the image — circular, so browsers drop it and a tall
-   portrait runs straight off the bottom of the screen. Measuring
-   against the viewport instead is unambiguous in every layout mode. */
+/* max-height:100% cannot be used here: in a flex container whose track is
+   auto-sized, the percentage resolves against a track sized by the image —
+   circular, so browsers drop it and a tall portrait runs off the bottom. */
 .lb-body img{
   display:block;width:auto;height:auto;
   max-width:calc(100vw - var(--lb-pad-x));
@@ -362,7 +241,7 @@ html.renovating .bar-r{justify-content:flex-end}
 }
 .lb-body img.ready{opacity:1}
 .lb-bar{position:absolute;top:50%;left:0;right:0;transform:translateY(-50%);
-  display:flex;justify-content:space-between;align-items:baseline;
+  display:flex;justify-content:flex-end;align-items:baseline;
   padding:0 var(--edge-r) 0 var(--edge-l);gap:20px;pointer-events:none}
 .lb-bar > *{pointer-events:auto}
 .lb-nav{display:flex;gap:8px;align-items:baseline}
@@ -370,111 +249,63 @@ html.renovating .bar-r{justify-content:flex-end}
 
 /* ============================================================================
    NARROW SCREENS
-
-   The centred bar depends on wide empty margins either side of the
-   picture, so it relocates to the bottom when they run out.
-
-   The threshold moved from 1200px to 1600px, and that is a real trade.
-   On a 1440 laptop you cannot have both a bar living in the margins and
-   a landscape photograph of any size — the bar needs ~340px each side,
-   which leaves the picture 640px wide and about half the screen height.
-   Below 1600 the picture now wins and the bar goes to the bottom, where
-   a landscape frame reaches 72% of the screen instead of 48%.
+   The rhythm needs width to read as composition. Below 900px it collapses
+   to one full-width column — offsets and overlaps at phone width look
+   like a mistake rather than a decision.
    ============================================================================ */
-@media (max-width:1600px){
-  :root{--imgw:100%;--imgh:clamp(180px, 64svh, 680px)}
-  .bar{
-    top:auto;bottom:0;transform:none;
-    padding:16px var(--edge-r) calc(14px + var(--sa-b)) var(--edge-l);
-    background:linear-gradient(to top,var(--bg) 58%,transparent);
+@media (max-width:900px){
+  :root{--imgh:clamp(180px, 70svh, 700px)}
+  .plate{
+    width:min(100%, calc(var(--imgh) * var(--arn,1.5))) !important;
+    margin-left:0 !important;
+    margin-top:9vh !important;
   }
-  .lb-bar{
-    top:auto;bottom:0;transform:none;
-    padding:16px var(--edge-r) calc(14px + var(--sa-b)) var(--edge-l);
-    background:linear-gradient(to top,var(--bg) 58%,transparent);
-  }
-  /* Bar is at the bottom now, so the picture needs more room below. */
-  .lb{--lb-pad-y:calc(126px + var(--sa-t) + var(--sa-b))}   /* 48 top + 78 bottom */
+  .plate:first-child{margin-top:0 !important}
+  .flow{padding-top:calc(14vh + var(--sa-t))}
+  .lb{--lb-pad-y:calc(126px + var(--sa-t) + var(--sa-b))}
   .lb-body{padding:calc(48px + var(--sa-t)) var(--edge-r) calc(78px + var(--sa-b)) var(--edge-l)}
+  .lb-bar{top:auto;bottom:0;transform:none;
+    padding:16px var(--edge-r) calc(14px + var(--sa-b)) var(--edge-l);
+    background:linear-gradient(to top,var(--bg) 58%,transparent)}
 }
-
-/* ---- Phones ---- */
 @media (max-width:700px){
-  :root{--edge:16px;--imgh:clamp(160px, 58svh, 520px)}
-
-  /* Two rows: the counter above, navigation below. Three nav items fit
-     one line at 13px on a 360px screen. */
-  .bar{flex-direction:column;align-items:stretch;gap:6px}
-  .bar-l{gap:10px}
-  .bar-r{justify-content:space-between;gap:4px}
-
-  /* Phones keep the one-per-screen slots so the snapping works the same
-     way it does on desktop. (This reverses an earlier decision — stacking
-     them tightly is better for free scrolling, worse for snapping.)
-     scroll-padding keeps the bottom bar out of the centring maths. */
-  .plate{min-height:100svh;padding:0 var(--edge-r) 0 var(--edge-l)}
-  .plates{padding:0}
-  html{scroll-padding-bottom:64px}
-  .index{padding-bottom:calc(22vh + var(--sa-b))}
-  .index a{padding:9px 0}          /* 31px tap target on three short words */
-  .info{padding:0 var(--edge-r) calc(24vh + var(--sa-b)) var(--edge-l)}
-  .info-inner p{padding:5px 0}
-  /* Still a full screen, so it stays reachable as the final snap point. */
-  .series-end{min-height:100svh;padding:0 var(--edge-r) 0 var(--edge-l)}
-}
-
-/* ---- Landscape phones: very little height, so give it back ---- */
-@media (max-width:900px) and (orientation:landscape) and (max-height:520px){
-  :root{--imgh:clamp(140px, 70svh, 420px)}
-  .bar{flex-direction:row;align-items:baseline}
+  :root{--edge:16px;--imgh:clamp(160px, 64svh, 560px)}
 }
 
 /* ============================================================================
-   REDUCED MOTION
+   REDUCED MOTION — all of this is decoration.
    ============================================================================ */
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{transition-duration:.001ms!important;animation-duration:.001ms!important}
-  /* The theme-switch rule is `!important` at a higher specificity, so it
-     has to be beaten on its own terms rather than by the line above. */
+  .frame img{opacity:1}
+  #view.out{opacity:1}
   html.theming,html.theming *,html.theming *::before,html.theming *::after{
     transition-duration:.001ms!important;
   }
-  .frame img,.pv img{opacity:1}
-  .pv img{opacity:0}
-  .pv img.on{opacity:.28}
-  #view.out{opacity:1}
-  /* Mandatory snap moves the page without being asked, which is exactly
-     what this preference is about. Proximity still helps you land on a
-     photograph but never overrides a deliberate scroll. */
-  html{scroll-snap-type:y proximity}
 }
 .boot{min-height:100svh;display:grid;place-items:center;padding:0 var(--edge-r) 0 var(--edge-l)}
 </style>
-<noscript><style>#view,.bar{display:none}</style></noscript>
+<noscript><style>#view,.head .to,.corner{display:none}</style></noscript>
 </head>
 
 <body>
 <a class="skip" href="#/">Skip to content</a>
 
-<div class="pv" id="pv" aria-hidden="true"></div>
+<header class="head">
+  <a class="name h" href="#/">DEVIN FEILEN</a>
+  <span class="to">
+    <a class="h" href="#/photography" data-nav="photography">PHOTOGRAPHY</a><span aria-hidden="true">,</span>
+    <a class="h" href="#/information"  data-nav="information">INFORMATION</a>
+  </span>
+</header>
+
+<div class="corner"><button class="h" id="theme">Dark mode</button></div>
 
 <main id="view"><div class="boot"><p class="dim">Loading</p></div></main>
-
-<div class="bar" id="bar">
-  <div class="bar-l">
-    <span class="count tab" id="count"></span>
-  </div>
-  <nav class="bar-r" aria-label="Primary">
-    <a class="h" href="#/" data-nav="index">Devin Feilen</a>
-    <a class="h" href="#/information" data-nav="information">Information</a>
-    <button class="h" id="theme">Light mode</button>
-  </nav>
-</div>
 
 <div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Image viewer">
   <div class="lb-body"><img id="lb-img" alt=""></div>
   <div class="lb-bar">
-    <span class="tab" id="lb-count"></span>
     <span class="lb-nav">
       <button class="h" id="lb-prev">Prev</button>
       <button class="h" id="lb-next">Next</button>
@@ -492,40 +323,59 @@ html.renovating .bar-r{justify-content:flex-end}
    ============================================================================ */
 const CDN = 'https://devinfeilen.b-cdn.net';
 
-// Bunny Optimizer resizes via ?width=. If it is off on your pull zone the
-// parameter is ignored and you get originals — safe either way.
+// Bunny Optimizer resizes via ?width=. If it's off on your pull zone the
+// parameter is ignored and you get originals — safe either way, but turn
+// it on: it is most of the weight saving available here.
 const USE_OPTIMIZER = true;
 const WIDTHS = [640, 1000, 1500, 2200];
 
-// Hard cap per group. Curation happens in the JSON; this only stops a
-// stale file dumping eighty frames into one scroll.
-const MAX_PER_SERIES = 14;
+/* THE CATEGORIES.
 
-/* THREE GROUPS.
-   `sources` lists which of your existing JSON files feed each group, so
-   nothing on your side needs renaming. Move a source from one line to
-   another and the site regroups. Later you can consolidate into three
-   real files — bikes.json / life.json / work.json — and set a single
-   source each. */
-/* `title` is the only word anyone sees. `slug` is the URL segment.
-   `sources` is which JSON files feed the group — unrelated to both, so
-   your existing filenames never have to change.
+   `title` is the only word anyone sees. `slug` is the URL. `sources` is
+   which JSON files feed it — unrelated to both, so your existing
+   filenames never have to change.
 
-   A group whose JSON is missing or empty simply doesn't appear, and the
-   link at the end of the previous group skips over it, so a line can sit
-   here before its photographs are uploaded. */
-const SERIES = [
-  { slug:'racing',  title:'Racing',       sources:['bikes','racing'] },
-  { slug:'couples', title:'Couples',      sources:['couples'] },
-  { slug:'life',    title:'Life',         sources:['life','walls','people'] },
-  { slug:'work',    title:'Professional', sources:['ab'] }
+   This mapping is a guess and the one thing here you should check. In
+   particular `bikes` currently sits under Professional Work; if much of
+   it is personal riding rather than commissioned, move it to Candids or
+   give it a category of its own.
+
+   A category whose files are missing or empty simply doesn't appear. */
+const CATEGORIES = [
+  { slug:'racing',       title:'Racing',             sources:['racing'] },
+  { slug:'street',       title:'Street Photography', sources:['walls'] },
+  { slug:'candids',      title:'Candids',            sources:['life','people'] },
+  { slug:'couples',      title:'Couples',            sources:['couples'] },
+  { slug:'professional', title:'Professional Work',  sources:['ab','bikes'] }
 ];
 
-/* Old URLs that are already out in the world. The site has been live
-   under #/w/bikes, so that link keeps working rather than landing on
-   "No such series". Delete once you're confident nobody holds one. */
-const ALIASES = { bikes: 'racing', weddings: 'couples' };
+/* Safety cap per file, not a curation tool — with the site down to ~53
+   photographs every one should appear. This only stops a stale or
+   accidentally restored file dumping a hundred frames into a category. */
+const MAX_PER_FILE = 40;
 
+/* The rhythm: width, left offset (both % of the flow) and the gap above
+   (vh). A negative gap is a deliberate overlap, and in every case the
+   overlapping pair is horizontally disjoint.
+
+   Thirteen steps rather than six. Six repeats nearly nine times across 53
+   photographs, which stops reading as composition and starts reading as
+   wallpaper; thirteen repeats four times and never lines up with itself. */
+const RHYTHM = [
+  { w: 54, ml: 22, mt:  14 },
+  { w: 20, ml:  0, mt:  -8 },
+  { w: 52, ml: 44, mt:  12 },
+  { w: 28, ml:  4, mt: -10 },
+  { w:100, ml:  0, mt:  16 },
+  { w: 34, ml:  8, mt:  14 },
+  { w: 40, ml: 56, mt:  -6 },
+  { w: 58, ml: 20, mt:  13 },
+  { w: 22, ml: 78, mt:  -9 },
+  { w: 46, ml:  2, mt:  13 },
+  { w: 30, ml: 62, mt:  -7 },
+  { w:100, ml:  0, mt:  16 },
+  { w: 48, ml: 30, mt:  14 }
+];
 
 const mq = q => (window.matchMedia ? window.matchMedia(q) : { matches:false });
 const REDUCED = mq('(prefers-reduced-motion: reduce)').matches;
@@ -540,85 +390,69 @@ const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
 /* replaceChildren() is Safari 14+. On an older iPhone it throws, the
-   router dies, and the page renders nothing at all — which is
-   indistinguishable from "the images aren't loading". Two lines of
-   insurance for a failure mode that would look like a total blank. */
+   router dies, and nothing renders — indistinguishable from a blank site. */
 const swapIn = (parent, el) => { parent.textContent = ''; parent.appendChild(el); };
 
 const urlFor = (slug,f) => /^https?:\/\//i.test(f) ? f : `${CDN}/${slug}/${f}`;
 const sized  = (u,w) => USE_OPTIMIZER ? u + (u.includes('?')?'&':'?') + 'width=' + w : u;
 const srcset = u => USE_OPTIMIZER ? WIDTHS.map(w=>`${sized(u,w)} ${w}w`).join(', ') : '';
 
-/* If the JSON didn't carry dimensions, learn them from the file itself
-   the moment it decodes and promote the frame to a real aspect-ratio.
-   The photo object is shared with FLAT and DATA, so the viewer and the
-   viewer get the correct ratio too — and every later visit to the group
-   is already correct. Migrating the JSON is still better (it reserves
-   the space *before* the image arrives, so nothing shifts), but the
-   site is no longer broken without it. */
-function adoptRatio(frame, img, p) {
+/* ============================================================================
+   STATE
+   ============================================================================ */
+const DATA = new Map();   // slug -> { ...category, photos }
+let RENOVATING = false;
+
+function adoptRatio(plate, frame, img, p) {
   if (p.ar) return;
   const w = img.naturalWidth, h = img.naturalHeight;
   if (!w || !h) return;
-  p.ar  = `${w} / ${h}`;
-  p.arn = w / h;
+  p.ar = `${w} / ${h}`; p.arn = w / h;
   frame.style.setProperty('--ar', p.ar);
-  frame.style.setProperty('--arn', p.arn);
+  plate.style.setProperty('--arn', p.arn);
   frame.classList.remove('auto');
 }
 
-/* ---------------------------------------------------------------------------
-   Decoded-memory windowing.
+/* ============================================================================
+   DECODED-MEMORY WINDOWING
 
-   `loading="lazy"` controls when an image is fetched, but nothing about
-   when it's released. Once decoded it stays decoded, and a browser
-   holding fourteen of them has fourteen bitmaps in memory — which for a
-   6192×4128 original is 6192 × 4128 × 4 bytes ≈ 102 MB *each*. On iOS
-   (and therefore in every iOS browser, Chrome included, since they all
-   run WebKit) the renderer stops decoding well before that and images
-   simply never appear.
+   `loading="lazy"` says when an image is fetched but nothing about when
+   it's released. Once decoded it stays decoded, and a 6192×4128 original
+   is ~102 MB *each*. On iOS — so in every iOS browser, since they all run
+   WebKit — the renderer stops decoding long before a dozen of those and
+   images simply never appear.
 
-   So the src is attached only to frames near the viewport and removed
-   again once they're well past. At most three photographs are decoded at
-   any moment, whatever the size of the originals. The frame keeps its
-   reserved box and placeholder either way, so nothing shifts and nothing
-   goes blank-white — a detached frame looks exactly like one that hasn't
-   loaded yet.
-
-   This is a safety net, not a substitute for sensible file sizes.
---------------------------------------------------------------------------- */
-const KEEP_NEAR = '100% 0px';   // roughly one screen either side
+   So a src is attached only near the viewport and removed once well past.
+   The frame keeps its reserved box and placeholder, so a detached frame
+   looks exactly like one that hasn't loaded yet.
+   ============================================================================ */
+const KEEP_NEAR = '120% 0px';
 let windowIO = null;
 
 function attachImage(img) {
   if (img.dataset.on === '1') return;
   img.dataset.on = '1';
-  mount(img, img.dataset.url, {
-    sizes: img.dataset.sizes,
-    eager: img.dataset.eager === '1'
-  });
-  const p = img.__photo, frame = img.__frame;
+  mount(img, img.dataset.url, { sizes: img.dataset.sizes, eager: img.dataset.eager === '1' });
+  const p = img.__photo, frame = img.__frame, plate = img.__plate;
   if (p && frame && !p.ar) {
-    const learn = () => adoptRatio(frame, img, p);
+    const learn = () => adoptRatio(plate, frame, img, p);
     if (img.complete && img.naturalWidth) learn();
     else img.addEventListener('load', learn, { once:true });
   }
 }
-
 function detachImage(img) {
   if (img.dataset.on !== '1') return;
-  if (img.dataset.eager === '1') return;      // keep the opening frame
+  if (img.dataset.eager === '1') return;
   img.dataset.on = '0';
   img.classList.remove('ready');
   img.removeAttribute('srcset');
-  img.removeAttribute('src');                 // releases the decoded bitmap
+  img.removeAttribute('src');
 }
-
 function initWindowing(scope) {
   if (windowIO) { windowIO.disconnect(); windowIO = null; }
   const plates = $$('.plate', scope);
   if (!plates.length) return;
-  if (!('IntersectionObserver' in window)) {   // no observer: just load them all
+  if (!('IntersectionObserver' in window)) {
     $$('.frame img', scope).forEach(attachImage);
     return;
   }
@@ -632,18 +466,67 @@ function initWindowing(scope) {
   plates.forEach(p => windowIO.observe(p));
 }
 
+/* ============================================================================
+   IS THE CDN ANSWERING?
+
+   The photo lists live on GitHub Pages, the photographs on Bunny, so the
+   two fail independently — the site can load perfectly and show nothing
+   but empty frames.
+
+   Two checks: a quick sample up front for a pull zone that's entirely
+   dead, and — because a sample is wrong when some files are still cached
+   at the visitor's edge and the rest are gone — the real photographs
+   report back too. Only definitive errors trigger it; a timeout counts as
+   alive, because falsely announcing renovations on a slow phone is far
+   worse than briefly showing empty frames.
+   ============================================================================ */
+const CDN_PROBES = 3, CDN_TIMEOUT = 9000, FAIL_SAMPLE = 3;
+let imgTried = 0, imgFailed = 0;
+
+function noteImage(ok) {
+  imgTried++;
+  if (!ok) imgFailed++;
+  if (RENOVATING) return;
+  if (imgTried >= FAIL_SAMPLE && imgFailed === imgTried) {
+    declareRenovation('every photograph attempted so far has failed to load');
+  }
+}
+function declareRenovation(why) {
+  if (RENOVATING) return;
+  RENOVATING = true;
+  console.warn('Showing the renovation notice — ' + why + '.');
+  document.documentElement.classList.add('renovating');
+  if (windowIO) { windowIO.disconnect(); windowIO = null; }
+  if (parseRoute().name !== 'information') swapIn(view, renderRenovation());
+  current = '';
+}
+function cdnAnswering(urls) {
+  if (!urls.length) return Promise.resolve(false);
+  return new Promise(resolve => {
+    let errors = 0, settled = false;
+    const done = v => { if (!settled) { settled = true; resolve(v); } };
+    const timer = setTimeout(() => done(true), CDN_TIMEOUT);
+    urls.forEach(u => {
+      const probe = new Image();
+      probe.onload  = () => { clearTimeout(timer); done(true); };
+      probe.onerror = () => { if (++errors === urls.length) { clearTimeout(timer); done(false); } };
+      probe.src = USE_OPTIMIZER ? sized(u, 640) : u;
+    });
+  });
+}
+function probeUrls(list) {
+  const out = [], step = Math.max(1, Math.floor(list.length / CDN_PROBES));
+  for (let i = 0; i < list.length && out.length < CDN_PROBES; i += step) out.push(list[i].url);
+  return out;
+}
+
 function mount(img, url, { sizes, eager } = {}) {
   img.decoding = 'async';
   img.loading = eager ? 'eager' : 'lazy';
   if (eager) img.fetchPriority = 'high';
   const ss = srcset(url);
-  if (ss) { img.srcset = ss; img.sizes = sizes || '40vw'; }
+  if (ss) { img.srcset = ss; img.sizes = sizes || '60vw'; }
   img.src = USE_OPTIMIZER ? sized(url, 1500) : url;
-
-  /* A failed image used to be revealed anyway, which is why a missing
-     photograph showed up as the words "Photograph 01" — that's the alt
-     text of a broken image. It now stays at opacity 0, so you see the
-     empty frame rather than a label. */
   const ok  = () => { img.classList.add('ready'); noteImage(true); };
   const bad = () => { img.classList.remove('ready'); noteImage(false); };
   if (img.complete && img.naturalWidth) ok();
@@ -652,12 +535,8 @@ function mount(img, url, { sizes, eager } = {}) {
 }
 
 /* ============================================================================
-   DATA — reads the new object schema or your existing flat string arrays
+   DATA — accepts the object schema or plain arrays of filenames/URLs
    ============================================================================ */
-const DATA = new Map();
-let FLAT = [];
-let RENOVATING = false;   // the photographs can't be reached
-
 async function loadFile(slug) {
   try {
     const res = await fetch(`${slug}.json`, { cache:'no-cache' });
@@ -665,17 +544,14 @@ async function loadFile(slug) {
     const raw = await res.json();
     const body = Array.isArray(raw) ? { photos: raw } : raw;
     const list = body.photos || body.images || [];
-    return list.map(item => {
+    return list.slice(0, MAX_PER_FILE).map(item => {
       const o = typeof item === 'string' ? { file:item } : item;
       const w = Number(o.w)||null, h = Number(o.h)||null;
       return {
-        src: slug,
         url: urlFor(slug, o.file || o.src || ''),
         ar:  (w&&h) ? `${w} / ${h}` : null,
         arn: (w&&h) ? (w/h) : null
-        /* `caption` and `place` in the JSON are read by nothing. The
-           pictures are numbered and otherwise unannotated. Leaving the
-           fields in your files is harmless — they are simply ignored. */
+        /* `caption` and `place` in the JSON are read by nothing. */
       };
     }).filter(p => p.url);
   } catch (e) {
@@ -684,107 +560,77 @@ async function loadFile(slug) {
   }
 }
 
-async function loadSeries(def) {
-  const parts = await Promise.all(def.sources.map(loadFile));
-  const photos = parts.flat().slice(0, MAX_PER_SERIES);
-  return photos.length ? { ...def, photos } : null;
-}
-
 /* ============================================================================
    VIEWS
    ============================================================================ */
-const view = $('#view'), pv = $('#pv');
+const view = $('#view');
 
-function renderIndex() {
-  const list = SERIES.map(s => DATA.get(s.slug)).filter(Boolean);
+function renderCategories() {
+  const live = CATEGORIES.filter(c => DATA.has(c.slug));
   const el = document.createElement('div');
-  el.className = 'index';
-  el.innerHTML = `<div class="index-inner">${
-    list.map((s,i)=>`<a class="h" href="#/w/${s.slug}" data-slug="${s.slug}"><span class="n tab dim">${pad(i+1)}</span>${esc(s.title)}</a>`).join('')
+  el.className = 'cats';
+  el.innerHTML = `<div class="cats-inner">${
+    live.map(c => `<a class="h" href="#/c/${c.slug}" data-slug="${c.slug}">${esc(c.title)}</a>`).join('')
   }</div>`;
-
-  // Hover preview: one <img> per group, built once, cross-faded by class.
-  pv.innerHTML = '';
-  const layers = new Map();
-  list.forEach(s => {
-    if (!s.photos[0]) return;
-    const img = document.createElement('img');
-    img.alt = '';
-    pv.appendChild(img);
-    layers.set(s.slug, img);
-    mount(img, s.photos[0].url, { sizes:'40vw' });
-  });
-  const show = slug => layers.forEach((img,k)=>img.classList.toggle('on', k===slug));
-  const clear = () => layers.forEach(img=>img.classList.remove('on'));
-  $$('a[data-slug]', el).forEach(a => {
-    a.addEventListener('pointerenter', e => { if (e.pointerType !== 'touch') show(a.dataset.slug); });
-    a.addEventListener('focus', () => show(a.dataset.slug));
-  });
-  $('.index-inner', el).addEventListener('pointerleave', clear);
-
-  setBar('');
   return el;
 }
 
-function renderSeries(slug) {
-  const s = DATA.get(slug);
-  if (!s) return renderMissing('No such series.');
-  pv.innerHTML = '';
-
-  /* Step through the groups that actually loaded, not the ones merely
-     configured. Otherwise a group whose JSON isn't uploaded yet still
-     gets linked from the end of the previous one, and the visitor lands
-     on "No such series." */
-  const live = SERIES.filter(x => DATA.has(x.slug));
-  const i = live.findIndex(x => x.slug === slug);
+/* One flow builder for every category. `list` is the working set the
+   lightbox steps through, so Prev/Next stays inside the category you're
+   looking at rather than wandering into another one. */
+function renderFlow(cat) {
+  const list = cat.photos;
+  const i = CATEGORIES.filter(c => DATA.has(c.slug)).findIndex(c => c.slug === cat.slug);
+  const live = CATEGORIES.filter(c => DATA.has(c.slug));
   const next = live[(i + 1) % live.length];
 
   const el = document.createElement('div');
-  el.innerHTML = `<div class="plates" id="plates"></div>
-    <div class="series-end"><a class="h" href="#/w/${next.slug}">${esc(next.title)} &rarr;</a></div>`;
-  const plates = $('#plates', el);
+  const flow = document.createElement('div');
+  flow.className = 'flow';
 
-  s.photos.forEach((p, n) => {
-    const gi = FLAT.indexOf(p);
+  list.forEach((p, n) => {
+    const step = RHYTHM[n % RHYTHM.length];
 
     const fig = document.createElement('figure');
     fig.className = 'plate';
-    fig.dataset.n = n + 1;
+    fig.style.setProperty('--w',  step.w + '%');
+    fig.style.setProperty('--ml', step.ml + '%');
+    fig.style.setProperty('--mt', step.mt);
+    if (p.arn) fig.style.setProperty('--arn', p.arn);
 
     const btn = document.createElement('button');
     btn.className = 'open';
     btn.type = 'button';
-    /* A screen reader still needs to know what the control does and
-       which picture it opens. That is function, not caption. */
     btn.setAttribute('aria-label', `Open photograph ${pad(n+1)}`);
 
     const frame = document.createElement('div');
     frame.className = 'frame' + (p.ar ? '' : ' auto');
-    if (p.ar)  frame.style.setProperty('--ar', p.ar);
-    if (p.arn) frame.style.setProperty('--arn', p.arn);
+    if (p.ar) frame.style.setProperty('--ar', p.ar);
 
     const img = document.createElement('img');
-    img.alt = `Photograph ${pad(n+1)}`;
-
-    frame.appendChild(img);
+    img.alt = `Photograph ${pad(n+1)}`;   // never shown; a screen reader
+    frame.appendChild(img);               // still has to announce something
     btn.appendChild(frame);
     fig.appendChild(btn);
-    plates.appendChild(fig);
+    flow.appendChild(fig);
 
-    // The src is not set here. initWindowing() attaches it when the frame
-    // comes near, and takes it away again once it's well past.
     img.dataset.url   = p.url;
-    img.dataset.sizes = '(max-width:1600px) 96vw, 52vw';
+    img.dataset.sizes = `(max-width:900px) 92vw, ${step.w}vw`;
     img.dataset.eager = n === 0 ? '1' : '0';
     img.dataset.on    = '0';
-    img.__photo = p;
-    img.__frame = frame;
-    if (n === 0) attachImage(img);          // opening frame, straight away
+    img.__photo = p; img.__frame = frame; img.__plate = fig;
+    if (n === 0) attachImage(img);
 
-    btn.addEventListener('click', () => openLB(gi < 0 ? 0 : gi));
+    btn.addEventListener('click', () => openLB(list, n));
   });
 
-  setBar(`01/${pad(s.photos.length)}`);
+  el.appendChild(flow);
+  if (next && next.slug !== cat.slug) {
+    const end = document.createElement('div');
+    end.className = 'flow-end';
+    end.innerHTML = `<a class="h" href="#/c/${next.slug}">${esc(next.title)} &rarr;</a>`;
+    el.appendChild(end);
+  }
   return el;
 }
 
@@ -797,19 +643,13 @@ const INFORMATION = `
     <p><a class="h" href="https://buymeacoffee.com/devinfeilen" target="_blank" rel="noopener">buy me a coffee</a></p>`;
 
 function renderInformation() {
-  pv.innerHTML = '';
   const el = document.createElement('div');
   el.className = 'info';
   el.innerHTML = `<div class="info-inner">${INFORMATION}</div>`;
-  setBar('');
   return el;
 }
 
-/* Shown when the photographs can't be reached — either no list loaded at
-   all, or the CDN answered but every image failed. Same 13px, same
-   colour, nothing new introduced. */
 function renderRenovation() {
-  pv.innerHTML = '';
   const el = document.createElement('div');
   el.className = 'reno';
   el.innerHTML = `
@@ -825,73 +665,65 @@ function renderRenovation() {
     if (open) { box.hidden = true; box.classList.remove('open'); }
     else { box.hidden = false; requestAnimationFrame(() => box.classList.add('open')); }
   });
-  setBar('');
   return el;
 }
 
 function renderMissing(msg) {
-  pv.innerHTML = '';
   const el = document.createElement('div');
   el.className = 'info';
-  el.innerHTML = `<div class="info-inner"><p>${esc(msg)}</p><p><a class="h" href="#/">Index</a></p></div>`;
-  setBar('');
+  el.innerHTML = `<div class="info-inner"><p>${esc(msg)}</p>
+    <p><a class="h" href="#/photography">Photography</a></p></div>`;
   return el;
 }
 
 /* ============================================================================
-   THE COUNTER — reports which photograph is at the vertical centre, and
-   nothing else. No title, no place, no year. Reports only; it never
-   moves anything.
-   ============================================================================ */
-const countEl = $('#count');
-let countIO = null;
-
-function setBar(count) {
-  countEl.textContent = count || '';
-  countEl.classList.toggle('show', !!count);
-}
-
-function initCounter(scope, total) {
-  if (countIO) { countIO.disconnect(); countIO = null; }
-  const plates = $$('.plate', scope);
-  if (!plates.length || !('IntersectionObserver' in window)) return;
-  countIO = new IntersectionObserver(ents => {
-    ents.forEach(e => {
-      if (!e.isIntersecting) return;
-      setBar(`${pad(e.target.dataset.n)}/${pad(total)}`);
-    });
-  }, { rootMargin:'-45% 0px -45% 0px' });
-  plates.forEach(p => countIO.observe(p));
-}
-
-/* ============================================================================
    LIGHTBOX
+
+   srcset + sizes is the right tool for an image filling a known slice of
+   the page, but it cannot describe this one: `sizes` only expresses a
+   WIDTH, and a contained image is usually limited by HEIGHT. A portrait on
+   a wide desktop displays at ~30vw while sizes:100vw tells the browser to
+   fetch as though it were full-bleed — so it always pulled the largest
+   file on the ladder no matter how small the window.
+
+   The ratio is known, so the displayed size is computed and one exact file
+   requested, snapped to the ladder so the CDN cache still works.
    ============================================================================ */
 const lb = $('#lb'), lbImg = $('#lb-img');
-let lbi = 0, lastFocus = null, lockedY = 0;
+const DPR_CAP = 2;
+let lbList = [], lbi = 0, lastFocus = null, lockedY = 0, loadedLBWidth = 0;
 
 /* iOS Safari ignores overflow:hidden on the root — the page keeps
-   scrolling behind the overlay and you lose your place. Pinning the
-   body at a negative offset is the only thing that actually holds,
-   and the offset is what lets us restore the exact scroll position. */
+   scrolling behind the overlay and you lose your place. Pinning the body
+   at a negative offset is the only thing that holds. */
 function lockScroll() {
   lockedY = window.scrollY || 0;
   const b = document.body;
-  b.style.position = 'fixed';
-  b.style.top = `-${lockedY}px`;
-  b.style.left = '0';
-  b.style.right = '0';
-  b.style.width = '100%';
+  b.style.position='fixed'; b.style.top=`-${lockedY}px`;
+  b.style.left='0'; b.style.right='0'; b.style.width='100%';
 }
 function unlockScroll() {
   const b = document.body;
-  b.style.position = b.style.top = b.style.left = b.style.right = b.style.width = '';
+  b.style.position=b.style.top=b.style.left=b.style.right=b.style.width='';
   window.scrollTo(0, lockedY);
 }
-
-function openLB(i) {
-  if (!FLAT.length) return;
-  lbi = i; lastFocus = document.activeElement;
+function lbAvailable() {
+  const el = $('.lb-body');
+  if (!el || !el.clientWidth) return { w: innerWidth, h: innerHeight };
+  const cs = getComputedStyle(el);
+  const w = el.clientWidth  - parseFloat(cs.paddingLeft||0) - parseFloat(cs.paddingRight||0);
+  const h = el.clientHeight - parseFloat(cs.paddingTop||0)  - parseFloat(cs.paddingBottom||0);
+  return { w: w>0?w:innerWidth, h: h>0?h:innerHeight };
+}
+function lbTargetWidth(f) {
+  const a = lbAvailable(), arn = f.arn || 1.5;
+  const cssW = Math.min(a.w, a.h * arn);
+  const need = Math.ceil(cssW * Math.min(window.devicePixelRatio || 1, DPR_CAP));
+  return WIDTHS.find(w => w >= need) || WIDTHS[WIDTHS.length - 1];
+}
+function openLB(list, i) {
+  if (!list || !list.length) return;
+  lbList = list; lbi = i; lastFocus = document.activeElement;
   lockScroll();
   lb.classList.add('open');
   requestAnimationFrame(() => lb.classList.add('shown'));
@@ -904,86 +736,28 @@ function closeLB() {
     lb.classList.remove('open');
     unlockScroll();
     if (lastFocus && lastFocus.focus) lastFocus.focus();
-  }, REDUCED ? 0 : 280);
+  }, REDUCED ? 0 : 450);
 }
-function stepLB(d) { lbi = (lbi + d + FLAT.length) % FLAT.length; drawLB(); }
-
-/* ---------------------------------------------------------------------------
-   Sizing the download.
-
-   srcset + sizes is the right tool for an image that fills a known slice
-   of the page, but it cannot describe this one. `sizes` only ever
-   expresses a WIDTH, and a contained image is usually limited by HEIGHT
-   instead — a portrait on a wide desktop displays at ~30vw while
-   sizes:100vw tells the browser to fetch as though it were full-bleed.
-   That is the bug: the viewer always pulled the largest file on the
-   ladder no matter how small the window was.
-
-   We know the aspect ratio from the JSON, so the displayed size can just
-   be computed and one exact file requested.
---------------------------------------------------------------------------- */
-const DPR_CAP = 2;   // 3× on a phone is invisible and costs ~2.2× the bytes
-let loadedLBWidth = 0;
-
-// Measured, not hardcoded, so it always agrees with the CSS above.
-function lbAvailable() {
-  const el = $('.lb-body');
-  if (!el || !el.clientWidth) return { w: innerWidth, h: innerHeight };
-  const cs = getComputedStyle(el);
-  const w = el.clientWidth  - parseFloat(cs.paddingLeft || 0) - parseFloat(cs.paddingRight  || 0);
-  const h = el.clientHeight - parseFloat(cs.paddingTop  || 0) - parseFloat(cs.paddingBottom || 0);
-  return { w: w > 0 ? w : innerWidth, h: h > 0 ? h : innerHeight };
-}
-
-// Displayed width of a contained image, then snapped up the ladder.
-// Snapping (rather than asking for an arbitrary width) keeps the CDN
-// cache working — everyone requests the same four sizes.
-function lbTargetWidth(f) {
-  const a = lbAvailable();
-  const arn = f.arn || 1.5;
-  const cssW = Math.min(a.w, a.h * arn);
-  const need = Math.ceil(cssW * Math.min(window.devicePixelRatio || 1, DPR_CAP));
-  return WIDTHS.find(w => w >= need) || WIDTHS[WIDTHS.length - 1];
-}
-
+function stepLB(d) { if (!lbList.length) return; lbi = (lbi + d + lbList.length) % lbList.length; drawLB(); }
 function drawLB() {
-  const f = FLAT[lbi]; if (!f) return;
+  const f = lbList[lbi]; if (!f) return;
   lbImg.classList.remove('ready');
-  // No srcset here — the width is computed, not negotiated.
   lbImg.removeAttribute('srcset');
   lbImg.removeAttribute('sizes');
   lbImg.alt = `Photograph ${pad(lbi+1)}`;
   lbImg.decoding = 'async';
   lbImg.fetchPriority = 'high';
-
   loadedLBWidth = lbTargetWidth(f);
   lbImg.src = sized(f.url, loadedLBWidth);
-
   const show = () => lbImg.classList.add('ready');
   if (lbImg.complete && lbImg.naturalWidth) show();
-  else { lbImg.addEventListener('load', show, { once:true });
-         lbImg.addEventListener('error', show, { once:true }); }
-
-  $('#lb-count').textContent = `${pad(lbi+1)}/${pad(FLAT.length)}`;
+  else { lbImg.addEventListener('load', show, {once:true});
+         lbImg.addEventListener('error', show, {once:true}); }
 }
-
-/* Rotating a phone can double the available width. Upgrade when that
-   happens, but never re-request a smaller file — the bigger one is
-   already cached and downscales for free. */
-let lbResizeTimer = null;
-addEventListener('resize', () => {
-  if (!lb.classList.contains('open')) return;
-  clearTimeout(lbResizeTimer);
-  lbResizeTimer = setTimeout(() => {
-    const f = FLAT[lbi]; if (!f) return;
-    const need = lbTargetWidth(f);
-    if (need > loadedLBWidth) { loadedLBWidth = need; lbImg.src = sized(f.url, need); }
-  }, 250);
-}, { passive:true });
 $('#lb-close').addEventListener('click', closeLB);
 $('#lb-prev').addEventListener('click', () => stepLB(-1));
 $('#lb-next').addEventListener('click', () => stepLB(1));
-lb.addEventListener('click', e => { if (e.target === lb || e.target.closest('.lb-body')) closeLB(); });
+lb.addEventListener('click', e => { if (e.target===lb || e.target.closest('.lb-body')) closeLB(); });
 addEventListener('keydown', e => {
   if (!lb.classList.contains('open')) return;
   if (e.key === 'Escape')     closeLB();
@@ -998,14 +772,32 @@ lb.addEventListener('touchend', e => {
   if (Math.abs(dx)>Math.abs(dy) && Math.abs(dx)>45) stepLB(dx>0?-1:1);
 }, {passive:true});
 
+let lbResizeTimer = null;
+addEventListener('resize', () => {
+  if (!lb.classList.contains('open')) return;
+  clearTimeout(lbResizeTimer);
+  lbResizeTimer = setTimeout(() => {
+    const f = lbList[lbi]; if (!f) return;
+    const need = lbTargetWidth(f);
+    if (need > loadedLBWidth) { loadedLBWidth = need; lbImg.src = sized(f.url, need); }
+  }, 250);
+}, { passive:true });
+
 /* ============================================================================
    ROUTER
+     #/               the category list  (same as #/photography)
+     #/photography    the category list
+     #/c/<slug>       one category's flow
+     #/information    contact
    ============================================================================ */
 function parseRoute() {
   const parts = (location.hash || '#/').replace(/^#\/?/, '').split('/').filter(Boolean);
-  if (!parts.length)               return { name:'index' };
-  if (parts[0] === 'w')            return { name:'series', slug: ALIASES[parts[1]] || parts[1] };
-  if (parts[0] === 'information')  return { name:'information' };
+  if (!parts.length)              return { name:'photography' };
+  if (parts[0] === 'photography') return { name:'photography' };
+  if (parts[0] === 'information') return { name:'information' };
+  if (parts[0] === 'c')           return { name:'category', slug: parts[1] };
+  // #/w/racing and friends were real URLs once; send them somewhere real.
+  if (parts[0] === 'w')           return { name:'category', slug: parts[1] };
   return { name:'missing' };
 }
 
@@ -1016,7 +808,8 @@ async function route() {
   if (key === current) return;
   current = key;
 
-  const navKey = r.name === 'series' ? 'index' : r.name;
+  // PHOTOGRAPHY stays lit while you're inside a category.
+  const navKey = r.name === 'category' ? 'photography' : r.name;
   $$('[data-nav]').forEach(a => a.classList.toggle('on', a.dataset.nav === navKey));
 
   view.classList.add('out');
@@ -1024,169 +817,80 @@ async function route() {
 
   let el;
   if (RENOVATING && r.name !== 'information') {
-    // Information needs no photographs, so it keeps working. Everything
-    // else has nothing to show.
     el = renderRenovation();
-  } else switch (r.name) {
-    case 'series':      el = renderSeries(r.slug);  break;
-    case 'information': el = renderInformation();   break;
-    case 'index':       el = renderIndex();         break;
-    default:            el = renderMissing('That page does not exist.');
+  } else if (r.name === 'information') {
+    el = renderInformation();
+  } else if (r.name === 'photography') {
+    el = renderCategories();
+  } else if (r.name === 'category') {
+    const cat = DATA.get(r.slug);
+    el = cat ? renderFlow(cat) : renderMissing('No such category.');
+  } else {
+    el = renderMissing('That page does not exist.');
   }
 
+  if (windowIO) { windowIO.disconnect(); windowIO = null; }
   swapIn(view, el);
   scrollTo({ top:0, behavior:'auto' });
-
-  if (countIO)  { countIO.disconnect();  countIO = null; }
-  if (windowIO) { windowIO.disconnect(); windowIO = null; }
-  if (r.name === 'series') {
-    const s = DATA.get(r.slug);
-    if (s) { initCounter(view, s.photos.length); initWindowing(view); }
-  }
+  if (!RENOVATING && r.name === 'category' && DATA.get(r.slug)) initWindowing(view);
 
   requestAnimationFrame(() => view.classList.remove('out'));
-  document.title = r.name === 'series' && DATA.get(r.slug)
-    ? `${DATA.get(r.slug).title} — Devin Feilen` : 'Devin Feilen';
+  const cat = r.name === 'category' && DATA.get(r.slug);
+  document.title = cat ? `${cat.title} — Devin Feilen`
+    : r.name === 'information' ? 'Information — Devin Feilen' : 'Devin Feilen';
 }
 addEventListener('hashchange', route);
 
 /* ============================================================================
-   THEME — dark is the default here, so the button offers Light mode
+   THEME — warm light is the default, so the button offers Dark mode
    ============================================================================ */
 const themeBtn = $('#theme');
 const root = document.documentElement;
 let themingTimer = null;
 
-/* `animate` is only true for a deliberate toggle. On first load the
-   theme is already correct (set by the inline script in <head>), so
-   there is nothing to fade and nothing should. */
+/* `animate` is only true for a deliberate toggle. On first load the theme
+   is already correct, so there is nothing to fade and nothing should. */
 function applyTheme(t, animate) {
   if (animate) {
     root.classList.add('theming');
     clearTimeout(themingTimer);
     themingTimer = setTimeout(() => root.classList.remove('theming'), 520);
   }
-  if (t === 'light') root.setAttribute('data-theme','light');
+  if (t === 'dark') root.setAttribute('data-theme','dark');
   else root.removeAttribute('data-theme');
-  themeBtn.textContent = t === 'light' ? 'Dark mode' : 'Light mode';
+  themeBtn.textContent = t === 'dark' ? 'Light mode' : 'Dark mode';
   const m = $('meta[name="theme-color"]');
-  if (m) m.content = t === 'light' ? '#f0f0ed' : '#0a0a0a';
+  if (m) m.content = t === 'dark' ? '#0a0a0a' : '#EAE7E2';
 }
-
-let theme = 'dark';
-try { theme = localStorage.getItem('theme') || 'dark'; } catch(_) {}
+let theme = 'light';
+try { theme = localStorage.getItem('theme') || 'light'; } catch(_) {}
 applyTheme(theme);
-
 themeBtn.addEventListener('click', () => {
-  theme = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  theme = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
   applyTheme(theme, true);
   try { localStorage.setItem('theme', theme); } catch(_) {}
 });
 
 /* ============================================================================
-   IS THE CDN ANSWERING?
-
-   The photo lists live on GitHub Pages but the photographs live on Bunny,
-   so the two can fail independently: the site can load perfectly and then
-   show nothing but empty frames.
-
-   A handful of photographs are probed, spread across different groups so
-   one bad file can't speak for the whole library. The bias is deliberate:
-
-     any one loads   -> the site is fine, show it
-     all of them ERROR -> the CDN is genuinely refusing, show the notice
-     they time out   -> assume a slow connection and show the site anyway
-
-   Falsely announcing renovations on a slow phone would be far worse than
-   briefly showing empty frames, so a timeout never triggers it.
-   ============================================================================ */
-const CDN_PROBES = 3;
-const CDN_TIMEOUT = 9000;
-
-/* The probe above samples three photographs. That's a fast check for a
-   pull zone that's entirely dead, but it's only a sample — if those three
-   happen to still be cached at the visitor's edge while the rest have
-   gone, the site sails on and shows empty frames.
-
-   So the real photographs report back as well. Every image the visitor is
-   actually shown counts itself, and once enough have been tried and every
-   single one has failed, the notice takes over. This is ground truth
-   rather than a sample: it reacts to what is genuinely on the screen. */
-const FAIL_SAMPLE = 3;      // don't judge on fewer than this
-let imgTried = 0, imgFailed = 0;
-
-function noteImage(ok) {
-  imgTried++;
-  if (!ok) imgFailed++;
-  if (RENOVATING) return;
-  if (imgTried >= FAIL_SAMPLE && imgFailed === imgTried) {
-    declareRenovation('every photograph attempted so far has failed to load');
-  }
-}
-
-function declareRenovation(why) {
-  if (RENOVATING) return;
-  RENOVATING = true;
-  console.warn('Showing the renovation notice — ' + why + '.');
-  // Strips the navigation back to the theme toggle. There is nothing to
-  // navigate to, and the Contact button on the notice already carries
-  // everything the Information page would have said.
-  document.documentElement.classList.add('renovating');
-  if (windowIO) { windowIO.disconnect(); windowIO = null; }
-  if (countIO)  { countIO.disconnect();  countIO  = null; }
-  if (parseRoute().name !== 'information') swapIn(view, renderRenovation());
-  current = '';
-}
-
-function cdnAnswering(urls) {
-  if (!urls.length) return Promise.resolve(false);
-  return new Promise(resolve => {
-    let errors = 0, settled = false;
-    const done = v => { if (!settled) { settled = true; resolve(v); } };
-    const timer = setTimeout(() => done(true), CDN_TIMEOUT);   // slow ≠ dead
-    urls.forEach(u => {
-      const probe = new Image();
-      probe.onload  = () => { clearTimeout(timer); done(true); };
-      probe.onerror = () => {
-        if (++errors === urls.length) { clearTimeout(timer); done(false); }
-      };
-      probe.src = USE_OPTIMIZER ? sized(u, 640) : u;
-    });
-  });
-}
-
-// One photograph from each group, so the sample isn't all from one folder.
-function probeUrls(groups) {
-  const out = [];
-  for (const g of groups) {
-    if (g.photos[0]) out.push(g.photos[0].url);
-    if (out.length === CDN_PROBES) break;
-  }
-  const first = groups[0];
-  if (first) for (const p of first.photos.slice(1)) {      // top up if needed
-    if (out.length === CDN_PROBES) break;
-    out.push(p.url);
-  }
-  return out;
-}
-
-/* ============================================================================
    BOOT
    ============================================================================ */
 (async function init() {
-  const loaded = (await Promise.all(SERIES.map(loadSeries))).filter(Boolean);
-  loaded.forEach(s => { DATA.set(s.slug, s); s.photos.forEach(p => FLAT.push(p)); });
+  const loaded = await Promise.all(CATEGORIES.map(async c => {
+    const parts = await Promise.all(c.sources.map(loadFile));
+    const photos = parts.flat();
+    return photos.length ? { ...c, photos } : null;
+  }));
+  loaded.filter(Boolean).forEach(c => DATA.set(c.slug, c));
 
-  // No lists at all — nothing to show and nothing to probe.
-  if (!loaded.length) { declareRenovation('no photo lists loaded'); return; }
+  if (!DATA.size) { declareRenovation('no photo lists loaded'); return; }
 
-  // Render straight away. The probe must never sit between a visitor and
-  // the work — on a slow connection that would be seconds of nothing for
-  // a site that is perfectly fine. It runs alongside instead, and only
-  // takes over if the CDN turns out to be genuinely refusing.
+  /* Render straight away. The probe must never sit between a visitor and
+     the work — on a slow connection that would be seconds of nothing for
+     a site that is perfectly fine. It runs alongside instead. */
   route();
 
-  cdnAnswering(probeUrls(loaded)).then(alive => {
+  const everything = [].concat(...[...DATA.values()].map(c => c.photos));
+  cdnAnswering(probeUrls(everything)).then(alive => {
     if (!alive) declareRenovation('no photograph on the CDN answered');
   });
 })();
@@ -1194,7 +898,7 @@ function probeUrls(groups) {
 </script>
 
 <noscript>
-  <div style="min-height:100svh;display:grid;place-items:center;padding:0 var(--edge)">
+  <div style="min-height:100svh;display:grid;place-items:center;padding:0 16px">
     <div>
       <p>Devin Feilen is a photographer based in Portland, Oregon.</p>
       <p><a href="mailto:dfeeilen@gmail.com">dfeeilen@gmail.com</a></p>
