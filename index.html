@@ -308,6 +308,13 @@ html{scroll-snap-type:y mandatory}
   padding:0 var(--edge-r) 0 var(--edge-l);scroll-snap-align:center}
 
 
+/* While the notice is up there is nowhere to navigate to, so the name and
+   Information come out of the bar and only the theme toggle remains. It
+   stays right-aligned at every width, including the two-row phone bar
+   where a lone item would otherwise fall to the left. */
+html.renovating .bar-r a{display:none}
+html.renovating .bar-r{justify-content:flex-end}
+
 /* ---- The renovation notice ----
    No new type size, no new colour. Just the same 13px held in the middle
    of the same empty screen as everything else. */
@@ -1121,6 +1128,10 @@ function declareRenovation(why) {
   if (RENOVATING) return;
   RENOVATING = true;
   console.warn('Showing the renovation notice — ' + why + '.');
+  // Strips the navigation back to the theme toggle. There is nothing to
+  // navigate to, and the Contact button on the notice already carries
+  // everything the Information page would have said.
+  document.documentElement.classList.add('renovating');
   if (windowIO) { windowIO.disconnect(); windowIO = null; }
   if (countIO)  { countIO.disconnect();  countIO  = null; }
   if (parseRoute().name !== 'information') swapIn(view, renderRenovation());
@@ -1167,7 +1178,7 @@ function probeUrls(groups) {
   loaded.forEach(s => { DATA.set(s.slug, s); s.photos.forEach(p => FLAT.push(p)); });
 
   // No lists at all — nothing to show and nothing to probe.
-  if (!loaded.length) { RENOVATING = true; swapIn(view, renderRenovation()); return; }
+  if (!loaded.length) { declareRenovation('no photo lists loaded'); return; }
 
   // Render straight away. The probe must never sit between a visitor and
   // the work — on a slow connection that would be seconds of nothing for
