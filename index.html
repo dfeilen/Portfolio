@@ -25,6 +25,25 @@
 
 <style>
 /* ============================================================================
+   THE WORDMARK FACE
+
+   Comico, self-hosted from /fonts/. Fontshare's free licence covers web
+   use and the download ships these exact webfont files for the purpose.
+   The same licence forbids modifying the font, so it is NOT subsetted —
+   which is why it's 332 KB for two words. `swap` means Space Mono renders
+   immediately and Comico takes over when it arrives, so nothing is ever
+   invisible while it loads.
+   ============================================================================ */
+@font-face{
+  font-family:'Comico';
+  src:url('fonts/Comico-Regular.woff2') format('woff2'),
+      url('fonts/Comico-Regular.woff')  format('woff');
+  font-weight:400;          /* the only weight there is — see .name below */
+  font-style:normal;
+  font-display:swap;
+}
+
+/* ============================================================================
    ONE TYPE SIZE. ONE FACE.
    13px / 15.6px / weight 400, everywhere. No headings, no captions, no
    numbers on the work. Resist adding a second size — it is the first
@@ -123,8 +142,24 @@ html.theming, html.theming *, html.theming *::before, html.theming *::after{
   pointer-events:none;
 }
 .head a,.head button{pointer-events:auto}
-.head .name{display:inline-block;font-weight:700;letter-spacing:.06em}
-.head .to{display:block;margin-top:2px;letter-spacing:.06em}
+/* The one deliberate exception to the single type size. A wordmark is
+   closer to a mark than to text, and this is the only place it appears.
+
+   font-weight stays at 400. Comico ships Regular only, so asking for 700
+   makes the browser synthesise a fake bold — it smears the outlines of a
+   marker face and looks noticeably worse than the real thing. The weight
+   here comes from the size and from the face itself, which is already
+   heavy. The 5° slant is the typeface's own; it isn't italic. */
+.head .name{
+  display:inline-block;
+  font-family:'Comico',var(--font);
+  font-size:clamp(26px, 4.4vw, 52px);
+  font-weight:400;
+  line-height:1.06;
+  letter-spacing:.03em;
+  padding:0;margin:0;      /* the shared .head a tap padding would skew it */
+}
+.head .to{display:block;margin-top:6px;letter-spacing:.06em}
 /* Tap targets. 13px of bare text is a 16px-tall target — unusable with a
    thumb. Padding grows the hit area without moving the text a pixel. */
 .head a{padding:8px 5px;margin:-8px -5px;display:inline-block}
