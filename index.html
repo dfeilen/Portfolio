@@ -367,22 +367,37 @@ const WIDTHS = [640, 1000, 1500, 2200];
 /* THE CATEGORIES.
 
    `title` is the only word anyone sees. `slug` is the URL. `sources` is
-   which JSON files feed it — unrelated to both, so your existing
-   filenames never have to change.
+   which JSON files feed the category — one each now that the Bunny
+   folders match the categories, so folder / JSON file / source name are
+   all the same word.
 
-   This mapping is a guess and the one thing here you should check. In
-   particular `bikes` currently sits under Professional Work; if much of
-   it is personal riding rather than commissioned, move it to Candids or
-   give it a category of its own.
+   `sources` stays an array because it costs nothing and it's the escape
+   hatch: if you later want, say, Racing to pull from two folders, add a
+   second name rather than moving files around on the CDN.
 
-   A category whose files are missing or empty simply doesn't appear. */
+   A category whose file is missing or empty simply doesn't appear — no
+   error, nothing broken — so you can add these one at a time. */
+/* `sources` must match your JSON filenames exactly, capitals included —
+   these are `AB.json`, `Bikes.json` and so on, sitting next to
+   index.html. `slug` is the URL and is kept lowercase because URLs
+   should be. `title` is the only thing a visitor ever reads. */
 const CATEGORIES = [
-  { slug:'racing',       title:'Racing',             sources:['racing'] },
-  { slug:'street',       title:'Street Photography', sources:['walls'] },
-  { slug:'candids',      title:'Candids',            sources:['life','people'] },
-  { slug:'couples',      title:'Couples',            sources:['couples'] },
-  { slug:'professional', title:'Professional Work',  sources:['ab','bikes'] }
+  { slug:'bikes',    title:'Bikes',    sources:['Bikes'] },
+  { slug:'running',  title:'Running',  sources:['Running'] },
+  { slug:'cars',     title:'Cars',     sources:['Cars'] },
+  { slug:'singles',  title:'Singles',  sources:['Singles'] },
+  { slug:'couples',  title:'Couples',  sources:['Couples'] },
+  { slug:'ab',       title:'A&B',      sources:['AB'] }
 ];
+
+/* How many photographs the front page shows, drawn at random from every
+   category. Picked once when the page loads and held for the visit, so
+   moving between Photography and back doesn't reshuffle underneath you.
+   A reload gives a new five.
+
+   This is the only randomness on the site — the sequence inside each
+   category is exactly the order of its JSON file, unshuffled. */
+const HOME_COUNT = 5;
 
 /* Safety cap per file, not a curation tool — with the site down to ~53
    photographs every one should appear. This only stops a stale or
@@ -436,7 +451,20 @@ const srcset = u => USE_OPTIMIZER ? WIDTHS.map(w=>`${sized(u,w)} ${w}w`).join(',
    STATE
    ============================================================================ */
 const DATA = new Map();   // slug -> { ...category, photos }
+let HOME = [];            // the front page's random handful
 let RENOVATING = false;
+
+/* Fisher–Yates over a copy, then take the first n. Doing it this way
+   rather than sorting by Math.random() matters: a random comparator is
+   not a valid sort and skews which items surface. */
+function pickRandom(list, n) {
+  const a = list.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a.slice(0, Math.min(n, a.length));
+}
 
 function adoptRatio(plate, frame, img, p) {
   if (p.ar) return;
@@ -613,13 +641,10 @@ function renderCategories() {
 /* One flow builder for every category. `list` is the working set the
    lightbox steps through, so Prev/Next stays inside the category you're
    looking at rather than wandering into another one. */
-function renderFlow(cat) {
-  const list = cat.photos;
-  const i = CATEGORIES.filter(c => DATA.has(c.slug)).findIndex(c => c.slug === cat.slug);
-  const live = CATEGORIES.filter(c => DATA.has(c.slug));
-  const next = live[(i + 1) % live.length];
-
-  const el = document.createElement('div');
+/* The flow itself, shared by a category and by the front page. `list` is
+   also the set the lightbox steps through, so Prev/Next never wanders
+   outside what you were looking at. */
+function buildFlow(list) {
   const flow = document.createElement('div');
   flow.className = 'flow';
 
@@ -659,13 +684,34 @@ function renderFlow(cat) {
     btn.addEventListener('click', () => openLB(list, n));
   });
 
-  el.appendChild(flow);
-  if (next && next.slug !== cat.slug) {
-    const end = document.createElement('div');
-    end.className = 'flow-end';
-    end.innerHTML = `<a class="h" href="#/c/${next.slug}">${esc(next.title)} &rarr;</a>`;
-    el.appendChild(end);
-  }
+  return flow;
+}
+
+function tail(href, label) {
+  const end = document.createElement('div');
+  end.className = 'flow-end';
+  end.innerHTML = `<a class="h" href="${href}">${esc(label)} &rarr;</a>`;
+  return end;
+}
+
+/* The front page: a handful drawn from every category, then a way in. */
+function renderHome() {
+  const el = document.createElement('div');
+  el.appendChild(buildFlow(HOME));
+  el.appendChild(tail('#/photography', 'Photography'));
+  return el;
+}
+
+function renderFlow(cat) {
+  const live = CATEGORIES.filter(c => DATA.has(c.slug));
+  const i = live.findIndex(c => c.slug === cat.slug);
+  const next = live[(i + 1) % live.length];
+
+  const el = document.createElement('div');
+  el.appendChild(buildFlow(cat.photos));
+  el.appendChild(next && next.slug !== cat.slug
+    ? tail(`#/c/${next.slug}`, next.title)
+    : tail('#/photography', 'Photography'));
   return el;
 }
 
@@ -827,7 +873,7 @@ addEventListener('resize', () => {
    ============================================================================ */
 function parseRoute() {
   const parts = (location.hash || '#/').replace(/^#\/?/, '').split('/').filter(Boolean);
-  if (!parts.length)              return { name:'photography' };
+  if (!parts.length)              return { name:'home' };
   if (parts[0] === 'photography') return { name:'photography' };
   if (parts[0] === 'information') return { name:'information' };
   if (parts[0] === 'c')           return { name:'category', slug: parts[1] };
@@ -855,6 +901,8 @@ async function route() {
     el = renderRenovation();
   } else if (r.name === 'information') {
     el = renderInformation();
+  } else if (r.name === 'home') {
+    el = renderHome();
   } else if (r.name === 'photography') {
     el = renderCategories();
   } else if (r.name === 'category') {
@@ -867,7 +915,9 @@ async function route() {
   if (windowIO) { windowIO.disconnect(); windowIO = null; }
   swapIn(view, el);
   scrollTo({ top:0, behavior:'auto' });
-  if (!RENOVATING && r.name === 'category' && DATA.get(r.slug)) initWindowing(view);
+  const hasFlow = !RENOVATING &&
+    (r.name === 'home' || (r.name === 'category' && DATA.get(r.slug)));
+  if (hasFlow) initWindowing(view);
 
   requestAnimationFrame(() => view.classList.remove('out'));
   const cat = r.name === 'category' && DATA.get(r.slug);
@@ -919,12 +969,18 @@ themeBtn.addEventListener('click', () => {
 
   if (!DATA.size) { declareRenovation('no photo lists loaded'); return; }
 
+  const everything = [].concat(...[...DATA.values()].map(c => c.photos));
+
+  /* Chosen once, here, rather than inside renderHome() — otherwise every
+     trip back to the front page would deal a new hand, which is
+     disorienting when you're just navigating. A reload gives a new five. */
+  HOME = pickRandom(everything, HOME_COUNT);
+
   /* Render straight away. The probe must never sit between a visitor and
      the work — on a slow connection that would be seconds of nothing for
      a site that is perfectly fine. It runs alongside instead. */
   route();
 
-  const everything = [].concat(...[...DATA.values()].map(c => c.photos));
   cdnAnswering(probeUrls(everything)).then(alive => {
     if (!alive) declareRenovation('no photograph on the CDN answered');
   });
