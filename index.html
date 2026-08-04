@@ -616,7 +616,7 @@ const CATEGORIES = [
   { slug:'bikes',    title:'Bikes',    sources:['Bikes'] },
   { slug:'running',  title:'Running',  sources:['Running'] },
   { slug:'cars',     title:'Cars',     sources:['Cars'] },
-  { slug:'singles',  title:'Singles',  sources:['Singles'] },
+  { slug:'candids',  title:'Candids',  sources:['Singles'] },
   { slug:'couples',  title:'Couples',  sources:['Couples'] },
   { slug:'ab',       title:'A&B',      sources:['AB'] }
 ];
@@ -643,6 +643,10 @@ const PILE_MOBILE_MAX  = 30;
 const PILE_STAGGER     = 45;    /* ms between reveals */
 const PILE_CONCURRENCY = 8;
 const PILE_RAW_CAP     = 12;
+/* How long a single tile may hold its slot. Not a load timeout — the image
+   carries on arriving — just the point at which the queue stops waiting
+   for it and lets the rest through. */
+const PILE_TIMEOUT     = 5000;
 
 /* Safety cap per file, not a curation tool — with the site down to ~53
    photographs every one should appear. This only stops a stale or
@@ -808,10 +812,11 @@ function probeUrls(list) {
   return out;
 }
 
-function mount(img, url, { sizes, eager, base } = {}) {
+function mount(img, url, { sizes, eager, base, priority } = {}) {
   img.decoding = 'async';
   img.loading = eager ? 'eager' : 'lazy';
-  if (eager) img.fetchPriority = 'high';
+  if (priority) img.fetchPriority = priority;
+  else if (eager) img.fetchPriority = 'high';
   const ss = srcset(url);
   if (ss) { img.srcset = ss; img.sizes = sizes || '60vw'; }
   img.src = USE_OPTIMIZER ? sized(url, base || 1500) : url;
@@ -1038,6 +1043,29 @@ function renderHome() {
   return el;
 }
 
+/* THE LOADER.
+
+   Eight photographs are in flight at a time, and each one that settles
+   starts the next. The failure this shape is prone to — and did have — is
+   that a request which never resolves takes its slot with it. Lose eight
+   and the pile simply stops, part-loaded, with no error anywhere.
+
+   Two things prevent that now.
+
+   Tiles are marked `eager`. They were `lazy`, which is the browser's
+   default for anything mount() isn't told about, and lazy loading decides
+   for itself when an image is near enough to the viewport to bother with.
+   These tiles are absolutely positioned, rotated, and inside an
+   overflow:hidden box — the exact geometry those heuristics judge badly.
+   A tile the browser decides to defer never fires `load`, so the slot was
+   never given back. The queue is already the throttle here; the browser
+   doesn't need to add a second opinion.
+
+   And every slot has a deadline. Whatever happens — loaded, failed, or
+   silently never answered — the slot is returned exactly once, and the
+   tile is shown regardless. With average colours in the JSON a tile that
+   times out still appears as its own colour and fills in later, so a slow
+   photograph delays itself rather than everything behind it. */
 function runPile(chips) {
   let started = 0, cap = chips.length, checked = false;
   const t0 = Date.now();
@@ -1052,6 +1080,18 @@ function runPile(chips) {
     const i = started++, c = chips[i];
     const want = Math.round(c.btn.getBoundingClientRect().width) || 200;
 
+    /* Whichever of load / error / the deadline gets here first wins, and
+       the other two become no-ops. This is the only place `next` is
+       called from, so a slot can be neither lost nor handed back twice. */
+    const settle = kind => {
+      if (c.settled) return;
+      c.settled = true;
+      clearTimeout(c.timer);
+      if (kind === 'error') c.btn.remove();
+      else reveal(c, i);
+      next();
+    };
+
     c.img.addEventListener('load', () => {
       if (!checked) {
         checked = true;
@@ -1060,16 +1100,17 @@ function runPile(chips) {
           chips.slice(cap).forEach(x => x.btn.remove());
         }
       }
-      reveal(c, i);
-      next();
+      settle('load');
     }, { once:true });
 
-    /* A photograph that won't load is removed rather than revealed as a
-       broken frame. mount() has already told the renovation check about
-       it, so if they ALL fail the site still falls back properly. */
-    c.img.addEventListener('error', () => { c.btn.remove(); next(); }, { once:true });
+    /* A photograph that won't load is removed rather than left as a broken
+       frame. mount() has already told the renovation check about it, so if
+       they ALL fail the site still falls back properly. */
+    c.img.addEventListener('error', () => settle('error'), { once:true });
 
-    mount(c.img, c.p.url, { sizes: want + 'px', base: 640 });
+    c.timer = setTimeout(() => settle('timeout'), PILE_TIMEOUT);
+
+    mount(c.img, c.p.url, { sizes: want + 'px', base: 640, eager: true, priority: 'auto' });
   };
 
   for (let k = 0; k < PILE_CONCURRENCY; k++) next();
@@ -1335,12 +1376,17 @@ addEventListener('resize', () => {
      #/c/<slug>       one category's flow
      #/information    contact
    ============================================================================ */
+/* Categories that have been renamed keep their old address working. The
+   folder on Bunny is still called Singles — only the word on screen and the
+   URL changed, so there is nothing to re-upload. */
+const RENAMED = { singles:'candids' };
+
 function parseRoute() {
   const parts = (location.hash || '#/').replace(/^#\/?/, '').split('/').filter(Boolean);
   if (!parts.length)              return { name:'home' };
   if (parts[0] === 'photography') return { name:'photography' };
   if (parts[0] === 'information') return { name:'information' };
-  if (parts[0] === 'c')           return { name:'category', slug: parts[1] };
+  if (parts[0] === 'c')           return { name:'category', slug: RENAMED[parts[1]] || parts[1] };
   // #/w/racing and friends were real URLs once; send them somewhere real.
   if (parts[0] === 'w')           return { name:'category', slug: parts[1] };
   return { name:'missing' };
