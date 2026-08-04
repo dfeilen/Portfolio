@@ -14,10 +14,7 @@
 <meta property="og:description" content="Photographer based in Portland, Oregon.">
 <meta name="twitter:card" content="summary_large_image">
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://devinfeilen.b-cdn.net" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 
 <!-- Applies the saved theme before the first paint, so a returning visitor
      never watches the page flip palettes on load. -->
@@ -44,10 +41,48 @@
 }
 
 /* ============================================================================
-   ONE TYPE SIZE. ONE FACE.
-   13px / 15.6px / weight 400, everywhere. No headings, no captions, no
-   numbers on the work. Resist adding a second size — it is the first
-   thing that breaks this.
+   THE INTERFACE FACE — Supreme, self-hosted from /fonts/
+
+   Two files, and the split is deliberate. The roman is the VARIABLE font:
+   one 30 KB file covering every weight from Thin to Extrabold, so the
+   navigation can be Extrabold and the Information paragraph can be
+   Regular without a second download.
+
+   The italic is a separate STATIC file, because Supreme's variable font
+   carries a weight axis and nothing else — there is no slant axis. Roman
+   and italic are two unrelated outlines as far as the browser is
+   concerned, which is the whole reason the hover below is built the way
+   it is. See .morph.
+
+   Only Extrabold Italic is shipped; it's the one italic the site uses.
+   Fontshare's licence permits web use and forbids modification, so
+   neither file is subsetted.
+   ============================================================================ */
+@font-face{
+  font-family:'Supreme';
+  src:url('fonts/Supreme-Variable.woff2') format('woff2'),
+      url('fonts/Supreme-Variable.woff')  format('woff');
+  font-weight:100 800;      /* a range, not a value — this is the variable font */
+  font-style:normal;
+  font-display:swap;
+}
+@font-face{
+  font-family:'Supreme';
+  src:url('fonts/Supreme-ExtraboldItalic.woff2') format('woff2'),
+      url('fonts/Supreme-ExtraboldItalic.woff')  format('woff');
+  font-weight:800;
+  font-style:italic;
+  font-display:swap;
+}
+
+/* ============================================================================
+   A SMALL SCALE — four sizes, each with exactly one job.
+
+   The site ran on a single 13px size for a long time. The wordmark broke
+   that first, and the larger navigation and category names finish the
+   job. Four is still a scale rather than a free-for-all: wordmark,
+   category, nav, everything-else. Nothing on the photographs themselves —
+   no captions, no titles, no numbers.
    ============================================================================ */
 :root{
   --bg:#EAE7E2;
@@ -55,17 +90,40 @@
   --fg-dim:#6B675F;      /* 4.6:1  */
   --sunk:#DEDAD3;
 
-  --font:'Space Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
-  --size:13px;
-  --lh:15.6px;
+  /* ── THE INTERFACE FACE ────────────────────────────────────────────
+     Everything except the wordmark. Swap the one line below to change
+     the whole site; the alternatives are loaded in the <head> so you can
+     try each without touching anything else. Open _font-options.html to
+     see them side by side.
+
+       'Inter'              neutral grotesque — gets out of the way   ← in use
+       'DM Sans'            geometric, a little warmer
+       'Work Sans'          friendlier, slightly quirky
+       'Newsreader'         editorial serif, more voice
+       'Space Mono'         what the site used before — technical, cold
+     ------------------------------------------------------------------ */
+  --ui:'Supreme';
+  --font:var(--ui),ui-sans-serif,system-ui,-apple-system,'Helvetica Neue',sans-serif;
+
+  /* A small scale, now that the wordmark has already broken the
+     single-size rule. Three sizes, each with one job. */
+  --size:15px;                          /* Information, the toggle */
+  --nav:clamp(16px,1.45vw,20px);        /* PHOTOGRAPHY, INFORMATION */
+  --cat:clamp(26px,3.2vw,42px);         /* the category names */
+  --heavy:800;                          /* Extrabold — nav and categories */
+  --morph:.2s;                          /* roman to italic on hover */
+  --lh:1.45;
   --track:0.01em;
 
   --edge:clamp(10px,2vw,28px);
+  --head-h:clamp(104px,13vh,150px);     /* what the fixed header occupies */
 
-  /* A bare percentage scales without limit — 78svh is 750px on a laptop
-     and 1120px on a 27" monitor. clamp() lets it track the window between
-     a floor and a ceiling and then stop. */
-  --imgh:clamp(180px, 78svh, 900px);
+  /* One photograph per screen, so it can be far larger than it was when
+     frames sat beside each other. Capped by height and by width at once;
+     clamp() keeps it tracking the window without growing forever on a
+     27" monitor. */
+  --imgh:clamp(180px, 78svh, 1100px);
+  --imgw:min(88vw, 1600px);
 
   --ease:cubic-bezier(.4,0,.2,1);
   --fade:520ms;
@@ -159,7 +217,8 @@ html.theming, html.theming *, html.theming *::before, html.theming *::after{
   letter-spacing:.03em;
   padding:0;margin:0;      /* the shared .head a tap padding would skew it */
 }
-.head .to{display:block;margin-top:6px;letter-spacing:.06em}
+.head .to{display:block;margin-top:10px;font-size:var(--nav);letter-spacing:.05em;
+  font-weight:var(--heavy)}
 /* Tap targets. 13px of bare text is a 16px-tall target — unusable with a
    thumb. Padding grows the hit area without moving the text a pixel. */
 .head a{padding:8px 5px;margin:-8px -5px;display:inline-block}
@@ -182,35 +241,98 @@ html.renovating .head .to{display:none}
 #view{opacity:1;transition:opacity var(--fade) var(--ease)}
 #view.out{opacity:0}
 
+/* ============================================================================
+   ROMAN → ITALIC ON HOVER
+
+   Supreme's variable font has a weight axis and no slant axis, so the
+   browser cannot interpolate roman to italic the way it interpolates a
+   weight. They are two separate files of two separate outlines. Supreme's
+   italic is a true italic, not a slanted roman — its 'a' is single-storey,
+   a different letter entirely — so faking it with transform:skewX() would
+   slant the wrong shapes and never show the real thing.
+
+   So the transition is a cross-fade between the two cuts, laid exactly on
+   top of one another. The reason that works cleanly here rather than
+   looking like a double exposure is that the two cuts set to the same
+   width: PHOTOGRAPHY, INFORMATION, Bikes, Running, Singles, Couples and
+   A&B are all identical to the pixel, and only Cars differs, by 2.4%.
+   The letters slide into their italic forms in place instead of drifting.
+
+   The italic layer is a ::after carrying the same text, which keeps the
+   markup to one node and means the roman is what gets selected, read and
+   copied. It renders at opacity:0 from the start, so the italic file is
+   fetched on load rather than on the first hover — otherwise the first
+   pass over a word would fade into a fallback.
+
+   `padding:inherit` plus left/right:0 lands the pseudo's content box
+   exactly on the parent's, so the two cuts sit atop each other whatever
+   tap padding the element carries.
+   ============================================================================ */
+.morph{position:relative;display:inline-block;font-weight:var(--heavy)}
+.morph>span{display:block;transition:opacity var(--morph) var(--ease)}
+.morph::after{
+  content:attr(data-t);
+  position:absolute;left:0;right:0;top:0;
+  padding:inherit;
+  font-style:italic;
+  font-weight:var(--heavy);
+  text-align:inherit;
+  opacity:0;
+  transition:opacity var(--morph) var(--ease);
+  pointer-events:none;
+}
+/* Hover only. On a touch screen there is no hover state to leave, so the
+   italic would stick after a tap and never come back. */
+@media (hover:hover) and (pointer:fine){
+  .morph:hover>span,.morph:focus-visible>span{opacity:0}
+  .morph:hover::after,.morph:focus-visible::after{opacity:1}
+}
+/* The blanket reduced-motion rule above already collapses this to an
+   instant swap rather than removing it — the italic still appears, it
+   just doesn't travel there. */
+
 /* ---- The category list ---- */
 .cats{min-height:100svh;display:grid;place-items:center;
   padding:0 var(--edge-r) 0 var(--edge-l)}
 .cats-inner{display:grid;justify-items:center;gap:0;text-align:center}
-.cats a{display:block;padding:7px 0;transition:color .45s var(--ease)}
+.cats a{
+  display:block;
+  font-size:var(--cat);
+  line-height:1.18;
+  letter-spacing:-.01em;   /* large type wants less tracking, not more */
+  font-weight:var(--heavy);
+  padding:6px 0;
+  transition:color .45s var(--ease);
+}
 @media (hover:hover) and (pointer:fine){
   .cats-inner:hover a{color:var(--fg-dim)}
   .cats-inner:hover a:hover{color:var(--fg)}
 }
 
 /* ============================================================================
-   THE FLOW
+   THE FLOW — one photograph at a time
 
-   Position and scale come from a fixed thirteen-step rhythm. Where frames
-   overlap, the pair is always horizontally disjoint — the narrow frame
-   sits beside the wide one, never on top of it. Overlap breaks the
-   column; it doesn't hide photographs.
+   Every frame gets a full screen to itself and the scroll comes to rest on
+   each. `mandatory` guarantees you always land on a photograph rather than
+   between two; `scroll-snap-stop:always` is the half that matters, because
+   without it a hard flick skips three or four at once.
+
+   The easing is the browser's own. It already reads as a settle rather
+   than a jump, and hand-rolling it feels worse.
    ============================================================================ */
-.flow{
-  padding:calc(16vh + var(--sa-t)) var(--edge-r) calc(20vh + var(--sa-b)) var(--edge-l);
-}
+html{scroll-snap-type:y mandatory}
+
+.flow{padding:0}
+
 .plate{
-  /* --w is a percentage of the flow; the calc caps it so a tall portrait
-     can never outgrow the window. Whichever binds first wins. */
-  width:min(var(--w,60%), calc(var(--imgh) * var(--arn,1.5)));
-  margin-left:var(--ml,0%);
-  margin-top:calc(var(--mt,14) * 1vh);
+  min-height:100svh;
+  display:grid;place-items:center;
+  /* The header is fixed over the top of this, so the padding is what
+     keeps a centred photograph clear of it rather than tucked underneath. */
+  padding:var(--head-h) var(--edge-r) 7vh var(--edge-l);
+  scroll-snap-align:center;
+  scroll-snap-stop:always;
 }
-.plate:first-child{margin-top:0}
 
 /* width:100% is load-bearing. A <button> is shrink-to-fit, so without it
    the frame's percentage width resolves against a button whose width
@@ -220,7 +342,11 @@ html.renovating .head .to{display:none}
 
 .frame{
   position:relative;overflow:hidden;background:var(--sunk);
-  width:100%;
+  /* Capped by width and by height at once; whichever binds first wins, so
+     any shape fills as much of the screen as it can without cropping. */
+  width:min(var(--imgw), calc(var(--imgh) * var(--arn,1.5)));
+  max-width:100%;
+  margin-inline:auto;
   aspect-ratio:var(--ar,3/2);
 }
 /* Without dimensions in the JSON we can't reserve the true shape, but we
@@ -237,7 +363,14 @@ html.renovating .head .to{display:none}
 }
 .frame img.ready{opacity:1}
 
-.flow-end{padding:14vh 0 0;text-align:center}
+/* Also a snap target. Under `mandatory` the scroller must come to rest on
+   one, so without this the last photograph becomes a floor you can't
+   scroll past and the link is unreachable. */
+.flow-end{
+  min-height:60svh;display:grid;place-items:center;
+  padding:0 var(--edge-r) 0 var(--edge-l);
+  scroll-snap-align:center;
+}
 
 /* ============================================================================
    INFORMATION + THE RENOVATION NOTICE
@@ -289,14 +422,7 @@ html.renovating .head .to{display:none}
    like a mistake rather than a decision.
    ============================================================================ */
 @media (max-width:900px){
-  :root{--imgh:clamp(180px, 70svh, 700px)}
-  .plate{
-    width:min(100%, calc(var(--imgh) * var(--arn,1.5))) !important;
-    margin-left:0 !important;
-    margin-top:9vh !important;
-  }
-  .plate:first-child{margin-top:0 !important}
-  .flow{padding-top:calc(14vh + var(--sa-t))}
+  :root{--imgh:clamp(180px, 66svh, 760px);--imgw:94vw}
   .lb{--lb-pad-y:calc(126px + var(--sa-t) + var(--sa-b))}
   .lb-body{padding:calc(48px + var(--sa-t)) var(--edge-r) calc(78px + var(--sa-b)) var(--edge-l)}
   .lb-bar{top:auto;bottom:0;transform:none;
@@ -304,7 +430,7 @@ html.renovating .head .to{display:none}
     background:linear-gradient(to top,var(--bg) 58%,transparent)}
 }
 @media (max-width:700px){
-  :root{--edge:16px;--imgh:clamp(160px, 64svh, 560px)}
+  :root{--edge:16px;--imgh:clamp(160px, 60svh, 620px);--head-h:clamp(88px,11vh,112px)}
 }
 
 /* ============================================================================
@@ -317,6 +443,10 @@ html.renovating .head .to{display:none}
   html.theming,html.theming *,html.theming *::before,html.theming *::after{
     transition-duration:.001ms!important;
   }
+  /* Mandatory snap moves the page without being asked, which is exactly
+     what this preference is about. Proximity still helps you land on a
+     photograph but never overrides a deliberate scroll. */
+  html{scroll-snap-type:y proximity}
 }
 .boot{min-height:100svh;display:grid;place-items:center;padding:0 var(--edge-r) 0 var(--edge-l)}
 </style>
@@ -329,8 +459,8 @@ html.renovating .head .to{display:none}
 <header class="head">
   <a class="name h" href="#/">DEVIN FEILEN</a>
   <span class="to">
-    <a class="h" href="#/photography" data-nav="photography">PHOTOGRAPHY</a><span aria-hidden="true">,</span>
-    <a class="h" href="#/information"  data-nav="information">INFORMATION</a>
+    <a class="h morph" href="#/photography" data-nav="photography" data-t="PHOTOGRAPHY" aria-label="Photography"><span>PHOTOGRAPHY</span></a><span aria-hidden="true">,</span>
+    <a class="h morph" href="#/information"  data-nav="information" data-t="INFORMATION" aria-label="Information"><span>INFORMATION</span></a>
   </span>
 </header>
 
@@ -404,28 +534,6 @@ const HOME_COUNT = 5;
    accidentally restored file dumping a hundred frames into a category. */
 const MAX_PER_FILE = 40;
 
-/* The rhythm: width, left offset (both % of the flow) and the gap above
-   (vh). A negative gap is a deliberate overlap, and in every case the
-   overlapping pair is horizontally disjoint.
-
-   Thirteen steps rather than six. Six repeats nearly nine times across 53
-   photographs, which stops reading as composition and starts reading as
-   wallpaper; thirteen repeats four times and never lines up with itself. */
-const RHYTHM = [
-  { w: 54, ml: 22, mt:  14 },
-  { w: 20, ml:  0, mt:  -8 },
-  { w: 52, ml: 44, mt:  12 },
-  { w: 28, ml:  4, mt: -10 },
-  { w:100, ml:  0, mt:  16 },
-  { w: 34, ml:  8, mt:  14 },
-  { w: 40, ml: 56, mt:  -6 },
-  { w: 58, ml: 20, mt:  13 },
-  { w: 22, ml: 78, mt:  -9 },
-  { w: 46, ml:  2, mt:  13 },
-  { w: 30, ml: 62, mt:  -7 },
-  { w:100, ml:  0, mt:  16 },
-  { w: 48, ml: 30, mt:  14 }
-];
 
 const mq = q => (window.matchMedia ? window.matchMedia(q) : { matches:false });
 const REDUCED = mq('(prefers-reduced-motion: reduce)').matches;
@@ -472,7 +580,7 @@ function adoptRatio(plate, frame, img, p) {
   if (!w || !h) return;
   p.ar = `${w} / ${h}`; p.arn = w / h;
   frame.style.setProperty('--ar', p.ar);
-  plate.style.setProperty('--arn', p.arn);
+  frame.style.setProperty('--arn', p.arn);
   frame.classList.remove('auto');
 }
 
@@ -633,7 +741,7 @@ function renderCategories() {
   const el = document.createElement('div');
   el.className = 'cats';
   el.innerHTML = `<div class="cats-inner">${
-    live.map(c => `<a class="h" href="#/c/${c.slug}" data-slug="${c.slug}">${esc(c.title)}</a>`).join('')
+    live.map(c => `<a class="h morph" href="#/c/${c.slug}" data-slug="${c.slug}" data-t="${esc(c.title)}" aria-label="${esc(c.title)}"><span>${esc(c.title)}</span></a>`).join('')
   }</div>`;
   return el;
 }
@@ -649,14 +757,8 @@ function buildFlow(list) {
   flow.className = 'flow';
 
   list.forEach((p, n) => {
-    const step = RHYTHM[n % RHYTHM.length];
-
     const fig = document.createElement('figure');
     fig.className = 'plate';
-    fig.style.setProperty('--w',  step.w + '%');
-    fig.style.setProperty('--ml', step.ml + '%');
-    fig.style.setProperty('--mt', step.mt);
-    if (p.arn) fig.style.setProperty('--arn', p.arn);
 
     const btn = document.createElement('button');
     btn.className = 'open';
@@ -665,7 +767,8 @@ function buildFlow(list) {
 
     const frame = document.createElement('div');
     frame.className = 'frame' + (p.ar ? '' : ' auto');
-    if (p.ar) frame.style.setProperty('--ar', p.ar);
+    if (p.ar)  frame.style.setProperty('--ar', p.ar);
+    if (p.arn) frame.style.setProperty('--arn', p.arn);
 
     const img = document.createElement('img');
     img.alt = `Photograph ${pad(n+1)}`;   // never shown; a screen reader
@@ -675,7 +778,7 @@ function buildFlow(list) {
     flow.appendChild(fig);
 
     img.dataset.url   = p.url;
-    img.dataset.sizes = `(max-width:900px) 92vw, ${step.w}vw`;
+    img.dataset.sizes = '(max-width:900px) 94vw, 78vw';
     img.dataset.eager = n === 0 ? '1' : '0';
     img.dataset.on    = '0';
     img.__photo = p; img.__frame = frame; img.__plate = fig;
