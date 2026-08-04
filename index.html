@@ -562,16 +562,22 @@ const DATA = new Map();   // slug -> { ...category, photos }
 let HOME = [];            // the front page's random handful
 let RENOVATING = false;
 
-/* Fisher–Yates over a copy, then take the first n. Doing it this way
-   rather than sorting by Math.random() matters: a random comparator is
-   not a valid sort and skews which items surface. */
-function pickRandom(list, n) {
+/* Fisher–Yates over a copy. Doing it this way rather than sorting by
+   Math.random() matters: a random comparator is not a valid sort, and it
+   skews the result badly — some positions come up far more often than
+   others. This is the only shuffle on the site; everything random goes
+   through it. */
+function shuffle(list) {
   const a = list.slice();
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
   }
-  return a.slice(0, Math.min(n, a.length));
+  return a;
+}
+
+function pickRandom(list, n) {
+  return shuffle(list).slice(0, Math.min(n, list.length));
 }
 
 function adoptRatio(plate, frame, img, p) {
@@ -1066,7 +1072,17 @@ themeBtn.addEventListener('click', () => {
   const loaded = await Promise.all(CATEGORIES.map(async c => {
     const parts = await Promise.all(c.sources.map(loadFile));
     const photos = parts.flat();
-    return photos.length ? { ...c, photos } : null;
+    /* Shuffled here, once, rather than inside renderFlow() — for the same
+       reason the front page is. If it happened at render time, every trip
+       back into a category would reorder it under you, and the lightbox's
+       Prev/Next would disagree with the page behind it. Shuffling at load
+       means an order that holds for the whole visit and changes on reload.
+
+       This also means order in the JSON file no longer decides anything.
+       Which photographs are in the file is now the only editorial control
+       left — so the argument for keeping each list short gets stronger,
+       not weaker. */
+    return photos.length ? { ...c, photos: shuffle(photos) } : null;
   }));
   loaded.filter(Boolean).forEach(c => DATA.set(c.slug, c));
 
@@ -1076,7 +1092,9 @@ themeBtn.addEventListener('click', () => {
 
   /* Chosen once, here, rather than inside renderHome() — otherwise every
      trip back to the front page would deal a new hand, which is
-     disorienting when you're just navigating. A reload gives a new five. */
+     disorienting when you're just navigating. A reload gives a new five.
+     Drawn from the categories after they've been shuffled, though that
+     makes no difference to a random pick. */
   HOME = pickRandom(everything, HOME_COUNT);
 
   /* Render straight away. The probe must never sit between a visitor and
