@@ -118,6 +118,7 @@
   --edge:clamp(10px,2vw,28px);
   --head-h:clamp(104px,13vh,150px);     /* what the fixed header occupies */
   --pile-w:clamp(120px,19vmin,240px);   /* base tile width on the front page */
+  --tone:#DFDBD4;                       /* stand-in until a photo's own colour is known */
 
   /* One photograph per screen, so it can be far larger than it was when
      frames sat beside each other. Capped by height and by width at once;
@@ -138,6 +139,7 @@
 }
 [data-theme="dark"]{
   --bg:#0a0a0a; --fg:#ffffff; --fg-dim:#8a8a8a; --sunk:#161616;
+  --tone:#17171a;
 }
 
 *,*::before,*::after{box-sizing:border-box}
@@ -311,6 +313,37 @@ html.renovating .head .to{display:none}
 }
 
 /* ============================================================================
+   THE MORPH — a thumbnail becoming the full photograph
+
+   Both the tile and the lightbox image are given the same
+   view-transition-name for the length of the animation, and the browser
+   works out the flight path between them. Only one element may carry a
+   given name at a time, which is why it's applied immediately before and
+   stripped immediately after rather than living in the stylesheet.
+
+   `mix-blend-mode:normal` matters: the default is plus-lighter, which
+   cross-fades two copies of the same photograph into something visibly
+   brighter than either of them halfway through.
+
+   This is enhancement only. Without startViewTransition — or with reduced
+   motion asked for — the lightbox simply opens, as it always did.
+   ============================================================================ */
+::view-transition-group(photo){
+  animation-duration:.42s;
+  animation-timing-function:cubic-bezier(.4,0,.2,1);
+}
+::view-transition-old(photo),::view-transition-new(photo){
+  mix-blend-mode:normal;
+  height:100%;
+}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.3s}
+@media (prefers-reduced-motion:reduce){
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*){animation:none!important}
+}
+
+/* ============================================================================
    THE FRONT PAGE — a pile
 
    Every photograph, scattered over one screen, fading in on top of one
@@ -352,7 +385,14 @@ html.renovating .head .to{display:none}
   will-change:opacity,transform;
 }
 .chip.in{opacity:1;transform:translate(-50%,-50%) rotate(var(--r,0deg)) scale(1)}
-.chip img{display:block;width:100%;height:auto}
+/* The tone sits on the image itself so the coloured area is exactly the
+   photograph's footprint. Until it loads there is no intrinsic height to
+   give the tile a shape, so an assumed 3:2 reserves one — released the
+   moment the real proportions are known. Tiles are centre-positioned, so
+   correcting a wrong guess grows the tile about its middle rather than
+   shoving the pile around. */
+.chip img{display:block;width:100%;height:auto;background-color:var(--c,var(--tone))}
+.chip img:not(.ready){aspect-ratio:var(--ar,3/2)}
 /* The lift lives on the image rather than the button so it doesn't fight
    the translate/rotate the chip is already carrying. */
 @media (hover:hover) and (pointer:fine){
@@ -413,6 +453,7 @@ html{scroll-snap-type:y mandatory}
 .frame.auto{aspect-ratio:3/2}
 .frame.auto img{object-fit:contain}
 
+.frame{background-color:var(--c,var(--tone))}
 .frame img{
   position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
   /* The whole entrance: each photograph fades up once decoded. A failed
@@ -497,7 +538,8 @@ html{scroll-snap-type:y mandatory}
    ============================================================================ */
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{transition-duration:.001ms!important;animation-duration:.001ms!important}
-  .frame img{opacity:1}
+  .frame{background-color:var(--c,var(--tone))}
+.frame img{opacity:1}
   #view.out{opacity:1}
   html.theming,html.theming *,html.theming *::before,html.theming *::after{
     transition-duration:.001ms!important;
@@ -793,10 +835,17 @@ async function loadFile(slug) {
     return list.slice(0, MAX_PER_FILE).map(item => {
       const o = typeof item === 'string' ? { file:item } : item;
       const w = Number(o.w)||null, h = Number(o.h)||null;
+      /* `c` is this photograph's average colour, six hex digits, written by
+         make-json.mjs. It fills the frame before the image arrives, so a
+         loading page looks like photographs developing rather than holes.
+         Entirely optional — without it the frames use a neutral tone. */
+      const c = typeof o.c === 'string' && /^#?[0-9a-f]{6}$/i.test(o.c)
+              ? '#' + o.c.replace('#','') : null;
       return {
         url: urlFor(slug, o.file || o.src || ''),
         ar:  (w&&h) ? `${w} / ${h}` : null,
-        arn: (w&&h) ? (w/h) : null
+        arn: (w&&h) ? (w/h) : null,
+        c
         /* `caption` and `place` in the JSON are read by nothing. */
       };
     }).filter(p => p.url);
@@ -844,6 +893,7 @@ function buildFlow(list) {
     frame.className = 'frame' + (p.ar ? '' : ' auto');
     if (p.ar)  frame.style.setProperty('--ar', p.ar);
     if (p.arn) frame.style.setProperty('--arn', p.arn);
+    if (p.c)   frame.style.setProperty('--c', p.c);
 
     const img = document.createElement('img');
     img.alt = `Photograph ${pad(n+1)}`;   // never shown; a screen reader
@@ -859,7 +909,7 @@ function buildFlow(list) {
     img.__photo = p; img.__frame = frame; img.__plate = fig;
     if (n === 0) attachImage(img);
 
-    btn.addEventListener('click', () => openLB(list, n));
+    btn.addEventListener('click', () => morph(img, () => openLB(list, n, img)));
   });
 
   return flow;
@@ -969,9 +1019,11 @@ function renderHome() {
        does the same. It costs nothing and means a tile is identifiable
        while it's still queued behind the concurrency limit. */
     img.dataset.url = p.url;
+    if (p.c)  img.style.setProperty('--c', p.c);
+    if (p.ar) img.style.setProperty('--ar', p.ar);
     btn.appendChild(img);                 // still has to announce something
     field.appendChild(btn);
-    btn.addEventListener('click', () => openLB(list, n));
+    btn.addEventListener('click', () => morph(img, () => openLB(list, n, img)));
     return { btn, img, p };
   });
 
@@ -1092,6 +1144,7 @@ function renderMissing(msg) {
    requested, snapped to the ladder so the CDN cache still works.
    ============================================================================ */
 const lb = $('#lb'), lbImg = $('#lb-img');
+let lbSource = null;   // the thumbnail this was opened from, for the morph back
 const DPR_CAP = 2;
 let lbList = [], lbi = 0, lastFocus = null, lockedY = 0, loadedLBWidth = 0;
 
@@ -1123,16 +1176,55 @@ function lbTargetWidth(f) {
   const need = Math.ceil(cssW * Math.min(window.devicePixelRatio || 1, DPR_CAP));
   return WIDTHS.find(w => w >= need) || WIDTHS[WIDTHS.length - 1];
 }
-function openLB(list, i) {
+/* Runs `change` inside a view transition, with `el` and the lightbox image
+   temporarily sharing a name so the browser morphs one into the other.
+   Falls back to running `change` on its own wherever that isn't available. */
+const canMorph = () =>
+  typeof document.startViewTransition === 'function' && !REDUCED;
+
+function morph(el, change) {
+  if (!canMorph() || !el) { change(); return; }
+  el.style.viewTransitionName = 'photo';
+  lbImg.style.viewTransitionName = 'photo';
+  const clear = () => {
+    el.style.viewTransitionName = '';
+    lbImg.style.viewTransitionName = '';
+  };
+  let t;
+  try { t = document.startViewTransition(change); }
+  catch (e) { clear(); change(); return; }
+  /* finished rejects if the transition is skipped — a second one starting,
+     or the tab going to the background. The DOM change has still happened,
+     so this only ever needs to tidy up the names. */
+  t.finished.then(clear, clear);
+}
+
+function openLB(list, i, from) {
   if (!list || !list.length) return;
   lbList = list; lbi = i; lastFocus = document.activeElement;
+  lbSource = from || null;
   lockScroll();
   lb.classList.add('open');
   requestAnimationFrame(() => lb.classList.add('shown'));
-  drawLB();
+  drawLB(from && from.currentSrc ? from.currentSrc : (from && from.src) || null);
   $('#lb-close').focus();
 }
 function closeLB() {
+  /* Morph back to the tile it came from, but only if that tile is still in
+     the document — stepping to another photograph, or a re-render behind
+     the lightbox, leaves nothing to return to, and then the plain fade is
+     the honest thing to show. */
+  const back = lbSource && lbSource.isConnected ? lbSource : null;
+  if (back && canMorph()) {
+    morph(back, () => {
+      lb.classList.remove('shown');
+      lb.classList.remove('open');
+      unlockScroll();
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    });
+    lbSource = null;
+    return;
+  }
   lb.classList.remove('shown');
   setTimeout(() => {
     lb.classList.remove('open');
@@ -1140,18 +1232,69 @@ function closeLB() {
     if (lastFocus && lastFocus.focus) lastFocus.focus();
   }, REDUCED ? 0 : 450);
 }
-function stepLB(d) { if (!lbList.length) return; lbi = (lbi + d + lbList.length) % lbList.length; drawLB(); }
-function drawLB() {
+function stepLB(d) { if (!lbList.length) return; lbi = (lbi + d + lbList.length) % lbList.length; lbSource = null; drawLB(); }
+/* Whichever photographs sit either side of this one, fetched quietly so
+   that Prev and Next are instant rather than a wait. Started only once the
+   photograph you're actually looking at has arrived — otherwise the two
+   you might never look at compete with it for bandwidth.
+
+   Holding the Image objects in a variable is the point: drop the
+   reference and some browsers will bin a decode that hasn't been used
+   yet, which is exactly the one we're trying to keep. */
+let lbNear = [];
+function prefetchNeighbours() {
+  if (lbList.length < 2) return;
+  const want = [-1, 1]
+    .map(d => lbList[(lbi + d + lbList.length) % lbList.length])
+    .filter((f, i, a) => f && a.indexOf(f) === i && f !== lbList[lbi]);
+  lbNear = want.map(f => {
+    const im = new Image();
+    im.decoding = 'async';
+    if ('fetchPriority' in im) im.fetchPriority = 'low';
+    im.src = sized(f.url, lbTargetWidth(f));
+    return im;
+  });
+}
+
+/* `seed` is the copy already on screen — the thumbnail you clicked. It's in
+   cache, so it paints on the very next frame instead of after a round
+   trip, and the full-size file then replaces it once it has decoded. Two
+   things fall out of that: opening never shows an empty rectangle, and the
+   view transition has something to morph into. */
+let lbToken = 0;
+function drawLB(seed) {
   const f = lbList[lbi]; if (!f) return;
-  lbImg.classList.remove('ready');
+  const mine = ++lbToken;
   lbImg.removeAttribute('srcset');
   lbImg.removeAttribute('sizes');
   lbImg.alt = `Photograph ${pad(lbi+1)}`;
   lbImg.decoding = 'async';
   lbImg.fetchPriority = 'high';
   loadedLBWidth = lbTargetWidth(f);
-  lbImg.src = sized(f.url, loadedLBWidth);
-  const show = () => lbImg.classList.add('ready');
+  const full = sized(f.url, loadedLBWidth);
+  if (f.c) lbImg.style.setProperty('--c', f.c);
+
+  const settle = () => { if (mine === lbToken) prefetchNeighbours(); };
+
+  if (seed && seed !== full) {
+    lbImg.src = seed;
+    lbImg.classList.add('ready');
+    const hi = new Image();
+    hi.decoding = 'async';
+    hi.addEventListener('load', () => {
+      /* Only if you're still on this photograph, and still want this size —
+         a resize may have raised the target while this was in flight. */
+      if (mine === lbToken && lbList[lbi] === f) lbImg.src = full;
+      settle();
+    }, { once:true });
+    hi.addEventListener('error', settle, { once:true });
+    hi.src = full;
+    return;
+  }
+
+  lbImg.classList.remove('ready');
+  lbImg.src = full;
+  const show = () => { lbImg.classList.add('ready'); settle(); };
   if (lbImg.complete && lbImg.naturalWidth) show();
   else { lbImg.addEventListener('load', show, {once:true});
          lbImg.addEventListener('error', show, {once:true}); }
