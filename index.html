@@ -117,6 +117,7 @@
 
   --edge:clamp(10px,2vw,28px);
   --head-h:clamp(104px,13vh,150px);     /* what the fixed header occupies */
+  --pile-w:clamp(120px,19vmin,240px);   /* base tile width on the front page */
 
   /* One photograph per screen, so it can be far larger than it was when
      frames sat beside each other. Capped by height and by width at once;
@@ -310,6 +311,63 @@ html.renovating .head .to{display:none}
 }
 
 /* ============================================================================
+   THE FRONT PAGE — a pile
+
+   Every photograph, scattered over one screen, fading in on top of one
+   another. Three decisions worth knowing:
+
+   Tiles are positioned by their CENTRE, not their top-left corner. Most of
+   these photographs arrive without dimensions in the JSON, so the height
+   of a tile isn't known until the image lands. Centre-positioning doesn't
+   care — a portrait and a landscape both stay where they were put, and
+   nothing jumps when the real proportions arrive.
+
+   The scatter is deliberately biased towards the middle. Two random
+   numbers averaged, rather than one, which clusters tiles centrally and
+   leaves the corners sparse. Uniformly random positions look evenly
+   sprinkled, which is the opposite of a pile.
+
+   Stacking order is just DOM order — later arrivals paint on top. No
+   z-index bookkeeping, and the pile builds in the order things load.
+   ============================================================================ */
+.pile{position:relative;min-height:100svh;overflow:hidden}
+.pile-field{
+  position:absolute;
+  top:var(--head-h);
+  right:var(--edge-r);
+  bottom:calc(12vh + var(--sa-b));
+  left:var(--edge-l);
+}
+.chip{
+  position:absolute;
+  left:calc(var(--x) * 100%);
+  top:calc(var(--y) * 100%);
+  width:calc(var(--pile-w) * var(--f,1));
+  border:0;padding:0;background:none;
+  cursor:zoom-in;
+  line-height:0;
+  opacity:0;
+  transform:translate(-50%,-50%) rotate(var(--r,0deg)) scale(.94);
+  transition:opacity .75s var(--ease), transform .75s var(--ease);
+  will-change:opacity,transform;
+}
+.chip.in{opacity:1;transform:translate(-50%,-50%) rotate(var(--r,0deg)) scale(1)}
+.chip img{display:block;width:100%;height:auto}
+/* The lift lives on the image rather than the button so it doesn't fight
+   the translate/rotate the chip is already carrying. */
+@media (hover:hover) and (pointer:fine){
+  .chip img{transition:transform .3s var(--ease)}
+  .chip:hover{z-index:60}
+  .chip:hover img{transform:scale(1.04)}
+}
+.pile-tail{
+  position:absolute;left:0;right:0;
+  bottom:calc(5vh + var(--sa-b));
+  text-align:center;z-index:70;
+  font-size:var(--nav);
+}
+
+/* ============================================================================
    THE FLOW — one photograph at a time
 
    Every frame gets a full screen to itself and the scroll comes to rest on
@@ -430,7 +488,8 @@ html{scroll-snap-type:y mandatory}
     background:linear-gradient(to top,var(--bg) 58%,transparent)}
 }
 @media (max-width:700px){
-  :root{--edge:16px;--imgh:clamp(160px, 60svh, 620px);--head-h:clamp(88px,11vh,112px)}
+  :root{--edge:16px;--imgh:clamp(160px, 60svh, 620px);--head-h:clamp(88px,11vh,112px);
+        --pile-w:clamp(86px,26vmin,150px)}
 }
 
 /* ============================================================================
@@ -492,7 +551,7 @@ const CDN = 'https://devinfeilen.b-cdn.net';
 // parameter is ignored and you get originals — safe either way, but turn
 // it on: it is most of the weight saving available here.
 const USE_OPTIMIZER = true;
-const WIDTHS = [640, 1000, 1500, 2200];
+const WIDTHS = [320, 640, 1000, 1500, 2200];   /* 320 exists for the front-page pile */
 
 /* THE CATEGORIES.
 
@@ -527,7 +586,21 @@ const CATEGORIES = [
 
    This is the only randomness on the site — the sequence inside each
    category is exactly the order of its JSON file, unshuffled. */
-const HOME_COUNT = 5;
+/* THE FRONT-PAGE PILE.
+
+   Every photograph in every file, scattered over one screen and fading in
+   on top of one another. The numbers below are the whole safety story:
+
+   PILE_MOBILE_MAX  a phone gets a subset. 90 tiles on a 390px screen is
+                    neither legible nor survivable.
+   PILE_CONCURRENCY how many are in flight at once. Bunny speaks HTTP/2, so
+                    without a limit the browser would open all ninety
+                    simultaneously and every one would arrive slowly.
+   PILE_RAW_CAP     the emergency brake. See pileGuard(). */
+const PILE_MOBILE_MAX  = 30;
+const PILE_STAGGER     = 45;    /* ms between reveals */
+const PILE_CONCURRENCY = 8;
+const PILE_RAW_CAP     = 12;
 
 /* Safety cap per file, not a curation tool — with the site down to ~53
    photographs every one should appear. This only stops a stale or
@@ -565,8 +638,8 @@ let RENOVATING = false;
 /* Fisher–Yates over a copy. Doing it this way rather than sorting by
    Math.random() matters: a random comparator is not a valid sort, and it
    skews the result badly — some positions come up far more often than
-   others. This is the only shuffle on the site; everything random goes
-   through it. */
+   others. This is the only shuffle on the site: the front page and every
+   category both go through it. */
 function shuffle(list) {
   const a = list.slice();
   for (let i = a.length - 1; i > 0; i--) {
@@ -574,10 +647,6 @@ function shuffle(list) {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
-}
-
-function pickRandom(list, n) {
-  return shuffle(list).slice(0, Math.min(n, list.length));
 }
 
 function adoptRatio(plate, frame, img, p) {
@@ -697,13 +766,13 @@ function probeUrls(list) {
   return out;
 }
 
-function mount(img, url, { sizes, eager } = {}) {
+function mount(img, url, { sizes, eager, base } = {}) {
   img.decoding = 'async';
   img.loading = eager ? 'eager' : 'lazy';
   if (eager) img.fetchPriority = 'high';
   const ss = srcset(url);
   if (ss) { img.srcset = ss; img.sizes = sizes || '60vw'; }
-  img.src = USE_OPTIMIZER ? sized(url, 1500) : url;
+  img.src = USE_OPTIMIZER ? sized(url, base || 1500) : url;
   const ok  = () => { img.classList.add('ready'); noteImage(true); };
   const bad = () => { img.classList.remove('ready'); noteImage(false); };
   if (img.complete && img.naturalWidth) ok();
@@ -803,12 +872,155 @@ function tail(href, label) {
   return end;
 }
 
-/* The front page: a handful drawn from every category, then a way in. */
+/* ============================================================================
+   THE FRONT PAGE
+
+   Every photograph, piled onto one screen. The interesting problem here is
+   not the scatter, it's the weight: ninety images all visible at once is
+   the exact situation the rest of this file spends its effort avoiding.
+   Down the flow, only the photographs near the viewport are ever attached;
+   here they must all be attached at the same time.
+
+   Three things keep it survivable.
+
+   1. Tiles are small, and they ASK for small. A tile is a couple of
+      hundred pixels wide, so `sizes` is set to its measured width and the
+      browser draws 320 from the ladder instead of 1500. That's the
+      difference between roughly 24 MB of decoded image and 8 GB.
+
+   2. Only PILE_CONCURRENCY are in flight. Bunny speaks HTTP/2, which
+      multiplexes freely — without a limit the browser opens all ninety at
+      once and every one of them crawls. Eight at a time also produces the
+      cascade you actually want to look at.
+
+   3. pileGuard() — see below.
+   ============================================================================ */
+
+/* THE EMERGENCY BRAKE.
+
+   Everything above assumes ?width= is honoured. If Bunny's Optimizer is
+   off, it isn't: every request returns the 6192 x 4128 original, and
+   ninety of those is about 200 MB of download and 8 GB of decoded bitmap.
+   Safari on iOS doesn't degrade there, it dies.
+
+   So the first image to arrive is measured. If it came back far larger
+   than was asked for, the CDN is ignoring the parameter and the pile cuts
+   itself down to PILE_RAW_CAP. The page stays up, and the console says
+   plainly what happened and how to fix it.
+
+   Turn the Optimizer on (or upload resized photographs) and this never
+   fires — all ninety come back on their own. */
+function pileGuard(img, want) {
+  if (!img.naturalWidth) return false;
+  const ignored = img.naturalWidth > Math.max(want * 2, 1200);
+  if (ignored) {
+    console.warn(
+      `[pile] Asked the CDN for ~${want}px and got ${img.naturalWidth}px. ` +
+      `Bunny's Optimizer is off, so every photograph is a full-size original. ` +
+      `Showing ${PILE_RAW_CAP} instead of the full set to keep the page alive. ` +
+      `Turn on Optimizer > Dynamic Image API, or upload resized files, and the ` +
+      `rest will appear on their own.`);
+  }
+  return ignored;
+}
+
 function renderHome() {
   const el = document.createElement('div');
-  el.appendChild(buildFlow(HOME));
-  el.appendChild(tail('#/photography', 'Photography'));
+  el.className = 'pile';
+
+  const field = document.createElement('div');
+  field.className = 'pile-field';
+  el.appendChild(field);
+
+  /* A phone gets a subset. This is not a rendering limit — it's that
+     thirty tiles is already a dense pile on a 390px screen, and ninety is
+     neither legible nor affordable. */
+  const coarse = mq('(pointer: coarse)').matches || window.innerWidth < 700;
+  const list = coarse ? HOME.slice(0, PILE_MOBILE_MAX) : HOME.slice();
+
+  /* Two randoms averaged rather than one. A single uniform random spreads
+     tiles evenly to the edges, which reads as a sprinkle; averaging two
+     pulls them towards the middle, which reads as a pile.
+
+     The horizontal spread then widens with the shape of the screen. The
+     same distribution on both axes gives a tidy central clump on a wide
+     monitor with a third of the width left empty either side — correct on
+     a phone, wrong on a laptop. The vertical spread stays tight, because
+     that's the axis the pile actually reads along. */
+  const shape   = Math.min(2, Math.max(1, window.innerWidth / Math.max(1, window.innerHeight)));
+  const spreadX = Math.min(0.94, 0.82 * shape);
+  const spreadY = 0.82;
+  const middling = sp => (1 - sp) / 2 + ((Math.random() + Math.random()) / 2) * sp;
+  const between  = (a,b) => a + Math.random() * (b - a);
+
+  const chips = list.map((p, n) => {
+    const btn = document.createElement('button');
+    btn.className = 'chip';
+    btn.type = 'button';
+    btn.setAttribute('aria-label', `Open photograph ${pad(n+1)}`);
+    btn.style.setProperty('--x', middling(spreadX).toFixed(4));
+    btn.style.setProperty('--y', middling(spreadY).toFixed(4));
+    btn.style.setProperty('--r', between(-9, 9).toFixed(2) + 'deg');
+    btn.style.setProperty('--f', between(0.72, 1.34).toFixed(3));
+
+    const img = document.createElement('img');
+    img.alt = `Photograph ${pad(n+1)}`;   // never shown; a screen reader
+    /* Which photograph this tile is, recorded before it loads. The flow
+       does the same. It costs nothing and means a tile is identifiable
+       while it's still queued behind the concurrency limit. */
+    img.dataset.url = p.url;
+    btn.appendChild(img);                 // still has to announce something
+    field.appendChild(btn);
+    btn.addEventListener('click', () => openLB(list, n));
+    return { btn, img, p };
+  });
+
+  const tailEl = document.createElement('div');
+  tailEl.className = 'pile-tail';
+  tailEl.innerHTML = `<a class="h" href="#/photography">Photography &rarr;</a>`;
+  el.appendChild(tailEl);
+
+  /* The loader runs once the pile is in the document, because each tile's
+     width has to be measured before it can be asked for at that size. */
+  requestAnimationFrame(() => runPile(chips));
   return el;
+}
+
+function runPile(chips) {
+  let started = 0, cap = chips.length, checked = false;
+  const t0 = Date.now();
+
+  const reveal = (c, i) => {
+    const due = REDUCED ? 0 : Math.max(0, i * PILE_STAGGER - (Date.now() - t0));
+    setTimeout(() => c.btn.classList.add('in'), due);
+  };
+
+  const next = () => {
+    if (started >= Math.min(cap, chips.length)) return;
+    const i = started++, c = chips[i];
+    const want = Math.round(c.btn.getBoundingClientRect().width) || 200;
+
+    c.img.addEventListener('load', () => {
+      if (!checked) {
+        checked = true;
+        if (pileGuard(c.img, want)) {
+          cap = Math.min(cap, PILE_RAW_CAP);
+          chips.slice(cap).forEach(x => x.btn.remove());
+        }
+      }
+      reveal(c, i);
+      next();
+    }, { once:true });
+
+    /* A photograph that won't load is removed rather than revealed as a
+       broken frame. mount() has already told the renovation check about
+       it, so if they ALL fail the site still falls back properly. */
+    c.img.addEventListener('error', () => { c.btn.remove(); next(); }, { once:true });
+
+    mount(c.img, c.p.url, { sizes: want + 'px', base: 640 });
+  };
+
+  for (let k = 0; k < PILE_CONCURRENCY; k++) next();
 }
 
 function renderFlow(cat) {
@@ -1090,12 +1302,11 @@ themeBtn.addEventListener('click', () => {
 
   const everything = [].concat(...[...DATA.values()].map(c => c.photos));
 
-  /* Chosen once, here, rather than inside renderHome() — otherwise every
-     trip back to the front page would deal a new hand, which is
-     disorienting when you're just navigating. A reload gives a new five.
-     Drawn from the categories after they've been shuffled, though that
-     makes no difference to a random pick. */
-  HOME = pickRandom(everything, HOME_COUNT);
+  /* Every photograph, in one shuffled order. Shuffled once here rather
+     than inside renderHome() so that returning to the front page shows the
+     pile you left rather than rebuilding a different one. A reload
+     scatters it afresh. */
+  HOME = shuffle(everything);
 
   /* Render straight away. The probe must never sit between a visitor and
      the work — on a slow connection that would be seconds of nothing for
