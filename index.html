@@ -363,17 +363,15 @@ html.renovating .head .to{display:none}
    Windowing then handles the images themselves.
    ============================================================================ */
 .race{padding:calc(var(--head-h) + 8px) var(--edge-r) 14vh var(--edge-l)}
-.race-head{max-width:62rem;margin:0 auto 26px}
-.race-title{font-size:var(--cat);line-height:1.15;font-weight:var(--heavy);letter-spacing:-.01em}
-.race-sub{margin-top:8px;color:var(--fg-dim)}
-.race-note{margin-top:14px;max-width:44rem;color:var(--fg-dim)}
+.race-head{max-width:44rem;margin:0 auto 22px;text-align:center}
 /* Deliberately small and quiet. It has to be readable on arrival, not
    negotiated with — so it sits in the header rather than a footer nobody
    scrolls 500 thumbnails to reach. */
 .race-credit{
   position:relative;
-  margin-top:16px;max-width:46rem;
-  padding:2px 34px 2px 0;
+  margin:0 auto;max-width:44rem;
+  padding:2px 34px;
+  text-align:center;
   font-size:13px;line-height:1.55;color:var(--fg-dim);
   cursor:pointer;
   max-height:220px;overflow:hidden;
@@ -387,7 +385,7 @@ html.renovating .head .to{display:none}
    the sheet. Quick — this is an acknowledgement, not an animation. */
 .race-credit.gone{opacity:0;max-height:0;margin-top:0;padding-top:0;padding-bottom:0;pointer-events:none}
 .race-x{
-  position:absolute;top:-4px;right:0;
+  position:absolute;top:-2px;right:0;
   width:26px;height:26px;display:grid;place-items:center;
   color:var(--fg-dim);font-size:15px;line-height:1;border-radius:2px;
 }
@@ -450,8 +448,26 @@ html.renovating .head .to{display:none}
 .race-count{font-weight:var(--heavy)}
 .race-progress{color:var(--fg-dim)}
 
-@media (max-width:900px){
+/* A phone gets far bigger thumbnails. 104px squares are fine on a laptop
+   where you can see forty at once; on a 390px screen they're three to a row
+   and too small to recognise a face in — which is the entire task here.
+   Two up, and more scrolling, is the right trade. */
+@media (max-width:600px){
+  :root{--cell:calc((100vw - (2 * var(--edge)) - 8px) / 2);--cell-gap:8px}
   .race{padding-top:calc(var(--head-h) + 4px)}
+  /* Portraits lose too much to a 3:2 crop at this size. */
+  .cell{aspect-ratio:4/3}
+  /* Thumb-sized controls, always visible since there's no hover. */
+  .cell .tick,.cell .grab{width:42px;height:42px;font-size:16px}
+  .cell .tick{top:8px;left:8px}
+  .cell .grab{top:8px;right:8px}
+  .race-bar{gap:14px;font-size:15px}
+  .race-bar button{padding:6px 2px}
+}
+@media (min-width:601px) and (max-width:900px){
+  :root{--cell:calc((100vw - (2 * var(--edge)) - (2 * 8px)) / 3);--cell-gap:8px}
+  .race{padding-top:calc(var(--head-h) + 4px)}
+  .cell .tick,.cell .grab{width:40px;height:40px}
 }
 
 /* ============================================================================
@@ -717,6 +733,7 @@ html{scroll-snap-type:y mandatory}
     <span class="lb-nav">
       <button class="h" id="lb-prev">Prev</button>
       <button class="h" id="lb-next">Next</button>
+      <button class="h" id="lb-save" hidden>Save</button>
       <button class="h" id="lb-close">Close</button>
     </span>
   </div>
@@ -1123,7 +1140,16 @@ function tail(href, label) {
    full URLs, or objects with `c` / `w` / `h`, exactly like the portfolio.
    ============================================================================ */
 const RACE_WINDOW   = '250% 0px';   /* how far outside the viewport to keep images */
-const RACE_THUMB    = 320;          /* thumbnails are ~168px at most, so 320 covers 2x */
+/* Was a flat 320, which is right for a 168px cell on a laptop and visibly
+   soft on a phone now that a cell is half the screen. Measured once per
+   render and snapped to the srcset ladder so the CDN cache still works. */
+let RACE_THUMB = 320;
+function measureThumb(scope) {
+  const cell = $('.cell', scope);
+  const w = cell ? Math.round(cell.getBoundingClientRect().width) : 0;
+  const need = Math.ceil((w || 168) * Math.min(window.devicePixelRatio || 1, 2));
+  RACE_THUMB = WIDTHS.find(x => x >= need) || WIDTHS[WIDTHS.length - 1];
+}
 const RACE_GAP      = 550;          /* ms between files in a batch download */
 
 /* Shown at the top of every gallery. A manifest may override it with its own
@@ -1184,13 +1210,15 @@ async function mountRace(slug, el) {
 function buildSheet(meta, photos) {
   const wrap = document.createElement('div');
 
+  /* The header is the notice and nothing else. It used to carry a title, a
+     photograph count and the manifest's note as well — which put the count
+     on screen twice, and pushed the photographs a long way down a phone.
+     The gallery's name is in the tab title and on the link that got you
+     here; the count is visible by scrolling. To put the title back, add
+     an <h1 class="race-title"> here. */
   const head = document.createElement('div');
   head.className = 'race-head';
   head.innerHTML =
-    `<h1 class="race-title">${esc(meta.title || 'Gallery')}</h1>` +
-    `<p class="race-sub">${photos.length} photograph${photos.length===1?'':'s'}` +
-      `${meta.date ? ' &middot; ' + esc(meta.date) : ''}</p>` +
-    (meta.note ? `<p class="race-note">${esc(meta.note)}</p>` : '') +
     `<p class="race-credit" id="race-credit" role="note">` +
       `${meta.credit ? esc(meta.credit) : RACE_CREDIT}` +
       `<button type="button" class="race-x" aria-label="Dismiss this notice">&times;</button>` +
@@ -1238,7 +1266,7 @@ function buildSheet(meta, photos) {
     hit.className = 'hit';
     hit.type = 'button';
     hit.setAttribute('aria-label', `Open photograph ${n+1}`);
-    hit.addEventListener('click', () => morph(img, () => openLB(photos, n, img)));
+    hit.addEventListener('click', () => morph(img, () => openLB(photos, n, img, true)));
     cell.appendChild(hit);
 
     const tick = document.createElement('button');
@@ -1326,6 +1354,7 @@ function initRaceWindowing(scope) {
   if (raceIO) { raceIO.disconnect(); raceIO = null; }
   const cells = $$('.cell', scope);
   if (!cells.length) return;
+  measureThumb(scope);
   if (!('IntersectionObserver' in window)) {
     cells.slice(0, 120).forEach(c => attachThumb($('img', c)));
     return;
@@ -1376,22 +1405,79 @@ function detachThumb(img) {
    fetch throws and the photograph is opened in a new tab instead — worse,
    but not nothing, and the visitor is told which happened. RACES.md explains
    the one Bunny setting that turns the good path on.                       */
-async function downloadOne(p) {
-  const url = p.url;                       /* no ?width — the original */
+/* WHY A PHONE NEEDS DIFFERENT TREATMENT.
+
+   A blob download on iOS lands in Files, not Photos, and there is no
+   setting that changes that — a download is a download. The only route
+   into the camera roll from a web page is the share sheet, where "Save
+   Image" appears alongside Messages and AirDrop. So on a phone the button
+   opens the share sheet; on a desktop, where a share sheet would be an
+   irritation, it saves the file as before.
+
+   navigator.share must be called from a user gesture, and fetching the
+   photograph first spends some of that budget. iOS has tolerated the await
+   since 16, but not universally — so every failure falls through to the
+   ordinary download rather than leaving the visitor with nothing. */
+const canShareFiles = () => {
   try {
-    const res = await fetch(url, { mode:'cors', credentials:'omit' });
-    if (!res.ok) throw new Error(res.status);
-    const blob = await res.blob();
-    const href = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = href; a.download = p.name;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(href), 20000);
+    return typeof navigator.share === 'function' &&
+           typeof navigator.canShare === 'function' &&
+           navigator.canShare({ files: [new File([new Blob([1])], 'x.jpg', { type:'image/jpeg' })] });
+  } catch (e) { return false; }
+};
+
+async function grabBlob(url) {
+  const res = await fetch(url, { mode:'cors', credentials:'omit' });
+  if (!res.ok) throw new Error(res.status);
+  return res.blob();
+}
+
+function saveBlob(blob, name) {
+  const href = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = href; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(href), 20000);
+}
+
+/* One photograph. Share sheet where that exists, download where it doesn't,
+   and the photograph opened in a tab if the CDN refuses the fetch. */
+async function downloadOne(p, { preferShare = canShareFiles() } = {}) {
+  try {
+    const blob = await grabBlob(p.url);
+    if (preferShare) {
+      const file = new File([blob], p.name, { type: blob.type || 'image/jpeg' });
+      if (navigator.canShare({ files:[file] })) {
+        try { await navigator.share({ files:[file] }); return 'shared'; }
+        catch (e) {
+          /* AbortError means they closed the sheet — that's a decision, not
+             a failure, and quietly downloading the file instead would be
+             the opposite of what they just asked for. */
+          if (e && e.name === 'AbortError') return 'cancelled';
+        }
+      }
+    }
+    saveBlob(blob, p.name);
     return 'saved';
   } catch (e) {
-    window.open(url, '_blank', 'noopener');
+    window.open(p.url, '_blank', 'noopener');
     return 'opened';
   }
+}
+
+/* Several at once, on a phone: one share sheet holding all of them, so iOS
+   offers "Save N Images" straight to the camera roll. Capped, because every
+   file is held in memory at the same time and these are full-size
+   originals — a dozen is about 60 MB, which is fine; fifty is not. */
+const SHARE_MAX = 12;
+async function shareMany(list) {
+  const files = [];
+  for (const p of list) {
+    const blob = await grabBlob(p.url);
+    files.push(new File([blob], p.name, { type: blob.type || 'image/jpeg' }));
+  }
+  if (!navigator.canShare({ files })) throw new Error('cannot share this set');
+  await navigator.share({ files });
 }
 
 async function downloadMany(list) {
@@ -1399,7 +1485,24 @@ async function downloadMany(list) {
   const prog = $('#race-progress');
   const stop = $('#race-get');
   raceAbort = false;
-  let saved = 0, opened = 0;
+
+  /* On a phone, a modest selection goes out as one share sheet, which is
+     the only way these reach Photos rather than Files. Beyond SHARE_MAX
+     the memory cost stops being reasonable and it falls back to
+     downloading them one at a time. */
+  if (canShareFiles() && list.length > 1 && list.length <= SHARE_MAX) {
+    if (prog) prog.textContent = `Preparing ${list.length}…`;
+    try {
+      await shareMany(list);
+      if (prog) { prog.textContent = ''; }
+      return;
+    } catch (e) {
+      if (e && e.name === 'AbortError') { if (prog) prog.textContent = ''; return; }
+      /* fall through and download them instead */
+    }
+  }
+
+  let saved = 0, opened = 0, shared = 0, cancelled = 0;
 
   if (list.length > 1 && stop) {
     stop.textContent = 'Stop';
@@ -1410,8 +1513,13 @@ async function downloadMany(list) {
   for (let i = 0; i < list.length; i++) {
     if (raceAbort) break;
     if (prog) prog.textContent = `${i+1} of ${list.length}…`;
-    const how = await downloadOne(list[i]);
-    how === 'saved' ? saved++ : opened++;
+    /* Only the first of a run is inside the user's tap, so a share sheet
+       per photograph would be blocked after that one. A long run downloads. */
+    const how = await downloadOne(list[i], { preferShare: list.length === 1 && canShareFiles() });
+    if (how === 'saved') saved++;
+    else if (how === 'shared') shared++;
+    else if (how === 'cancelled') cancelled++;
+    else opened++;
     /* Browsers rate-limit repeated downloads and will silently drop a burst.
        A gap between them is the difference between getting forty files and
        getting three. */
@@ -1420,10 +1528,11 @@ async function downloadMany(list) {
 
   if (stop) { stop.textContent = 'Download'; stop.onclick = null; updateRaceBar([]); }
   if (prog) {
-    prog.textContent = raceAbort ? `Stopped after ${saved + opened}.`
+    prog.textContent = raceAbort ? `Stopped after ${saved + opened + shared}.`
+      : cancelled && !saved && !opened && !shared ? ''
       : opened && !saved ? `Opened ${opened} in new tabs — your browser blocked direct saving.`
       : opened ? `Saved ${saved}. ${opened} opened in a tab instead.`
-      : `Saved ${saved}.`;
+      : shared ? '' : `Saved ${saved}.`;
     setTimeout(() => { if (prog.isConnected) prog.textContent = ''; }, 9000);
   }
   const bar = $('#race-bar'); if (bar) bar.classList.toggle('up', raceSel.size > 0);
@@ -1686,7 +1795,10 @@ function renderMissing(msg) {
    The ratio is known, so the displayed size is computed and one exact file
    requested, snapped to the ladder so the CDN cache still works.
    ============================================================================ */
-const lb = $('#lb'), lbImg = $('#lb-img');
+const lb = $('#lb'), lbImg = $('#lb-img'), lbSave = $('#lb-save');
+/* Save only appears for race galleries. The portfolio isn't a download
+   page, and a Save button on it would invite something it isn't offering. */
+let lbCanSave = false;
 let lbSource = null;   // the thumbnail this was opened from, for the morph back
 const DPR_CAP = 2;
 let lbList = [], lbi = 0, lastFocus = null, lockedY = 0, loadedLBWidth = 0;
@@ -1742,9 +1854,11 @@ function morph(el, change) {
   t.finished.then(clear, clear);
 }
 
-function openLB(list, i, from) {
+function openLB(list, i, from, savable) {
   if (!list || !list.length) return;
   lbList = list; lbi = i; lastFocus = document.activeElement;
+  lbCanSave = !!savable;
+  if (lbSave) lbSave.hidden = !lbCanSave;
   lbSource = from || null;
   lockScroll();
   lb.classList.add('open');
@@ -1842,6 +1956,15 @@ function drawLB(seed) {
   else { lbImg.addEventListener('load', show, {once:true});
          lbImg.addEventListener('error', show, {once:true}); }
 }
+if (lbSave) lbSave.addEventListener('click', async () => {
+  const f = lbList[lbi]; if (!f) return;
+  const was = lbSave.textContent;
+  lbSave.disabled = true; lbSave.textContent = 'Saving…';
+  const how = await downloadOne(f);
+  lbSave.textContent = how === 'opened' ? 'Opened in a tab' : was;
+  lbSave.disabled = false;
+  if (how === 'opened') setTimeout(() => { lbSave.textContent = was; }, 4000);
+});
 $('#lb-close').addEventListener('click', closeLB);
 $('#lb-prev').addEventListener('click', () => stepLB(-1));
 $('#lb-next').addEventListener('click', () => stepLB(1));
