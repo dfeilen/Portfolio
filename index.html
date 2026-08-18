@@ -1347,8 +1347,16 @@ function attachThumb(img) {
   if ('fetchPriority' in img) img.fetchPriority = 'auto';
   img.src = sized(img.dataset.url, RACE_THUMB);
   const ok = () => img.classList.add('ready');
+  /* A photograph in the manifest that isn't on the CDN — an upload that
+     stopped short, a file deleted since — takes its cell with it rather
+     than sitting there as a coloured rectangle forever. The grid closes up
+     and the visitor never learns anything went wrong. */
+  const gone = () => { const cell = img.closest('.cell'); if (cell) cell.remove(); };
   if (img.complete && img.naturalWidth) ok();
-  else img.addEventListener('load', ok, { once:true });
+  else {
+    img.addEventListener('load', ok, { once:true });
+    img.addEventListener('error', gone, { once:true });
+  }
 }
 function detachThumb(img) {
   if (!img || img.dataset.on !== '1') return;
