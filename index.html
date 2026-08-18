@@ -118,6 +118,8 @@
   --edge:clamp(10px,2vw,28px);
   --head-h:clamp(104px,13vh,150px);     /* what the fixed header occupies */
   --pile-w:clamp(120px,19vmin,240px);   /* base tile width on the front page */
+  --cell:clamp(104px,13vmin,168px);     /* contact-sheet thumbnail */
+  --cell-gap:6px;
   --tone:#DFDBD4;                       /* stand-in until a photo's own colour is known */
 
   /* One photograph per screen, so it can be far larger than it was when
@@ -310,6 +312,114 @@ html.renovating .head .to{display:none}
 @media (hover:hover) and (pointer:fine){
   .cats-inner:hover a{color:var(--fg-dim)}
   .cats-inner:hover a:hover{color:var(--fg)}
+}
+
+/* ============================================================================
+   RACE GALLERIES — a contact sheet
+
+   A different job from the rest of the site. The portfolio is arranged; this
+   is five hundred photographs a rider needs to scan through to find
+   themselves. So: small, dense, uniform, croppable, and fast.
+
+   `object-fit:cover` crops each thumbnail to a common rectangle. On the
+   portfolio that would be vandalism; on a contact sheet it's what makes the
+   grid scannable, and the full frame is one click away.
+
+   `content-visibility:auto` with a reserved size is what makes 500 cells
+   affordable — the browser skips layout and paint for anything off screen,
+   and `contain-intrinsic-size` stops the scrollbar from lying while it does.
+   Windowing then handles the images themselves.
+   ============================================================================ */
+.race{padding:calc(var(--head-h) + 8px) var(--edge-r) 14vh var(--edge-l)}
+.race-head{max-width:62rem;margin:0 auto 26px}
+.race-title{font-size:var(--cat);line-height:1.15;font-weight:var(--heavy);letter-spacing:-.01em}
+.race-sub{margin-top:8px;color:var(--fg-dim)}
+.race-note{margin-top:14px;max-width:44rem;color:var(--fg-dim)}
+/* Deliberately small and quiet. It has to be readable on arrival, not
+   negotiated with — so it sits in the header rather than a footer nobody
+   scrolls 500 thumbnails to reach. */
+.race-credit{
+  position:relative;
+  margin-top:16px;max-width:46rem;
+  padding:2px 34px 2px 0;
+  font-size:13px;line-height:1.55;color:var(--fg-dim);
+  cursor:pointer;
+  max-height:220px;overflow:hidden;
+  transition:opacity .18s var(--ease), max-height .18s var(--ease),
+             margin-top .18s var(--ease), padding .18s var(--ease);
+}
+.race-credit a{text-decoration:underline;text-underline-offset:2px;color:var(--fg);cursor:pointer}
+/* Its own line, as in the message it was written from. */
+.race-credit .coffee{display:block;margin-top:7px}
+/* Collapsed as well as faded, so dismissing it doesn't leave a hole above
+   the sheet. Quick — this is an acknowledgement, not an animation. */
+.race-credit.gone{opacity:0;max-height:0;margin-top:0;padding-top:0;padding-bottom:0;pointer-events:none}
+.race-x{
+  position:absolute;top:-4px;right:0;
+  width:26px;height:26px;display:grid;place-items:center;
+  color:var(--fg-dim);font-size:15px;line-height:1;border-radius:2px;
+}
+.race-credit:hover .race-x{color:var(--fg)}
+
+.sheet{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(var(--cell),1fr));
+  gap:var(--cell-gap);
+}
+.cell{
+  position:relative;
+  aspect-ratio:3/2;
+  content-visibility:auto;
+  contain-intrinsic-size:auto var(--cell);
+  background-color:var(--c,var(--tone));
+  overflow:hidden;
+}
+.cell img{
+  width:100%;height:100%;object-fit:cover;display:block;
+  opacity:0;transition:opacity .4s var(--ease);
+}
+.cell img.ready{opacity:1}
+.cell .hit{position:absolute;inset:0;cursor:zoom-in;border:0;background:none;padding:0}
+.cell:focus-within{outline:2px solid var(--fg);outline-offset:2px}
+
+/* Select and download sit in opposite corners so neither is hit by accident
+   while scanning. They stay visible on touch, where there is no hover. */
+.cell .tick,.cell .grab{
+  position:absolute;z-index:2;
+  width:34px;height:34px;
+  display:grid;place-items:center;
+  background:var(--bg);color:var(--fg);
+  border:1px solid var(--rule,rgba(128,128,128,.4));
+  border-radius:2px;cursor:pointer;
+  opacity:0;transition:opacity .18s var(--ease);
+  font-size:13px;line-height:1;
+}
+.cell .tick{top:6px;left:6px}
+.cell .grab{top:6px;right:6px}
+.cell:hover .tick,.cell:hover .grab,
+.cell:focus-within .tick,.cell:focus-within .grab,
+.cell.picked .tick{opacity:1}
+@media (hover:none){ .cell .tick,.cell .grab{opacity:1} }
+.cell.picked{outline:3px solid var(--fg);outline-offset:-3px}
+.cell.picked .tick{background:var(--fg);color:var(--bg)}
+
+/* The bar only exists once something is selected, so it never sits there
+   taking up room and asking to be ignored. */
+.race-bar{
+  position:fixed;left:0;right:0;bottom:0;z-index:80;
+  padding:12px calc(var(--edge-r) + 8px) calc(12px + var(--sa-b)) calc(var(--edge-l) + 8px);
+  background:var(--bg);border-top:1px solid var(--rule,rgba(128,128,128,.35));
+  display:flex;gap:18px;align-items:center;justify-content:center;flex-wrap:wrap;
+  transform:translateY(110%);transition:transform .28s var(--ease);
+}
+.race-bar.up{transform:translateY(0)}
+.race-bar button{text-decoration:underline;text-underline-offset:3px}
+.race-bar button[disabled]{opacity:.45;cursor:default;text-decoration:none}
+.race-count{font-weight:var(--heavy)}
+.race-progress{color:var(--fg-dim)}
+
+@media (max-width:900px){
+  .race{padding-top:calc(var(--head-h) + 4px)}
 }
 
 /* ============================================================================
@@ -928,6 +1038,325 @@ function tail(href, label) {
 }
 
 /* ============================================================================
+   RACE GALLERIES
+
+   Unlisted, self-contained, and deliberately not part of the portfolio: a
+   gallery is fetched only when someone visits its address, so five hundred
+   photographs cost nothing to anybody else.
+
+   A manifest lives at races/<slug>.json:
+
+     {
+       "title":  "Alpenrose Velodrome — Aug 2026",
+       "date":   "16 August 2026",
+       "note":   "Free to download. Credit appreciated, never required.",
+       "folder": "Races/Alpenrose2026",
+       "photos": ["AR-0001.jpg", "AR-0002.jpg", ...]
+     }
+
+   `folder` is the Bunny path the filenames hang off. Entries may also be
+   full URLs, or objects with `c` / `w` / `h`, exactly like the portfolio.
+   ============================================================================ */
+const RACE_WINDOW   = '250% 0px';   /* how far outside the viewport to keep images */
+const RACE_THUMB    = 320;          /* thumbnails are ~168px at most, so 320 covers 2x */
+const RACE_GAP      = 550;          /* ms between files in a batch download */
+
+/* Shown at the top of every gallery. A manifest may override it with its own
+   `credit` string, but the default is the one that matters — it's the ask
+   that goes out with every set of race photographs. */
+const RACE_CREDIT =
+  `These images are free for personal use. Please credit ` +
+  `<a href="https://instagram.com/devinfeilen" target="_blank" rel="noopener noreferrer">@devinfeilen</a> ` +
+  `on Instagram or <a href="https://devinfeilen.com">devinfeilen.com</a> when sharing.` +
+  `<span class="coffee">You can ` +
+  `<a href="https://buymeacoffee.com/devinfeilen" target="_blank" rel="noopener noreferrer">buy me a coffee</a> ` +
+  `for my work.</span>`;
+
+let raceSel = new Set();
+let creditDismissed = false;   /* for this visit; see buildSheet */
+let raceAbort = false;
+
+function renderRaceLoading() {
+  const el = document.createElement('div');
+  el.className = 'race';
+  el.innerHTML = `<div class="race-head"><p class="race-sub" id="race-status">Loading…</p></div>`;
+  return el;
+}
+
+async function mountRace(slug, el) {
+  let body;
+  try {
+    const res = await fetch(`races/${slug}.json`, { cache:'no-cache' });
+    if (!res.ok) throw new Error(res.status);
+    body = await res.json();
+  } catch (e) {
+    const s = $('#race-status', el);
+    if (s) s.textContent = 'That gallery is not here. Check the link you were sent.';
+    return;
+  }
+
+  const raw = Array.isArray(body) ? body : (body.photos || body.images || []);
+  const base = (body.folder || '').replace(/^\/+|\/+$/g, '');
+  const photos = raw.map(item => {
+    const oo = typeof item === 'string' ? { file:item } : item;
+    const f = oo.file || oo.src || oo.url || '';
+    const w = Number(oo.w) || null, h = Number(oo.h) || null;
+    const c = typeof oo.c === 'string' && /^#?[0-9a-f]{6}$/i.test(oo.c)
+            ? '#' + oo.c.replace('#','') : null;
+    return {
+      url: /^https?:\/\//i.test(f) ? f : `${CDN}/${base ? base + '/' : ''}${f}`,
+      name: (f.split('/').pop() || 'photograph.jpg'),
+      ar: (w&&h) ? `${w} / ${h}` : null, arn: (w&&h) ? (w/h) : null, c
+    };
+  }).filter(p => p.url);
+
+  raceSel = new Set();
+  if (body.title) document.title = `${body.title} — Devin Feilen`;
+  swapIn(el, buildSheet(body, photos));
+  initRaceWindowing(el);
+}
+
+function buildSheet(meta, photos) {
+  const wrap = document.createElement('div');
+
+  const head = document.createElement('div');
+  head.className = 'race-head';
+  head.innerHTML =
+    `<h1 class="race-title">${esc(meta.title || 'Gallery')}</h1>` +
+    `<p class="race-sub">${photos.length} photograph${photos.length===1?'':'s'}` +
+      `${meta.date ? ' &middot; ' + esc(meta.date) : ''}</p>` +
+    (meta.note ? `<p class="race-note">${esc(meta.note)}</p>` : '') +
+    `<p class="race-credit" id="race-credit" role="note">` +
+      `${meta.credit ? esc(meta.credit) : RACE_CREDIT}` +
+      `<button type="button" class="race-x" aria-label="Dismiss this notice">&times;</button>` +
+    `</p>`;
+  wrap.appendChild(head);
+
+  /* Tap anywhere on the notice to be rid of it — except on a link, which
+     should do what a link does. Dismissal lasts for this visit only: it
+     follows you between galleries but comes back on a reload, because a
+     credit request that disappears forever after one stray tap isn't much
+     of a request. Change `creditDismissed` to a localStorage flag if you'd
+     rather it stayed gone. */
+  const credit = $('.race-credit', head);
+  if (credit) {
+    if (creditDismissed) { credit.classList.add('gone'); credit.hidden = true; }
+    const dismiss = () => {
+      creditDismissed = true;
+      credit.classList.add('gone');
+      setTimeout(() => { if (credit.isConnected) credit.hidden = true; }, REDUCED ? 0 : 200);
+    };
+    credit.addEventListener('click', e => { if (!e.target.closest('a')) dismiss(); });
+    credit.addEventListener('keydown', e => {
+      if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('race-x')) {
+        e.preventDefault(); dismiss();
+      }
+    });
+  }
+
+  const sheet = document.createElement('div');
+  sheet.className = 'sheet';
+
+  photos.forEach((p, n) => {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    if (p.c) cell.style.setProperty('--c', p.c);
+
+    const img = document.createElement('img');
+    img.alt = `Photograph ${n+1}`;
+    img.dataset.url = p.url;
+    img.dataset.on = '0';
+    img.__photo = p;
+    cell.appendChild(img);
+
+    const hit = document.createElement('button');
+    hit.className = 'hit';
+    hit.type = 'button';
+    hit.setAttribute('aria-label', `Open photograph ${n+1}`);
+    hit.addEventListener('click', () => morph(img, () => openLB(photos, n, img)));
+    cell.appendChild(hit);
+
+    const tick = document.createElement('button');
+    tick.className = 'tick';
+    tick.type = 'button';
+    tick.setAttribute('aria-pressed', 'false');
+    tick.setAttribute('aria-label', `Select photograph ${n+1}`);
+    tick.textContent = '+';
+    tick.addEventListener('click', e => {
+      e.stopPropagation();
+      const on = raceSel.has(n);
+      on ? raceSel.delete(n) : raceSel.add(n);
+      cell.classList.toggle('picked', !on);
+      tick.setAttribute('aria-pressed', String(!on));
+      tick.textContent = on ? '+' : '✓';
+      updateRaceBar(photos);
+    });
+    cell.appendChild(tick);
+
+    const grab = document.createElement('button');
+    grab.className = 'grab';
+    grab.type = 'button';
+    grab.setAttribute('aria-label', `Download photograph ${n+1}`);
+    grab.textContent = '↓';
+    grab.addEventListener('click', e => { e.stopPropagation(); downloadMany([p]); });
+    cell.appendChild(grab);
+
+    sheet.appendChild(cell);
+  });
+
+  wrap.appendChild(sheet);
+  wrap.appendChild(buildRaceBar(photos));
+  return wrap;
+}
+
+function buildRaceBar(photos) {
+  const bar = document.createElement('div');
+  bar.className = 'race-bar';
+  bar.id = 'race-bar';
+  bar.innerHTML =
+    `<span class="race-count" id="race-count">0 selected</span>` +
+    `<button type="button" id="race-all">Select all</button>` +
+    `<button type="button" id="race-none">Clear</button>` +
+    `<button type="button" id="race-get">Download</button>` +
+    `<span class="race-progress" id="race-progress"></span>`;
+  bar.querySelector('#race-all').addEventListener('click', () => {
+    photos.forEach((_, i) => raceSel.add(i));
+    $$('.cell').forEach((c, i) => {
+      c.classList.add('picked');
+      const t = $('.tick', c); if (t) { t.textContent = '✓'; t.setAttribute('aria-pressed','true'); }
+    });
+    updateRaceBar(photos);
+  });
+  bar.querySelector('#race-none').addEventListener('click', () => {
+    raceSel.clear();
+    $$('.cell').forEach(c => {
+      c.classList.remove('picked');
+      const t = $('.tick', c); if (t) { t.textContent = '+'; t.setAttribute('aria-pressed','false'); }
+    });
+    updateRaceBar(photos);
+  });
+  bar.querySelector('#race-get').addEventListener('click', () => {
+    const picked = [...raceSel].sort((a,b)=>a-b).map(i => photos[i]).filter(Boolean);
+    downloadMany(picked);
+  });
+  return bar;
+}
+
+function updateRaceBar(photos) {
+  const bar = $('#race-bar'); if (!bar) return;
+  const n = raceSel.size;
+  bar.classList.toggle('up', n > 0);
+  const c = $('#race-count'); if (c) c.textContent = `${n} selected`;
+  const g = $('#race-get');   if (g) g.disabled = n === 0;
+}
+
+/* ---------------------------------------------------------------- windowing
+
+   Same idea as the flow, wider margin. `content-visibility` already spares
+   the browser laying out cells it can't see; this spares it holding decoded
+   bitmaps for them. Five hundred thumbnails attached at once would be about
+   135 MB of decoded image — roughly thirty at a time is under ten.        */
+let raceIO = null;
+function initRaceWindowing(scope) {
+  if (raceIO) { raceIO.disconnect(); raceIO = null; }
+  const cells = $$('.cell', scope);
+  if (!cells.length) return;
+  if (!('IntersectionObserver' in window)) {
+    cells.slice(0, 120).forEach(c => attachThumb($('img', c)));
+    return;
+  }
+  raceIO = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      const img = $('img', e.target);
+      if (!img) return;
+      if (e.isIntersecting) attachThumb(img); else detachThumb(img);
+    });
+  }, { rootMargin: RACE_WINDOW });
+  cells.forEach(c => raceIO.observe(c));
+}
+function attachThumb(img) {
+  if (!img || img.dataset.on === '1') return;
+  img.dataset.on = '1';
+  img.decoding = 'async';
+  img.loading = 'eager';          /* the observer is the throttle, not the browser */
+  if ('fetchPriority' in img) img.fetchPriority = 'auto';
+  img.src = sized(img.dataset.url, RACE_THUMB);
+  const ok = () => img.classList.add('ready');
+  if (img.complete && img.naturalWidth) ok();
+  else img.addEventListener('load', ok, { once:true });
+}
+function detachThumb(img) {
+  if (!img || img.dataset.on !== '1') return;
+  img.dataset.on = '0';
+  img.classList.remove('ready');
+  img.removeAttribute('src');
+}
+
+/* ----------------------------------------------------------------- download
+
+   The `download` attribute is ignored on a cross-origin link — the browser
+   navigates to the image instead of saving it, which on a phone means the
+   photograph opens and the visitor is left to long-press it. So the file is
+   fetched as a blob first and saved from memory, which keeps the filename.
+
+   That needs the CDN to send Access-Control-Allow-Origin. If it doesn't, the
+   fetch throws and the photograph is opened in a new tab instead — worse,
+   but not nothing, and the visitor is told which happened. RACES.md explains
+   the one Bunny setting that turns the good path on.                       */
+async function downloadOne(p) {
+  const url = p.url;                       /* no ?width — the original */
+  try {
+    const res = await fetch(url, { mode:'cors', credentials:'omit' });
+    if (!res.ok) throw new Error(res.status);
+    const blob = await res.blob();
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = href; a.download = p.name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(href), 20000);
+    return 'saved';
+  } catch (e) {
+    window.open(url, '_blank', 'noopener');
+    return 'opened';
+  }
+}
+
+async function downloadMany(list) {
+  if (!list.length) return;
+  const prog = $('#race-progress');
+  const stop = $('#race-get');
+  raceAbort = false;
+  let saved = 0, opened = 0;
+
+  if (list.length > 1 && stop) {
+    stop.textContent = 'Stop';
+    stop.disabled = false;
+    stop.onclick = () => { raceAbort = true; };
+  }
+
+  for (let i = 0; i < list.length; i++) {
+    if (raceAbort) break;
+    if (prog) prog.textContent = `${i+1} of ${list.length}…`;
+    const how = await downloadOne(list[i]);
+    how === 'saved' ? saved++ : opened++;
+    /* Browsers rate-limit repeated downloads and will silently drop a burst.
+       A gap between them is the difference between getting forty files and
+       getting three. */
+    if (i < list.length - 1) await wait(RACE_GAP);
+  }
+
+  if (stop) { stop.textContent = 'Download'; stop.onclick = null; updateRaceBar([]); }
+  if (prog) {
+    prog.textContent = raceAbort ? `Stopped after ${saved + opened}.`
+      : opened && !saved ? `Opened ${opened} in new tabs — your browser blocked direct saving.`
+      : opened ? `Saved ${saved}. ${opened} opened in a tab instead.`
+      : `Saved ${saved}.`;
+    setTimeout(() => { if (prog.isConnected) prog.textContent = ''; }, 9000);
+  }
+  const bar = $('#race-bar'); if (bar) bar.classList.toggle('up', raceSel.size > 0);
+}
+
+/* ============================================================================
    THE FRONT PAGE
 
    Every photograph, piled onto one screen. The interesting problem here is
@@ -1387,6 +1816,12 @@ function parseRoute() {
   if (parts[0] === 'photography') return { name:'photography' };
   if (parts[0] === 'information') return { name:'information' };
   if (parts[0] === 'c')           return { name:'category', slug: RENAMED[parts[1]] || parts[1] };
+  /* Race galleries. Unlisted: nothing links here, nothing lists them, and a
+     hash fragment is never sent to a server, so the address cannot be
+     indexed as a page of its own. That is obscurity, not security — the
+     reasoning is written out in RACES.md. */
+  if (parts[0] === 'r' && parts[1])
+    return { name:'race', slug: parts[1].replace(/[^a-z0-9-]/gi,'').toLowerCase() };
   // #/w/racing and friends were real URLs once; send them somewhere real.
   if (parts[0] === 'w')           return { name:'category', slug: parts[1] };
   return { name:'missing' };
@@ -1407,7 +1842,7 @@ async function route() {
   await wait(REDUCED ? 0 : 340);
 
   let el;
-  if (RENOVATING && r.name !== 'information') {
+  if (RENOVATING && r.name !== 'information' && r.name !== 'race') {
     el = renderRenovation();
   } else if (r.name === 'information') {
     el = renderInformation();
@@ -1418,11 +1853,14 @@ async function route() {
   } else if (r.name === 'category') {
     const cat = DATA.get(r.slug);
     el = cat ? renderFlow(cat) : renderMissing('No such category.');
+  } else if (r.name === 'race') {
+    el = renderRaceLoading();
   } else {
     el = renderMissing('That page does not exist.');
   }
 
   if (windowIO) { windowIO.disconnect(); windowIO = null; }
+  if (raceIO)   { raceIO.disconnect();   raceIO = null; }
   swapIn(view, el);
   scrollTo({ top:0, behavior:'auto' });
   const hasFlow = !RENOVATING &&
@@ -1430,9 +1868,13 @@ async function route() {
   if (hasFlow) initWindowing(view);
 
   requestAnimationFrame(() => view.classList.remove('out'));
+  /* The gallery's own file is fetched after the view is on screen, so a
+     500-photograph manifest never delays the frame. */
+  if (r.name === 'race') mountRace(r.slug, el);
   const cat = r.name === 'category' && DATA.get(r.slug);
   document.title = cat ? `${cat.title} — Devin Feilen`
-    : r.name === 'information' ? 'Information — Devin Feilen' : 'Devin Feilen';
+    : r.name === 'information' ? 'Information — Devin Feilen'
+    : r.name === 'race' ? 'Gallery — Devin Feilen' : 'Devin Feilen';
 }
 addEventListener('hashchange', route);
 
