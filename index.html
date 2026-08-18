@@ -118,7 +118,7 @@
   --edge:clamp(10px,2vw,28px);
   --head-h:clamp(104px,13vh,150px);     /* what the fixed header occupies */
   --pile-w:clamp(120px,19vmin,240px);   /* base tile width on the front page */
-  --cell:clamp(104px,13vmin,168px);     /* contact-sheet thumbnail */
+  --row-h:220px;                        /* target height of a contact-sheet row */
   --cell-gap:6px;
   --tone:#DFDBD4;                       /* stand-in until a photo's own colour is known */
 
@@ -233,6 +233,41 @@ html.theming, html.theming *, html.theming *::before, html.theming *::after{
 .corner{
   position:fixed;right:var(--edge-r);bottom:calc(14px + var(--sa-b));z-index:50;
 }
+.theme-icon{display:none}
+
+/* ---- Inside a gallery it becomes an icon, top right ----
+   Words floating over a contact sheet read as something left behind rather
+   than a control. The photographs run to the bottom of a gallery too, so
+   the bottom corner is the worst place for it. A tinted disc keeps it
+   legible over whatever it happens to be sitting on. */
+html.gallery .corner{
+  top:calc(12px + var(--sa-t));
+  bottom:auto;
+  right:var(--edge-r);
+  z-index:60;
+}
+html.gallery #theme{
+  width:38px;height:38px;padding:0;margin:0;
+  display:grid;place-items:center;
+  border-radius:50%;
+  background:var(--bg);
+  box-shadow:0 0 0 1px var(--rule,rgba(128,128,128,.35));
+  min-width:0;
+}
+html.gallery .theme-word{
+  position:absolute;width:1px;height:1px;overflow:hidden;
+  clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;
+}
+html.gallery .theme-icon{
+  display:block;width:19px;height:19px;
+  fill:none;stroke:var(--fg);stroke-width:1.7;
+  stroke-linecap:round;stroke-linejoin:round;
+}
+html.gallery .theme-moon{fill:var(--fg);stroke:none}
+/* Show what you'd switch TO: a moon while it's light, a sun while it's dark. */
+html.gallery .theme-sun{display:none}
+html[data-theme="dark"].gallery .theme-moon{display:none}
+html[data-theme="dark"].gallery .theme-sun{display:block}
 .corner button{padding:12px 6px;margin:-12px -6px;display:inline-block}
 /* "Light mode" is 10 characters and "Dark mode" is 9; a reserved width
    stops that one character shifting the corner on every switch. */
@@ -370,7 +405,7 @@ html.renovating .head .to{display:none}
 .race-credit{
   position:relative;
   margin:0 auto;max-width:44rem;
-  padding:2px 34px;
+  padding:2px 6px;
   text-align:center;
   font-size:13px;line-height:1.55;color:var(--fg-dim);
   cursor:pointer;
@@ -384,23 +419,24 @@ html.renovating .head .to{display:none}
 /* Collapsed as well as faded, so dismissing it doesn't leave a hole above
    the sheet. Quick — this is an acknowledgement, not an animation. */
 .race-credit.gone{opacity:0;max-height:0;margin-top:0;padding-top:0;padding-bottom:0;pointer-events:none}
-.race-x{
-  position:absolute;top:-2px;right:0;
-  width:26px;height:26px;display:grid;place-items:center;
-  color:var(--fg-dim);font-size:15px;line-height:1;border-radius:2px;
-}
-.race-credit:hover .race-x{color:var(--fg)}
+.race-credit:hover 
+/* Justified rows, not a grid of identical boxes.
 
-.sheet{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(var(--cell),1fr));
-  gap:var(--cell-gap);
-}
+   Three quarters of a race set is portrait, and a uniform 3:2 cell cropped
+   the top and bottom off every one of them — you were scanning for a face
+   in the half of the frame that survived. So each photograph now keeps its
+   own shape, and rows are packed to the full width and given whatever
+   height makes them fit. No crop, no letterboxing, no ragged right edge.
+
+   Positions are computed in JS and set as absolute pixels. That sounds
+   heavier than a CSS grid but is lighter in practice: a resize restyles 654
+   elements in place rather than moving them between row containers, and an
+   image detached by the windowing can't collapse its cell, because the cell
+   was never sized by its contents. */
+.sheet{position:relative;width:100%}
 .cell{
-  position:relative;
-  aspect-ratio:3/2;
+  position:absolute;
   content-visibility:auto;
-  contain-intrinsic-size:auto var(--cell);
   background-color:var(--c,var(--tone));
   overflow:hidden;
 }
@@ -453,10 +489,10 @@ html.renovating .head .to{display:none}
    and too small to recognise a face in — which is the entire task here.
    Two up, and more scrolling, is the right trade. */
 @media (max-width:600px){
-  :root{--cell:calc((100vw - (2 * var(--edge)) - 8px) / 2);--cell-gap:8px}
+  /* Taller rows on a phone: roughly two portraits or one landscape across,
+     which is as big as these can be without one photograph per screen. */
+  :root{--row-h:250px;--cell-gap:8px}
   .race{padding-top:calc(var(--head-h) + 4px)}
-  /* Portraits lose too much to a 3:2 crop at this size. */
-  .cell{aspect-ratio:4/3}
   /* Thumb-sized controls, always visible since there's no hover. */
   .cell .tick,.cell .grab{width:42px;height:42px;font-size:16px}
   .cell .tick{top:8px;left:8px}
@@ -465,7 +501,7 @@ html.renovating .head .to{display:none}
   .race-bar button{padding:6px 2px}
 }
 @media (min-width:601px) and (max-width:900px){
-  :root{--cell:calc((100vw - (2 * var(--edge)) - (2 * 8px)) / 3);--cell-gap:8px}
+  :root{--row-h:230px;--cell-gap:8px}
   .race{padding-top:calc(var(--head-h) + 4px)}
   .cell .tick,.cell .grab{width:40px;height:40px}
 }
@@ -723,7 +759,7 @@ html{scroll-snap-type:y mandatory}
   </span>
 </header>
 
-<div class="corner"><button class="h" id="theme">Dark mode</button></div>
+<div class="corner"><button class="h" id="theme" aria-label="Switch to dark mode"><span class="theme-word">Dark mode</span><svg class="theme-icon theme-moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.2 14.6A8.2 8.2 0 0 1 9.4 3.8a8.2 8.2 0 1 0 10.8 10.8Z"/></svg><svg class="theme-icon theme-sun" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4.1"/><path d="M12 1.6v3M12 19.4v3M1.6 12h3M19.4 12h3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M19.4 4.6l-2.1 2.1M6.7 17.3l-2.1 2.1"/></svg></button></div>
 
 <main id="view"><div class="boot"><p class="dim">Loading</p></div></main>
 
@@ -1145,9 +1181,12 @@ const RACE_WINDOW   = '250% 0px';   /* how far outside the viewport to keep imag
    render and snapped to the srcset ladder so the CDN cache still works. */
 let RACE_THUMB = 320;
 function measureThumb(scope) {
-  const cell = $('.cell', scope);
-  const w = cell ? Math.round(cell.getBoundingClientRect().width) : 0;
-  const need = Math.ceil((w || 168) * Math.min(window.devicePixelRatio || 1, 2));
+  /* Widths vary now that rows are justified, so take the widest of the
+     first few rather than the first — being slightly generous costs a
+     little bandwidth, being mean costs sharpness on every wide frame. */
+  const cells = $$('.cell', scope).slice(0, 12);
+  const w = cells.reduce((m,c) => Math.max(m, parseFloat(c.style.width) || 0), 0);
+  const need = Math.ceil((w || 220) * Math.min(window.devicePixelRatio || 1, 2));
   RACE_THUMB = WIDTHS.find(x => x >= need) || WIDTHS[WIDTHS.length - 1];
 }
 const RACE_GAP      = 550;          /* ms between files in a batch download */
@@ -1203,7 +1242,15 @@ async function mountRace(slug, el) {
 
   raceSel = new Set();
   if (body.title) document.title = `${body.title} — Devin Feilen`;
-  swapIn(el, buildSheet(body, photos));
+  const built = buildSheet(body, photos);
+  swapIn(el, built);
+  /* Lay out before observing, so the observer sees cells at their real
+     positions rather than all stacked at 0,0 — otherwise it would decide
+     every one of the 654 was on screen and attach the lot. */
+  const sheet = built.__sheet;
+  sheetWidth = sheet.clientWidth;
+  layoutSheet(sheet, photos);
+  watchSheet(sheet, photos);
   initRaceWindowing(el);
 }
 
@@ -1221,7 +1268,6 @@ function buildSheet(meta, photos) {
   head.innerHTML =
     `<p class="race-credit" id="race-credit" role="note">` +
       `${meta.credit ? esc(meta.credit) : RACE_CREDIT}` +
-      `<button type="button" class="race-x" aria-label="Dismiss this notice">&times;</button>` +
     `</p>`;
   wrap.appendChild(head);
 
@@ -1239,12 +1285,12 @@ function buildSheet(meta, photos) {
       credit.classList.add('gone');
       setTimeout(() => { if (credit.isConnected) credit.hidden = true; }, REDUCED ? 0 : 200);
     };
+    /* No close button any more. The whole notice is still tappable, so the
+       × was a second way to do the same thing and mostly served as an
+       invitation to get rid of it. Tapping a link still follows the link.
+
+       To stop it being dismissible at all, delete this listener. */
     credit.addEventListener('click', e => { if (!e.target.closest('a')) dismiss(); });
-    credit.addEventListener('keydown', e => {
-      if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('race-x')) {
-        e.preventDefault(); dismiss();
-      }
-    });
   }
 
   const sheet = document.createElement('div');
@@ -1299,6 +1345,7 @@ function buildSheet(meta, photos) {
 
   wrap.appendChild(sheet);
   wrap.appendChild(buildRaceBar(photos));
+  wrap.__sheet = sheet; wrap.__photos = photos;
   return wrap;
 }
 
@@ -1341,6 +1388,91 @@ function updateRaceBar(photos) {
   bar.classList.toggle('up', n > 0);
   const c = $('#race-count'); if (c) c.textContent = `${n} selected`;
   const g = $('#race-get');   if (g) g.disabled = n === 0;
+}
+
+/* ------------------------------------------------------------ justified rows
+
+   Greedy: keep adding photographs to a row until making them all the same
+   height would drop that height below the target, then commit the row at
+   exactly the height that fills the width. Every row is flush on both
+   edges and nothing is cropped.
+
+   The last row is the one that needs a rule: filling the width with two
+   leftover photographs would blow them up to twice the size of everything
+   above. So it keeps the target height and simply ends early.
+
+   Photographs with no dimensions in the manifest fall back to 3:2. They'll
+   be laid out at the wrong shape until they load, which is precisely why
+   make-race.mjs writes w and h. */
+function layoutSheet(sheet, photos) {
+  if (!sheet) return;
+  const W = sheet.clientWidth;
+  if (!W) return;
+  const cs = getComputedStyle(sheet);
+  const gap = parseFloat(cs.getPropertyValue('--cell-gap')) || 8;
+  const target = parseFloat(cs.getPropertyValue('--row-h')) || 220;
+  const cells = sheet.children;
+
+  /* n items have n-1 gaps between them. */
+  const heightFor = (count, sumAR) => (W - gap * Math.max(0, count - 1)) / sumAR;
+
+  let i = 0, y = 0;
+  while (i < photos.length) {
+    let sumAR = 0, n = 0;
+    while (i + n < photos.length) {
+      const arn = photos[i + n].arn || 1.5;
+      const newSum = sumAR + arn;
+      const newH = heightFor(n + 1, newSum);
+
+      if (newH <= target && n >= 1) {
+        /* Taking this one would finish the row. But a single wide frame can
+           drop the height far below the target — three photographs at 110px
+           where two would have sat at 256. So compare: is the row closer to
+           the target with it, or without it? Whichever is closer wins. */
+        const without = heightFor(n, sumAR);
+        if (Math.abs(without - target) < Math.abs(newH - target)) break;
+        sumAR = newSum; n++;
+        break;
+      }
+      sumAR = newSum; n++;
+      if (newH <= target) break;              /* one photograph is already short enough */
+    }
+
+    let h = heightFor(n, sumAR);
+    const last = (i + n) >= photos.length;
+    if (last && h > target) h = target;       /* don't inflate a short last row */
+
+    let x = 0;
+    for (let k = 0; k < n; k++) {
+      const el = cells[i + k];
+      if (!el) break;
+      const w = (photos[i + k].arn || 1.5) * h;
+      el.style.left   = Math.round(x) + 'px';
+      el.style.top    = Math.round(y) + 'px';
+      el.style.width  = Math.round(w) + 'px';
+      el.style.height = Math.round(h) + 'px';
+      x += w + gap;
+    }
+    y += h + gap;
+    i += n;
+  }
+  sheet.style.height = Math.max(0, Math.round(y - gap)) + 'px';
+}
+
+let sheetResize = null, sheetWidth = 0;
+function watchSheet(sheet, photos) {
+  const relayout = () => {
+    /* Only width matters. A phone hides its address bar on scroll, which
+       fires resize constantly at an unchanged width — relaying out 654
+       photographs each time would make scrolling stutter. */
+    if (!sheet.isConnected) { removeEventListener('resize', onResize); return; }
+    if (sheet.clientWidth === sheetWidth) return;
+    sheetWidth = sheet.clientWidth;
+    layoutSheet(sheet, photos);
+    measureThumb(sheet);
+  };
+  const onResize = () => { clearTimeout(sheetResize); sheetResize = setTimeout(relayout, 160); };
+  addEventListener('resize', onResize, { passive:true });
 }
 
 /* ---------------------------------------------------------------- windowing
@@ -2057,6 +2189,7 @@ async function route() {
 
   if (windowIO) { windowIO.disconnect(); windowIO = null; }
   if (raceIO)   { raceIO.disconnect();   raceIO = null; }
+  document.documentElement.classList.toggle('gallery', r.name === 'race');
   swapIn(view, el);
   scrollTo({ top:0, behavior:'auto' });
   const hasFlow = !RENOVATING &&
@@ -2091,7 +2224,11 @@ function applyTheme(t, animate) {
   }
   if (t === 'dark') root.setAttribute('data-theme','dark');
   else root.removeAttribute('data-theme');
-  themeBtn.textContent = t === 'dark' ? 'Light mode' : 'Dark mode';
+  const word = t === 'dark' ? 'Light mode' : 'Dark mode';
+  const w = $('.theme-word', themeBtn);
+  if (w) w.textContent = word; else themeBtn.textContent = word;
+  /* The icon carries no text, so the button needs a name of its own. */
+  themeBtn.setAttribute('aria-label', t === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
   const m = $('meta[name="theme-color"]');
   if (m) m.content = t === 'dark' ? '#0a0a0a' : '#EAE7E2';
 }
