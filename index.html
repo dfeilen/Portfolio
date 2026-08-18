@@ -1280,7 +1280,10 @@ async function mountRace(slug, el) {
     return {
       url: /^https?:\/\//i.test(f) ? f : `${CDN}/${base ? base + '/' : ''}${f}`,
       name: (f.split('/').pop() || 'photograph.jpg'),
-      ar: (w&&h) ? `${w} / ${h}` : null, arn: (w&&h) ? (w/h) : null, c
+      ar: (w&&h) ? `${w} / ${h}` : null, arn: (w&&h) ? (w/h) : null,
+      /* Kept, not just folded into the ratio: fullUrl() names this width
+         when downloading, which is what stops the CDN shrinking it. */
+      w, h, c
     };
   }).filter(p => p.url);
 
@@ -1602,10 +1605,49 @@ const canShareFiles = () => {
   } catch (e) { return false; }
 };
 
+/* THE FULL-SIZE URL.
+
+   Asking for the plain URL does NOT get you the original. Bunny's Optimizer
+   has a "Smart Image Optimization" setting — a maximum width for desktop
+   and another for mobile — and anything larger is silently downsized before
+   it leaves the CDN. It applies to the unparameterised URL, which is
+   precisely what a download asks for, so downloads came back at whatever
+   that ceiling happens to be.
+
+   Naming the width defeats it: the Optimizer honours an explicit request,
+   and the manifest already knows each photograph's real dimensions. quality
+   100 stops it recompressing at the default 85 on the way past.
+
+   Without w in the manifest there's nothing to name, so it falls back to
+   quality alone and the dashboard ceiling still applies — which is the
+   other half of the fix, written up in RACES.md. */
+function fullUrl(p) {
+  if (!USE_OPTIMIZER) return p.url;
+  const sep = p.url.includes('?') ? '&' : '?';
+  const w = Number(p.w) || 0;
+  return p.url + sep + (w ? `width=${w}&` : '') + 'quality=100';
+}
+
+/* The Optimizer also serves WebP transparently to anything that says it
+   accepts it, so a download could arrive as WebP wearing a .jpg name. Ask
+   for JPEG. `accept` is CORS-safelisted, so this doesn't trigger a
+   preflight the CDN would have to answer. */
 async function grabBlob(url) {
-  const res = await fetch(url, { mode:'cors', credentials:'omit' });
+  const res = await fetch(url, {
+    mode:'cors', credentials:'omit',
+    headers:{ 'Accept':'image/jpeg,image/*;q=0.9' }
+  });
   if (!res.ok) throw new Error(res.status);
   return res.blob();
+}
+
+/* If it came back as something other than what the filename claims, correct
+   the filename rather than hand over a mislabelled file. */
+const TYPE_EXT = { 'image/jpeg':'jpg', 'image/webp':'webp', 'image/png':'png', 'image/avif':'avif' };
+function nameFor(p, blob) {
+  const ext = TYPE_EXT[(blob && blob.type || '').toLowerCase()];
+  if (!ext) return p.name;
+  return p.name.replace(/\.[A-Za-z0-9]+$/, '') + '.' + ext;
 }
 
 function saveBlob(blob, name) {
@@ -1620,9 +1662,10 @@ function saveBlob(blob, name) {
    and the photograph opened in a tab if the CDN refuses the fetch. */
 async function downloadOne(p, { preferShare = canShareFiles() } = {}) {
   try {
-    const blob = await grabBlob(p.url);
+    const blob = await grabBlob(fullUrl(p));
+    const name = nameFor(p, blob);
     if (preferShare) {
-      const file = new File([blob], p.name, { type: blob.type || 'image/jpeg' });
+      const file = new File([blob], name, { type: blob.type || 'image/jpeg' });
       if (navigator.canShare({ files:[file] })) {
         try { await navigator.share({ files:[file] }); return 'shared'; }
         catch (e) {
@@ -1633,7 +1676,7 @@ async function downloadOne(p, { preferShare = canShareFiles() } = {}) {
         }
       }
     }
-    saveBlob(blob, p.name);
+    saveBlob(blob, name);
     return 'saved';
   } catch (e) {
     window.open(p.url, '_blank', 'noopener');
@@ -1649,8 +1692,8 @@ const SHARE_MAX = 12;
 async function shareMany(list) {
   const files = [];
   for (const p of list) {
-    const blob = await grabBlob(p.url);
-    files.push(new File([blob], p.name, { type: blob.type || 'image/jpeg' }));
+    const blob = await grabBlob(fullUrl(p));
+    files.push(new File([blob], nameFor(p, blob), { type: blob.type || 'image/jpeg' }));
   }
   if (!navigator.canShare({ files })) throw new Error('cannot share this set');
   await navigator.share({ files });
