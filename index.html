@@ -415,6 +415,8 @@ html.renovating .head .to{display:none}
 .races-list.open{opacity:1;max-height:60vh;margin-top:16px}
 .races-list a,.races-list .races-soon{font-size:clamp(15px,1.25vw,18px);line-height:1.4}
 .races-soon{color:var(--fg-dim)}
+.races-out{color:var(--fg-dim);font-size:.85em}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
 .races-when{color:var(--fg-dim)}
 /* The category hover-dim must not reach in here — it would grey these out
    whenever the pointer is anywhere over the list above. */
@@ -1129,9 +1131,13 @@ function renderCategories() {
       `<div class="races-list" id="races-list" hidden>${
         RACES.map(r => {
           const label = `${esc(r.title)}${r.date ? ` <span class="races-when">${esc(r.date)}</span>` : ''}`;
-          return r.soon
-            ? `<span class="races-soon">${label} <span class="races-when">— soon</span></span>`
-            : `<a class="h" href="#/r/${encodeURIComponent(r.slug)}">${label}</a>`;
+          if (r.soon) return `<span class="races-soon">${label} <span class="races-when">— soon</span></span>`;
+          /* Somewhere else: opens in a new tab, and says so rather than
+             looking identical to a link that stays on the site. */
+          if (r.url) return `<a class="h" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">` +
+                            `${label}<span class="races-out" aria-hidden="true"> &#8599;</span>` +
+                            `<span class="sr">(opens in a new tab)</span></a>`;
+          return `<a class="h" href="#/r/${encodeURIComponent(r.slug)}">${label}</a>`;
         }).join('')
       }</div>`;
     const btn = $('#races-open', box), list = $('#races-list', box);
@@ -2371,8 +2377,16 @@ themeBtn.addEventListener('click', () => {
       const list = await res.json();
       if (Array.isArray(list)) {
         RACES = list.filter(r => r && r.slug && r.title)
-                    .map(r => ({ slug:String(r.slug), title:String(r.title),
-                                 date:r.date ? String(r.date) : '', soon: !!r.soon }));
+                    .map(r => ({
+                      slug:String(r.slug), title:String(r.title),
+                      date:r.date ? String(r.date) : '', soon: !!r.soon,
+                      /* An entry may point somewhere else entirely — a Drive
+                         folder, say, while the real gallery is being sorted
+                         out. Only http(s) is accepted: this comes from a file,
+                         and a file should never be able to put javascript: in
+                         an href. */
+                      url: (typeof r.url === 'string' && /^https?:\/\//i.test(r.url)) ? r.url : ''
+                    }));
       }
     }
   } catch (e) { /* no galleries, no button */ }
