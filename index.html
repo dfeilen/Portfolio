@@ -314,6 +314,38 @@ html.renovating .head .to{display:none}
   .cats-inner:hover a:hover{color:var(--fg)}
 }
 
+/* ---- Race galleries, hung off the bottom of the category list ----
+   Deliberately much smaller than a category and set apart by space rather
+   than a rule. These are events, not bodies of work; they shouldn't read as
+   a seventh category. */
+.races{margin-top:clamp(30px,5vh,58px);text-align:center}
+.races-open{
+  font-size:var(--nav);
+  letter-spacing:.05em;
+  text-transform:uppercase;
+  color:var(--fg-dim);
+  padding:8px 6px;margin:-8px -6px;
+}
+.races-open:hover,.races-open:focus-visible{color:var(--fg)}
+.races-open::after{content:' +';font-feature-settings:'tnum'}
+.races-open[aria-expanded="true"]::after{content:' –'}
+.races-list{
+  display:grid;justify-items:center;gap:9px;
+  margin-top:0;
+  opacity:0;max-height:0;overflow:hidden;
+  transition:opacity .26s var(--ease), max-height .26s var(--ease), margin-top .26s var(--ease);
+}
+.races-list.open{opacity:1;max-height:60vh;margin-top:16px}
+.races-list a,.races-list .races-soon{font-size:clamp(15px,1.25vw,18px);line-height:1.4}
+.races-soon{color:var(--fg-dim)}
+.races-when{color:var(--fg-dim)}
+/* The category hover-dim must not reach in here — it would grey these out
+   whenever the pointer is anywhere over the list above. */
+@media (hover:hover) and (pointer:fine){
+  .cats-inner:hover .races a{color:var(--fg-dim)}
+  .cats-inner:hover .races a:hover{color:var(--fg)}
+}
+
 /* ============================================================================
    RACE GALLERIES — a contact sheet
 
@@ -789,6 +821,7 @@ const srcset = u => USE_OPTIMIZER ? WIDTHS.map(w=>`${sized(u,w)} ${w}w`).join(',
    ============================================================================ */
 const DATA = new Map();   // slug -> { ...category, photos }
 let HOME = [];            // the front page's random handful
+let RACES = [];           // race galleries, from races/index.json
 let RENOVATING = false;
 
 /* Fisher–Yates over a copy. Doing it this way rather than sorting by
@@ -982,6 +1015,38 @@ function renderCategories() {
   el.innerHTML = `<div class="cats-inner">${
     live.map(c => `<a class="h morph" href="#/c/${c.slug}" data-slug="${c.slug}" data-t="${esc(c.title)}" aria-label="${esc(c.title)}"><span>${esc(c.title)}</span></a>`).join('')
   }</div>`;
+
+  /* Race galleries hang off the bottom of this page rather than joining the
+     list. They aren't categories — they're events, they date, and there will
+     eventually be a lot of them. Kept small and set apart so the six
+     categories stay the thing this page is about.
+
+     It's a disclosure rather than a link to another page: with two galleries
+     an extra page load to see two words would be silly, and it still works
+     when there are twenty. */
+  if (RACES.length) {
+    const box = document.createElement('div');
+    box.className = 'races';
+    box.innerHTML =
+      `<button type="button" class="h races-open" id="races-open" aria-expanded="false" aria-controls="races-list">Race galleries</button>` +
+      `<div class="races-list" id="races-list" hidden>${
+        RACES.map(r => {
+          const label = `${esc(r.title)}${r.date ? ` <span class="races-when">${esc(r.date)}</span>` : ''}`;
+          return r.soon
+            ? `<span class="races-soon">${label} <span class="races-when">— soon</span></span>`
+            : `<a class="h" href="#/r/${encodeURIComponent(r.slug)}">${label}</a>`;
+        }).join('')
+      }</div>`;
+    const btn = $('#races-open', box), list = $('#races-list', box);
+    btn.addEventListener('click', () => {
+      const open = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', String(!open));
+      if (open) { list.classList.remove('open');
+                  setTimeout(() => { if (list.isConnected) list.hidden = true; }, REDUCED ? 0 : 260); }
+      else { list.hidden = false; requestAnimationFrame(() => list.classList.add('open')); }
+    });
+    el.querySelector('.cats-inner').appendChild(box);
+  }
   return el;
 }
 
@@ -1930,6 +1995,20 @@ themeBtn.addEventListener('click', () => {
   loaded.filter(Boolean).forEach(c => DATA.set(c.slug, c));
 
   if (!DATA.size) { declareRenovation('no photo lists loaded'); return; }
+
+  /* The race index is tiny and optional. If it isn't there, or is empty,
+     the button simply doesn't appear — same rule as a missing category. */
+  try {
+    const res = await fetch('races/index.json', { cache:'no-cache' });
+    if (res.ok) {
+      const list = await res.json();
+      if (Array.isArray(list)) {
+        RACES = list.filter(r => r && r.slug && r.title)
+                    .map(r => ({ slug:String(r.slug), title:String(r.title),
+                                 date:r.date ? String(r.date) : '', soon: !!r.soon }));
+      }
+    }
+  } catch (e) { /* no galleries, no button */ }
 
   const everything = [].concat(...[...DATA.values()].map(c => c.photos));
 
