@@ -130,6 +130,7 @@
   --imgw:min(88vw, 1600px);
 
   --ease:cubic-bezier(.4,0,.2,1);
+  --theme-t:.45s;                       /* one duration for the whole theme switch */
   --fade:520ms;
 
   --sa-l:env(safe-area-inset-left,0px);
@@ -179,16 +180,57 @@ a.h.on{color:var(--fg-dim)}
 
 /* ============================================================================
    THEME SWITCHING
-   Only `body` used to carry a colour transition, so its text faded while
-   everything setting a colour of its own snapped. One rule turns a
-   transition on for everything, for exactly as long as the switch takes.
+
+   The obvious way to do this is to put a colour transition on every element
+   and let them all run at once. That's what was here, and it doesn't hold
+   together: each element animates its own copy of the change, so anything
+   the transition list forgot snaps instead (an SVG's `stroke`, a
+   `box-shadow`), a gradient repaints on a different schedule to a flat
+   fill, and on a page with hundreds of elements the browser gets through
+   them in whatever order suits it. The result reads as a wave rather than
+   a switch.
+
+   So nothing transitions the colours. The VARIABLES transition instead.
+   Registering them with @property gives them a type, and a typed custom
+   property can be animated — so `--fg` moves from one colour to the other
+   as a single animation on the root, and every rule reading it resolves to
+   the same intermediate colour on the same frame. Text, rules, icon
+   strokes, gradients and placeholder tints move together because they are
+   all reading one value that is moving.
+
+   @property has been Baseline since July 2024. Where it isn't available
+   the old per-element rule still applies — see html:not(.varfade) below.
    ============================================================================ */
-html.theming, html.theming *, html.theming *::before, html.theming *::after{
-  transition:background-color .45s var(--ease),
-             background-image .45s var(--ease),
-             color .45s var(--ease),
-             border-color .45s var(--ease),
-             outline-color .45s var(--ease) !important;
+@property --bg      { syntax:'<color>'; inherits:true; initial-value:#EAE7E2 }
+@property --fg      { syntax:'<color>'; inherits:true; initial-value:#1B1B1C }
+@property --fg-dim  { syntax:'<color>'; inherits:true; initial-value:#6B675F }
+@property --sunk    { syntax:'<color>'; inherits:true; initial-value:#DEDAD3 }
+@property --tone    { syntax:'<color>'; inherits:true; initial-value:#DFDBD4 }
+/* --rule is deliberately absent: it is never defined, only ever read as
+   var(--rule, <fallback>). Registering it would give it a real value and
+   silently kill every one of those fallbacks. */
+
+html.varfade.theming{
+  transition:--bg     var(--theme-t) var(--ease),
+             --fg     var(--theme-t) var(--ease),
+             --fg-dim var(--theme-t) var(--ease),
+             --sunk   var(--theme-t) var(--ease),
+             --tone   var(--theme-t) var(--ease);
+}
+
+/* The fallback, for browsers without @property. */
+html:not(.varfade).theming,
+html:not(.varfade).theming *,
+html:not(.varfade).theming *::before,
+html:not(.varfade).theming *::after{
+  transition:background-color var(--theme-t) var(--ease),
+             background-image var(--theme-t) var(--ease),
+             color var(--theme-t) var(--ease),
+             border-color var(--theme-t) var(--ease),
+             outline-color var(--theme-t) var(--ease),
+             box-shadow var(--theme-t) var(--ease),
+             fill var(--theme-t) var(--ease),
+             stroke var(--theme-t) var(--ease) !important;
 }
 
 /* ============================================================================
@@ -419,7 +461,6 @@ html.renovating .head .to{display:none}
 /* Collapsed as well as faded, so dismissing it doesn't leave a hole above
    the sheet. Quick — this is an acknowledgement, not an animation. */
 .race-credit.gone{opacity:0;max-height:0;margin-top:0;padding-top:0;padding-bottom:0;pointer-events:none}
-.race-credit:hover 
 /* Justified rows, not a grid of identical boxes.
 
    Three quarters of a race set is portrait, and a uniform 3:2 cell cropped
@@ -735,7 +776,10 @@ html{scroll-snap-type:y mandatory}
   .frame{background-color:var(--c,var(--tone))}
 .frame img{opacity:1}
   #view.out{opacity:1}
-  html.theming,html.theming *,html.theming *::before,html.theming *::after{
+  /* Must out-specify html.varfade.theming above, or the variable animation
+     would keep running for someone who asked for no motion. */
+  html.theming,html.theming *,html.theming *::before,html.theming *::after,
+  html.varfade.theming{
     transition-duration:.001ms!important;
   }
   /* Mandatory snap moves the page without being asked, which is exactly
@@ -2212,6 +2256,18 @@ addEventListener('hashchange', route);
    ============================================================================ */
 const themeBtn = $('#theme');
 const root = document.documentElement;
+
+/* Can this browser animate a custom property? If so the whole theme change
+   is one animation on the root and no element needs a transition of its
+   own. If not, fall back to transitioning every element's colours — which
+   is what the CSS does for html:not(.varfade). @property and
+   CSS.registerProperty shipped together in every engine, so the presence
+   of one is a sound test for the other. */
+const VARFADE = (() => {
+  try { return typeof CSS !== 'undefined' && typeof CSS.registerProperty === 'function'; }
+  catch (e) { return false; }
+})();
+if (VARFADE) root.classList.add('varfade');
 let themingTimer = null;
 
 /* `animate` is only true for a deliberate toggle. On first load the theme
