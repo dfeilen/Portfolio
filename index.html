@@ -887,7 +887,7 @@ const PILE_RAW_CAP     = 12;
 /* How long a single tile may hold its slot. Not a load timeout — the image
    carries on arriving — just the point at which the queue stops waiting
    for it and lets the rest through. */
-const PILE_TIMEOUT     = 5000;
+const PILE_TIMEOUT     = 4000;
 
 /* Safety cap per file, not a curation tool — with the site down to ~53
    photographs every one should appear. This only stops a stale or
@@ -1881,52 +1881,64 @@ function renderHome() {
 
 /* THE LOADER.
 
-   Eight photographs are in flight at a time, and each one that settles
-   starts the next. The failure this shape is prone to — and did have — is
-   that a request which never resolves takes its slot with it. Lose eight
-   and the pile simply stops, part-loaded, with no error anywhere.
+   Eight photographs are in flight at a time and each one that settles starts
+   the next. Two things have gone wrong with that shape, and the fix for the
+   second is what this now looks like.
 
-   Two things prevent that now.
+   First: a request that never resolves kept its slot. Marking the tiles
+   `eager` fixed the cause (lazy loading was declining to fetch them), and a
+   per-image deadline covered the rest.
 
-   Tiles are marked `eager`. They were `lazy`, which is the browser's
-   default for anything mount() isn't told about, and lazy loading decides
-   for itself when an image is near enough to the viewport to bother with.
-   These tiles are absolutely positioned, rotated, and inside an
-   overflow:hidden box — the exact geometry those heuristics judge badly.
-   A tile the browser decides to defer never fires `load`, so the slot was
-   never given back. The queue is already the throttle here; the browser
-   doesn't need to add a second opinion.
+   Then it stalled again on a phone — about eight of thirty, which is exactly
+   one full pool. Whatever the reason, a queue that can only advance when an
+   event fires is a queue that can stop, and I can't reproduce a phone from
+   here. So it no longer advances on events alone.
 
-   And every slot has a deadline. Whatever happens — loaded, failed, or
-   silently never answered — the slot is returned exactly once, and the
-   tile is shown regardless. With average colours in the JSON a tile that
-   times out still appears as its own colour and fills in later, so a slow
-   photograph delays itself rather than everything behind it. */
+   A timer runs every second and does three things: force-settles anything
+   past its deadline, refills the pool to its limit, and retries once — with
+   a fresh URL, so it is a genuinely new request — any photograph that was
+   given up on. Events still drive the common case; the sweep guarantees
+   progress even if not one of them ever arrives.
+
+   The counter is the part to be careful with: `inflight` must go down exactly
+   once per photograph, which is why settle() is the only thing that touches
+   it and why it returns early once a tile has settled. */
 function runPile(chips) {
-  let started = 0, cap = chips.length, checked = false;
+  const total = () => Math.min(cap, chips.length);
+  let started = 0, inflight = 0, cap = chips.length, checked = false;
+  let sweeper = null;
   const t0 = Date.now();
 
   const reveal = (c, i) => {
     const due = REDUCED ? 0 : Math.max(0, i * PILE_STAGGER - (Date.now() - t0));
-    setTimeout(() => c.btn.classList.add('in'), due);
+    setTimeout(() => { if (c.btn.isConnected) c.btn.classList.add('in'); }, due);
   };
 
-  const next = () => {
-    if (started >= Math.min(cap, chips.length)) return;
-    const i = started++, c = chips[i];
-    const want = Math.round(c.btn.getBoundingClientRect().width) || 200;
+  /* One more go, as a new request rather than the same one again — a dropped
+     connection isn't retried by re-reading the identical URL out of cache. */
+  const retry = c => {
+    if (c.retried || !c.btn.isConnected) return;
+    c.retried = true;
+    const u = c.img.getAttribute('src');
+    if (!u) return;
+    c.img.removeAttribute('srcset');          /* pick nothing cleverer this time */
+    c.img.src = u + (u.includes('?') ? '&' : '?') + 'retry=1';
+  };
 
-    /* Whichever of load / error / the deadline gets here first wins, and
-       the other two become no-ops. This is the only place `next` is
-       called from, so a slot can be neither lost nor handed back twice. */
-    const settle = kind => {
-      if (c.settled) return;
-      c.settled = true;
-      clearTimeout(c.timer);
-      if (kind === 'error') c.btn.remove();
-      else reveal(c, i);
-      next();
-    };
+  const settle = (c, i, kind) => {
+    if (c.settled) return;
+    c.settled = true;
+    inflight--;
+    if (kind === 'error') c.btn.remove();
+    else { reveal(c, i); if (kind === 'timeout') retry(c); }
+  };
+
+  const start = () => {
+    if (started >= total()) return false;
+    const i = started++, c = chips[i];
+    inflight++;
+    c.at = Date.now();
+    const want = Math.round(c.btn.getBoundingClientRect().width) || 200;
 
     c.img.addEventListener('load', () => {
       if (!checked) {
@@ -1936,20 +1948,40 @@ function runPile(chips) {
           chips.slice(cap).forEach(x => x.btn.remove());
         }
       }
-      settle('load');
+      settle(c, i, 'load');
+      pump();
     }, { once:true });
 
     /* A photograph that won't load is removed rather than left as a broken
        frame. mount() has already told the renovation check about it, so if
        they ALL fail the site still falls back properly. */
-    c.img.addEventListener('error', () => settle('error'), { once:true });
-
-    c.timer = setTimeout(() => settle('timeout'), PILE_TIMEOUT);
+    c.img.addEventListener('error', () => { settle(c, i, 'error'); pump(); }, { once:true });
 
     mount(c.img, c.p.url, { sizes: want + 'px', base: 640, eager: true, priority: 'auto' });
+    return true;
   };
 
-  for (let k = 0; k < PILE_CONCURRENCY; k++) next();
+  const pump = () => { while (inflight < PILE_CONCURRENCY && start()) {} };
+
+  const sweep = () => {
+    const now = Date.now();
+    for (let k = 0; k < started; k++) {
+      const c = chips[k];
+      if (!c.settled && c.at && now - c.at > PILE_TIMEOUT) settle(c, k, 'timeout');
+    }
+    pump();
+    /* Once everything has been started and settled, one last look for tiles
+       whose photograph still never arrived, then stop. */
+    if (started >= total() && inflight === 0) {
+      chips.slice(0, total()).forEach(c => {
+        if (c.btn.isConnected && c.img.naturalWidth === 0) retry(c);
+      });
+      clearInterval(sweeper); sweeper = null;
+    }
+  };
+
+  sweeper = setInterval(sweep, 1000);
+  pump();
 }
 
 function renderFlow(cat) {
