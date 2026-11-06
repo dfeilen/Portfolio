@@ -1072,7 +1072,7 @@ const CATEGORIES = [
    its JSON entry a "cat" with the category's slug: { "file": "x.jpg",
    "cat": "bikes" }. A photograph with neither opens on its own instead. */
 const HOME_SOURCE  = 'Home';
-const HOME_MAX     = 25;
+const HOME_MAX     = 28;   // every photograph in Home.json, up to this many
 const HOME_SHUFFLE = true;   // false keeps Home.json's order
 
 /* THE OPENING BURST.
@@ -2752,10 +2752,6 @@ function renderHome() {
     for (let i = 0; i < ready.length && !skipped; i++) {
       frame.src = ready[i];
       count.textContent = `${String(i + 1).padStart(2, '0')} / ${String(ready.length).padStart(2, '0')}`;
-      if (!touch) {   // on phones the frames simply cut, no flash
-        ov.animate([{ backgroundColor: '#fff' }, { backgroundColor: fg }], { duration: 40 });
-        frame.animate([{ filter: 'brightness(1.45)' }, { filter: 'none' }], { duration: 70 });
-      }
       await pause(BURST_STEP);
       if (gone()) { ov.remove(); return; }
     }
