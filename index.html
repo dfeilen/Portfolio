@@ -643,7 +643,9 @@ html.home-mode{scroll-snap-type:none}
   user-select:none;-webkit-user-select:none;
   padding:var(--wall-pad,60px) 0;
 }
-@media (hover:hover) and (pointer:fine){ .wall,.wall *{cursor:none} }
+.wall{cursor:grab}
+.wall.dragging,.wall.dragging *{cursor:grabbing}
+.tile-in{cursor:pointer}
 .wall-track{position:relative;height:var(--wall-h,100svh)}
 
 /* The sides fade, so the photographs plainly carry on past the edge. */
@@ -676,26 +678,7 @@ html.home-mode{scroll-snap-type:none}
 }
 .tile img.ready{opacity:1;transform:none}
 
-@media (hover:hover) and (pointer:fine){
-  /* Over a photograph, its whole category stays lit and the rest recede. */
-  .wall.hovering:not(.dragging) .tile.in .tile-in{opacity:.22;filter:grayscale(1);transition-duration:.5s}
-  .wall.hovering:not(.dragging) .tile.in.hot .tile-in{opacity:1;filter:none}
-}
 
-/* ---- The cursor over the wall: says what dragging and clicking will do ---- */
-.wall-cursor{
-  position:fixed;left:0;top:0;z-index:60;pointer-events:none;
-  width:92px;height:92px;margin:-46px 0 0 -46px;border-radius:50%;
-  background:var(--fg);color:var(--bg);
-  display:grid;place-items:center;text-align:center;
-  font-size:13px;font-weight:var(--heavy);line-height:1.15;letter-spacing:.02em;
-  opacity:0;transform:scale(.4);
-  transition:opacity .25s var(--ease),width .3s var(--ease-out),height .3s var(--ease-out),margin .3s var(--ease-out);
-}
-.wall-cursor.on{opacity:1}
-.wall-cursor.cat{width:112px;height:112px;margin:-56px 0 0 -56px}
-.wall-cursor small{display:block;font-weight:500;font-size:11px;opacity:.75}
-.wall-cursor .arr{display:flex;gap:10px;align-items:center}
 
 /* ---- Side arrows, shown while the wall is on screen ---- */
 .wall-nav{
@@ -2019,10 +2002,9 @@ function layoutWall(list, vw) {
   const R = seeded(WALL_SEED);
   const coarse = vw < 700;
   const colW   = coarse ? Math.round(vw * 0.78) : Math.round(Math.min(560, Math.max(300, vw * 0.27)));
-  const gutter = coarse ? Math.round(vw * 0.06) : Math.round(Math.max(28, vw * 0.035));
+  const gutter = coarse ? 6 : Math.round(Math.max(8, Math.min(14, vw * 0.007)));
   const cols   = Math.min(WALL_COLS, Math.max(1, list.length));
-  const SIZES  = [1, 1, 1, 0.84];
-  const columns = Array.from({ length: cols }, (_, i) => ({
+    const columns = Array.from({ length: cols }, (_, i) => ({
     start: Math.round(R() * colW * 0.35),
     drift: [-1, 0.55, -0.4, 1, -0.7, 0.3, -1, 0.8][i % 8],
     est: 0, items: []
@@ -2033,9 +2015,9 @@ function layoutWall(list, vw) {
     let c = columns[0];
     for (const d of columns) if (d.est < c.est) c = d;
     const col = columns.indexOf(c);
-    const w = Math.round(colW * SIZES[Math.floor(R() * SIZES.length)]);
-    const x = Math.round(col * (colW + gutter) + (colW - w) * [0, 1, 0.5][Math.floor(R() * 3)]);
-    const t = { p, k: i, col, x, w, h: 0, y: 0, gap: Math.round(gutter * (0.9 + R() * 0.5)) };
+    const w = colW;   // every photograph fills its column
+    const x = col * (colW + gutter);
+    const t = { p, k: i, col, x, w, h: 0, y: 0, gap: gutter };
     c.items.push(t);
     c.est += w / ratioOf(p) + t.gap;
   });
@@ -2049,12 +2031,8 @@ function flowWall(L) {
     c.items.forEach(t => { t.h = Math.round(t.w / ratioOf(t.p)); t.y = y; y += t.h + t.gap; });
     c.end = y;
   });
-  // Level the columns so the wall ends on one line.
+  // Gaps stay even; the columns simply end at different heights.
   L.H = Math.max(...L.columns.map(c => c.end));
-  L.columns.forEach(c => {
-    const extra = (L.H - c.end) / Math.max(1, c.items.length);
-    c.items.forEach((t, n) => { t.y = Math.round(t.y + extra * n); });
-  });
 }
 
 /* The name in the banner: each letter leans away from a nearby cursor, and
@@ -2162,12 +2140,6 @@ function renderHome() {
   wallEl.appendChild(track);
   el.appendChild(wallEl);
 
-  const cursor = document.createElement('div');
-  cursor.className = 'wall-cursor';
-  cursor.setAttribute('aria-hidden', 'true');
-  const dragFace = '<span class="arr"><span>&lsaquo;</span>Drag<span>&rsaquo;</span></span>';
-  cursor.innerHTML = dragFace;
-  if (fine) el.appendChild(cursor);
 
   const arrow = d => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
   const prevBtn = document.createElement('button');
@@ -2207,12 +2179,12 @@ function renderHome() {
   let source = WALL_CAP ? HOME.slice(0, WALL_CAP) : HOME.slice();
   if (touch && source.length > 60) source = source.slice(0, 60);
 
-  let vw = innerWidth, vh = innerHeight, L, tiles = [], byCat = new Map();
+  let vw = innerWidth, vh = innerHeight, L, tiles = [];
   let inflight = 0, guarded = false, raf = 0, amp = 0, dirty = false, lastWork = 0;
   let camX = wallMemory.x, vx = 0, snapTo = null, glide = null;
   let down = false, dragging = false, kind = 'mouse', sx0 = 0, sy0 = 0, lx = 0, ly = 0, pid = null;
   const samples = [];                     // recent pointer positions, for the release velocity
-  let px = -1, py = -1, curX = 0, curY = 0, hotCat = null, hinted = false, overWall = false;
+  let hinted = false;
   let lastScroll = -1, lastCam = NaN, wallTop = 0, padTop = 0, bannerH = 0, prevY = scrollY, scrollVel = 0;
   let reflowT = 0;
   const timers = [];
@@ -2227,7 +2199,7 @@ function renderHome() {
 
   function build() {
     track.textContent = '';
-    inflight = 0; hotCat = null; byCat = new Map();
+    inflight = 0;
     L = layoutWall(source, vw);
     flowWall(L);
     amp = REDUCED ? 0 : (vw < 700 ? 30 : 90);
@@ -2249,8 +2221,6 @@ function renderHome() {
       btn.appendChild(img); tile.appendChild(btn); track.appendChild(tile);
       Object.assign(t, { el: tile, img, sx: NaN, oy: 0, on: false, done: false, shown: false });
       tile.__t = t;
-      if (!byCat.has(t.p.slug)) byCat.set(t.p.slug, []);
-      byCat.get(t.p.slug).push(t);
 
       btn.addEventListener('click', e => {
         if (dragging) { e.preventDefault(); return; }
@@ -2355,27 +2325,6 @@ function renderHome() {
     }
   }
 
-  function setHot(cat) {
-    if (cat === hotCat) return;
-    if (hotCat && byCat.has(hotCat)) byCat.get(hotCat).forEach(t => t.el.classList.remove('hot'));
-    hotCat = cat;
-    if (cat && byCat.has(cat)) {
-      byCat.get(cat).forEach(t => t.el.classList.add('hot'));
-      const d = DATA.get(cat);
-      cursor.innerHTML = `<span>${esc(d ? d.title : '')}<small>View gallery</small></span>`;
-      cursor.classList.add('cat');
-      wallEl.classList.add('hovering');
-    } else {
-      cursor.innerHTML = dragFace;
-      cursor.classList.remove('cat');
-      wallEl.classList.remove('hovering');
-    }
-  }
-  const tileAt = (x, y) => {
-    const hit = document.elementFromPoint(x, y);
-    const tile = hit && hit.closest && hit.closest('.tile');
-    return tile && wallEl.contains(tile) ? tile.__t : null;
-  };
 
   function interacted() {
     if (hinted) return;
@@ -2421,11 +2370,7 @@ function renderHome() {
     vx = 0; glide = null; snapTo = null;            // a touch catches a moving wall
   });
   wallEl.addEventListener('pointermove', e => {
-    px = e.clientX; py = e.clientY;
-    if (!down) {
-      if (e.pointerType === 'mouse') { const t = tileAt(px, py); setHot(t ? t.p.slug : null); }
-      return;
-    }
+    if (!down) return;
     const tx = e.clientX - sx0, ty = e.clientY - sy0;
     if (!dragging) {
       if (Math.hypot(tx, ty) < 5) return;
@@ -2434,7 +2379,7 @@ function renderHome() {
       dragging = true;
       try { wallEl.setPointerCapture(pid); } catch (_) {}
       wallEl.classList.add('dragging');
-      setHot(null); interacted();
+      interacted();
     }
     const dx = e.clientX - lx, dy = e.clientY - ly;
     camX -= dx;                                      // 1:1 under the finger
@@ -2466,15 +2411,7 @@ function renderHome() {
   };
   wallEl.addEventListener('pointerup', release);
   wallEl.addEventListener('pointercancel', release);
-  wallEl.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') overWall = true; });
-  wallEl.addEventListener('pointerleave', e => {
-    if (e.pointerType === 'mouse' && !down) { overWall = false; setHot(null); }
-  });
   wallEl.addEventListener('click', e => { if (dragging) { e.stopPropagation(); e.preventDefault(); } }, true);
-  // The side buttons sit over the wall; the custom cursor shouldn't cover them.
-  [prevBtn, nextBtn].forEach(b => {
-    b.addEventListener('pointerenter', () => { overWall = false; setHot(null); });
-  });
 
   function onKey(e) {
     if (!el.isConnected || overlayOpen()) return;
@@ -2501,8 +2438,6 @@ function renderHome() {
   addEventListener('wheel', onWheel, { passive: false });
   addEventListener('keydown', onKey);
   addEventListener('resize', onResize);
-  const offWall = e => { if (fine && !wallEl.contains(e.target)) { overWall = false; if (hotCat) setHot(null); } };
-  addEventListener('pointermove', offWall, { passive: true });
 
   function cleanup() {
     cancelAnimationFrame(raf);
@@ -2511,7 +2446,6 @@ function renderHome() {
     removeEventListener('wheel', onWheel);
     removeEventListener('keydown', onKey);
     removeEventListener('resize', onResize);
-    removeEventListener('pointermove', offWall);
     wallMemory.x = camX;
   }
 
@@ -2562,24 +2496,14 @@ function renderHome() {
       if (!REDUCED) { glide = { to: camX + step() * 0.45 }; later(() => { glide = { to: camX - step() * 0.45 }; }, 900); }
     }
     hint.classList.toggle('on', centred && !hinted);
-    const showCursor = fine && overWall && inView && !down;
-    if (showCursor && !cursor.classList.contains('on')) { curX = px; curY = py; }
-    cursor.classList.toggle('on', showCursor);
 
-    if (!inView) { if (hotCat) setHot(null); return; }
+    if (!inView) return;
 
     if (update(false)) dirty = true;
     const now = performance.now();
     if (dirty && now - lastWork > 90) {
       dirty = false; lastWork = now;
       reveal(); pump();
-      if (fine && overWall && px >= 0 && !down) { const t = tileAt(px, py); setHot(t ? t.p.slug : null); }
-    }
-    if (fine && px >= 0) {
-      curX += (px - curX) * (REDUCED ? 1 : 0.3);
-      curY += (py - curY) * (REDUCED ? 1 : 0.3);
-      const sc = down ? 0.75 : 1;
-      cursor.style.transform = `translate3d(${curX.toFixed(1)}px,${curY.toFixed(1)}px,0) scale(${sc})`;
     }
   }
 
