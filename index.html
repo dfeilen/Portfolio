@@ -655,6 +655,9 @@ html.home-mode,html.home-mode body{overscroll-behavior-x:none}
 @keyframes rise{to{transform:none;opacity:1}}
 
 /* ---- The opening burst ---- */
+/* Space for the scrollbar is always kept, so the page doesn't get narrower
+   (and shift sideways) when the opening ends and scrolling is allowed. */
+html{scrollbar-gutter:stable}
 html.intro{overflow:hidden}
 html.intro .mark .l{animation:none}
 html.intro .banner-cue{animation:none;opacity:0}
@@ -2229,7 +2232,8 @@ function renderHome() {
   /* ---- opening and mark ---- */
   const banner = document.createElement('header');
   banner.className = 'banner';
-  banner.innerHTML = `<h1 class="sr">Devin Feilen</h1><span class="banner-cue">Scroll</span>`;
+  // The "Scroll" cue is for phones only; on desktop the wall peeking in is cue enough.
+  banner.innerHTML = `<h1 class="sr">Devin Feilen</h1>${touch ? '<span class="banner-cue">Scroll</span>' : ''}`;
   el.appendChild(banner);
   const mark = document.createElement('a');
   mark.className = 'mark';
@@ -2839,8 +2843,6 @@ function renderHome() {
     if (centred && !wallMemory.nudged && !still) {
       wallMemory.nudged = true;
       nextBtn.classList.add('nudge');
-      // One small slide on first sight shows the wall moves sideways.
-      if (!REDUCED) { glide = { to: camX + step() * 0.45 }; later(() => { glide = { to: camX - step() * 0.45 }; }, 900); }
     }
     hint.classList.toggle('on', centred && !hinted);
 
