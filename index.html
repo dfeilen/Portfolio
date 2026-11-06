@@ -581,37 +581,67 @@ html.renovating .head .to{display:none}
 }
 
 /* ============================================================================
-   THE FRONT PAGE — an endless field
+   THE FRONT PAGE — banner, wall, bio
 
-   Every photograph on one sheet that never ends. Scroll moves it up and
-   down, a trackpad or shift-scroll moves it sideways, and it can be
-   dragged and flicked in any direction. The sheet wraps on itself, so
-   there is no edge to hit.
-
-   The layout is a grid that refuses to be uniform: fixed columns, but each
-   photograph takes a different share of its column, sits left, right or
-   centre within it, and the columns start at different heights. Ordered
-   enough to read as a contact sheet, loose enough to feel placed by hand.
-
-   Header, theme toggle, hint and cursor label all use difference blending
-   while the field is up, so they stay legible over any photograph in
-   either theme.
+   One page that reads top to bottom. A solid banner with the name, then a
+   wall of photographs eight columns wide that runs past both edges of the
+   screen (drag it, swipe it or shift-scroll it sideways; it wraps), then
+   the bio. No navigation at the top: everything you'd look for is at the
+   bottom, where the wall ends.
    ============================================================================ */
-:root{--ease-out:cubic-bezier(.16,1,.3,1)}
+:root{
+  --ease-out:cubic-bezier(.16,1,.3,1);
+  --banner-h:86svh;
+}
 /* The lightbox's buttons are display:inline-block, which beat the hidden
    attribute and left Save showing on every photograph. */
 .lb-bar button[hidden]{display:none}
 
-html.field-mode,html.field-mode body{overflow:hidden;overscroll-behavior:none}
-html.field-mode{scroll-snap-type:none}
+/* No buttons at the top, anywhere. The name stays as the way home. */
+.head .to{display:none}
+html.home-mode .head,html.home-mode .corner{display:none}
+html.home-mode{scroll-snap-type:none}
+:root{--head-h:clamp(70px,9vh,104px)}
 
-.field{
-  position:fixed;inset:0;z-index:1;overflow:hidden;
-  touch-action:none;cursor:grab;
-  user-select:none;-webkit-user-select:none;
+/* ---- Banner ---- */
+.banner{
+  position:relative;height:var(--banner-h);min-height:340px;
+  background:var(--fg);color:var(--bg);
+  overflow:hidden;
+  display:grid;grid-template-rows:1fr auto;
+  padding:calc(var(--edge) + var(--sa-t)) var(--edge-r) calc(var(--edge) + 6px) var(--edge-l);
 }
-.field.dragging{cursor:grabbing}
-.field-cam{position:absolute;inset:0;transform-origin:50% 50%;will-change:transform}
+.banner-in{align-self:center;justify-self:center;text-align:center;will-change:transform,opacity}
+.banner-name{
+  font-family:'Comico',var(--font);font-weight:400;
+  font-size:min(12.5vw,230px);line-height:.92;letter-spacing:.01em;
+  white-space:nowrap;
+}
+/* On a phone the name stacks, so it can stay big. */
+.banner-name .w{display:inline-block;white-space:nowrap}
+@media (max-width:700px){.banner-name{white-space:normal;font-size:21vw}}
+.banner-name .l{display:inline-block;transform:translateY(.5em);opacity:0;
+  animation:rise 1.1s var(--ease-out) forwards;animation-delay:calc(var(--i) * 45ms + 150ms)}
+@keyframes rise{to{transform:none;opacity:1}}
+.banner-line{margin-top:clamp(14px,2.2vw,30px);font-size:var(--nav);font-weight:500;
+  opacity:0;animation:fadein 1s var(--ease) .75s forwards}
+.banner-foot{display:flex;justify-content:space-between;align-items:end;
+  font-size:var(--size);opacity:0;animation:fadein 1s var(--ease) 1.1s forwards}
+.banner-cue{display:inline-flex;gap:.5em;align-items:center}
+.banner-cue::after{content:'';width:1px;height:22px;background:currentColor;
+  transform-origin:top;animation:cue 2.2s var(--ease) 1.8s infinite}
+@keyframes cue{0%{transform:scaleY(0)}45%{transform:scaleY(1)}100%{transform:scaleY(1);opacity:0}}
+@keyframes fadein{to{opacity:1}}
+
+/* ---- Wall ---- */
+.wall{
+  position:relative;overflow:hidden;
+  touch-action:pan-y;cursor:grab;
+  user-select:none;-webkit-user-select:none;
+  padding:var(--wall-pad,60px) 0;
+}
+.wall.dragging{cursor:grabbing}
+.wall-track{position:relative;height:var(--wall-h,100svh)}
 
 .tile{
   position:absolute;left:0;top:0;
@@ -621,57 +651,95 @@ html.field-mode{scroll-snap-type:none}
 .tile.dead{display:none}
 .tile-in{
   display:block;width:100%;height:100%;overflow:hidden;
-  background:var(--c,var(--tone));
-  cursor:inherit;
-  opacity:0;transform:scale(.86);
-  transition:opacity .9s var(--ease-out),transform 1.2s var(--ease-out);
+  background:var(--c,var(--tone));cursor:inherit;
+  opacity:0;transform:translateY(40px);
+  transition:opacity 1s var(--ease-out),transform 1.2s var(--ease-out),filter .45s var(--ease);
 }
 .tile.in .tile-in{opacity:1;transform:none}
 .tile img{
   width:100%;height:100%;object-fit:cover;
-  opacity:0;transform:scale(1.12);
+  opacity:0;transform:scale(1.1);
   transition:opacity 1s var(--ease-out),transform 1.6s var(--ease-out);
   -webkit-user-drag:none;pointer-events:none;
 }
 .tile img.ready{opacity:1;transform:none}
-.field.dragging .tile-in{cursor:grabbing}
 
 @media (hover:hover) and (pointer:fine){
-  .tile-in{cursor:zoom-in}
-  /* One photograph comes forward, the rest step back. */
-  .field.hovering:not(.dragging) .tile.in .tile-in{opacity:.32;transition-duration:.5s}
-  .field.hovering:not(.dragging) .tile.in.hot .tile-in{opacity:1}
-  .tile.hot img.ready{transform:scale(1.04);transition-duration:.7s}
+  .tile-in{cursor:pointer}
+  /* Over a photograph, its whole category stays lit and the rest recede. */
+  .wall.hovering:not(.dragging) .tile.in .tile-in{opacity:.22;filter:grayscale(1);transition-duration:.5s}
+  .wall.hovering:not(.dragging) .tile.in.hot .tile-in{opacity:1;filter:none}
 }
 
-.field-label,.field-hint{
-  position:fixed;z-index:5;pointer-events:none;
+.wall-label{
+  position:fixed;left:0;top:0;z-index:60;pointer-events:none;
   color:#fff;mix-blend-mode:difference;
+  font-size:var(--nav);font-weight:var(--heavy);font-style:italic;letter-spacing:.02em;
+  white-space:nowrap;opacity:0;transition:opacity .3s var(--ease);
 }
-.field-label{
-  left:0;top:0;
-  font-size:var(--nav);font-weight:var(--heavy);font-style:italic;
-  letter-spacing:.02em;white-space:nowrap;
-  opacity:0;transition:opacity .3s var(--ease);
-}
-.field-label.on{opacity:1}
-.field.dragging .field-label{opacity:0}
-.field-hint{
-  left:var(--edge-l);bottom:calc(14px + var(--sa-b));
-  opacity:0;transition:opacity .8s var(--ease);
-}
-.field-hint.on{opacity:1}
-.field-hint.gone{opacity:0}
+.wall-label.on{opacity:1}
+.wall.dragging ~ .wall-label{opacity:0}
+.wall-label small{font-style:normal;font-weight:500;font-size:var(--size);margin-left:.6em}
 
-/* Chrome over the field */
-html.field-mode .head{background:none;color:#fff;mix-blend-mode:difference}
-html.field-mode .corner{color:#fff;mix-blend-mode:difference}
-html.field-mode .head a.h:hover,html.field-mode .head a.h:focus-visible,
-html.field-mode .head a.h.on,
-html.field-mode .corner button.h:hover,html.field-mode .corner button.h:focus-visible{color:inherit}
-html.field-mode .head .name:hover,html.field-mode .corner button.h:hover{opacity:.6}
-html.field-mode .head .name,html.field-mode .corner button.h{transition:opacity .3s var(--ease)}
-html.field-mode :focus-visible{outline-color:#fff}
+.wall-hint{
+  position:fixed;left:var(--edge-l);bottom:calc(14px + var(--sa-b));z-index:60;
+  pointer-events:none;color:#fff;mix-blend-mode:difference;
+  opacity:0;transition:opacity .6s var(--ease);
+}
+.wall-hint.on{opacity:1}
+
+/* ---- Bio ---- */
+.bio{
+  padding:clamp(70px,12vh,140px) var(--edge-r) calc(28px + var(--sa-b)) var(--edge-l);
+  display:grid;gap:clamp(48px,9vh,110px);
+}
+.bio-lede{
+  font-size:clamp(28px,4.2vw,64px);font-weight:600;line-height:1.08;letter-spacing:-.02em;
+  max-width:18ch;
+}
+.bio-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;
+  font-size:clamp(16px,1.3vw,19px)}
+.bio-cols h2{font-size:var(--size);font-weight:400;color:var(--fg-dim);margin-bottom:12px}
+.bio-cols a,.bio-cols button{display:block;padding:3px 0;font-weight:600;text-align:left}
+.bio-foot{display:flex;justify-content:space-between;color:var(--fg-dim);font-size:var(--size)}
+@media (max-width:700px){
+  .bio-cols{grid-template-columns:1fr 1fr;row-gap:36px}
+}
+
+/* ---- Category gallery: a panel that rises over the wall ---- */
+html.sheet-open{overflow:hidden}
+.sheet{position:fixed;inset:0;z-index:150;display:none}
+.sheet.open{display:block}
+.sheet-shade{position:absolute;inset:0;background:color-mix(in srgb,var(--fg) 55%,transparent);
+  opacity:0;transition:opacity .45s var(--ease);touch-action:none}
+.sheet.shown .sheet-shade{opacity:1}
+.sheet-panel{
+  position:absolute;left:0;right:0;bottom:0;height:min(84svh,900px);
+  background:var(--bg);display:grid;grid-template-rows:auto 1fr;
+  padding-bottom:var(--sa-b);
+  transform:translateY(100%);transition:transform .6s var(--ease-out);
+}
+.sheet.shown .sheet-panel{transform:none}
+.sheet-bar{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;
+  padding:20px var(--edge-r) 16px var(--edge-l)}
+.sheet-title{font-size:var(--cat);font-weight:var(--heavy);line-height:1;margin-right:auto}
+.sheet-bar .count{color:var(--fg-dim)}
+.sheet-bar a,.sheet-bar button{font-weight:600;padding:8px 4px;margin:-8px -4px}
+.sheet-strip{
+  display:flex;gap:clamp(8px,1vw,16px);overflow-x:auto;overflow-y:hidden;
+  padding:0 var(--edge-r) clamp(18px,3vh,32px) var(--edge-l);
+  overscroll-behavior:contain;scrollbar-width:thin;
+  scroll-snap-type:x proximity;
+}
+.sheet-strip button{flex:none;height:100%;aspect-ratio:var(--ar,3/2);
+  background:var(--c,var(--tone));scroll-snap-align:start;cursor:zoom-in;overflow:hidden}
+.sheet-strip img{width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .8s var(--ease)}
+.sheet-strip img.ready{opacity:1}
+
+@media (prefers-reduced-motion:reduce){
+  .banner-name .l,.banner-line,.banner-foot{animation:none;opacity:1;transform:none}
+  .banner-cue::after{animation:none}
+}
 
 /* ============================================================================
    PHOTOGRAPHY — a photograph follows the cursor over each category name,
@@ -1088,7 +1156,7 @@ function declareRenovation(why) {
   RENOVATING = true;
   console.warn('Showing the renovation notice — ' + why + '.');
   document.documentElement.classList.add('renovating');
-  document.documentElement.classList.remove('field-mode');
+  document.documentElement.classList.remove('home-mode');
   if (windowIO) { windowIO.disconnect(); windowIO = null; }
   if (parseRoute().name !== 'information') swapIn(view, renderRenovation());
   current = '';
@@ -1876,25 +1944,22 @@ function pileGuard(img, want) {
 }
 
 /* ============================================================================
-   THE FIELD
+   THE FRONT PAGE — banner, wall, bio
 
-   One element per photograph, positioned every frame with a modulo so the
-   sheet wraps in both directions. The sheet is always built larger than
-   the screen (the photo list is repeated until it is), which means a
-   photograph can only ever be on screen once and nothing needs cloning.
+   The wall is eight columns of large photographs, wider than the screen.
+   Up and down is the page's own scroll. Sideways is the wall's: drag or
+   swipe it, scroll sideways on a trackpad, shift-scroll, or use the arrow
+   keys, and it wraps so there is no end to reach. Columns drift at
+   slightly different speeds as the page scrolls.
 
-   Movement: the camera eases towards a target. Wheel and keys move the
-   target; dragging moves it directly and a flick carries on with inertia.
-   The faster it moves, the further the sheet pulls back, so speed reads as
-   distance.
-
-   Loading: only photographs on or near the screen are requested, nearest
-   the centre first, PILE_CONCURRENCY at a time. Duplicates ask for the
-   identical URL, so the second copy comes from cache.
+   One element per photograph, placed every frame with a modulo, so a
+   photograph is never on screen twice and nothing is cloned. Only what is
+   near the screen is requested, PILE_CONCURRENCY at a time.
    ============================================================================ */
-const FIELD_SEED = (Math.random() * 1e9) | 0;      // one layout per visit
-const fieldMemory = { x: 0, y: 0, seen: false };   // where you left it
-let FIELD_CAP = 0;                                 // set if pileGuard fires
+const WALL_SEED = (Math.random() * 1e9) | 0;    // one arrangement per visit
+const wallMemory = { x: 0, y: 0, back: false }; // where you left it
+let WALL_CAP = 0;                               // set if pileGuard fires
+const WALL_COLS = 8;
 
 function seeded(seed) {
   return () => {
@@ -1906,166 +1971,228 @@ function seeded(seed) {
 }
 const wrap = (v, m) => ((v % m) + m) % m;
 
-function layoutField(source, vw, vh) {
+function layoutWall(list, vw) {
+  const R = seeded(WALL_SEED);
   const coarse = vw < 700;
-  const colW   = coarse ? Math.round(vw * 0.42)
-                        : Math.round(Math.min(270, Math.max(150, vw * 0.14)));
-  const gutter = coarse ? 16 : Math.round(colW * 0.2);
-  const SIZES  = [1, 1, 0.84, 0.72, 0.6];   // share of the column, weighted
-  const ALIGN  = [0, 0.5, 1];
-  const marginX = colW + gutter * 2;
-  const marginY = colW * 1.8 + gutter * 2;
+  const colW   = coarse ? Math.round(vw * 0.62) : Math.round(Math.min(440, Math.max(240, vw * 0.2)));
+  const gutter = coarse ? 10 : Math.round(Math.max(12, vw * 0.011));
+  const cols   = Math.min(WALL_COLS, Math.max(1, list.length));
+  const stacks = Array.from({ length: cols }, () => ({ h: 0, items: [], drift: 0 }));
+  // A little irregularity: most photographs fill the column, some don't,
+  // and every column starts at its own height.
+  const SIZES = [1, 1, 1, 0.86, 0.74];
+  stacks.forEach((s, i) => { s.h = Math.round(R() * colW * 0.35); s.drift = [-1, 0.55, -0.4, 1, -0.7, 0.3, -1, 0.8][i % 8]; });
 
-  let list = source.slice();
-  for (let attempt = 0; attempt < 10; attempt++) {
-    const R = seeded(FIELD_SEED + attempt);
-    const cols = Math.max(3, Math.round(Math.sqrt(list.length * (vw / vh) * 0.85)));
-    const colX = n => n * (colW + gutter);
-    const stacks = Array.from({ length: cols }, () => ({ h: 0, items: [] }));
+  list.forEach((p, i) => {
+    let s = stacks[0];
+    for (const c of stacks) if (c.h < s.h) s = c;
+    const ci = stacks.indexOf(s);
+    const f  = SIZES[Math.floor(R() * SIZES.length)];
+    const ar = Math.min(1.9, Math.max(0.6, p.arn || 1.5));
+    const w  = Math.round(colW * f);
+    const h  = Math.round(w / ar);
+    const x  = Math.round(ci * (colW + gutter) + (colW - w) * [0, 1, 0.5][Math.floor(R() * 3)]);
+    s.items.push({ p, k: i, x, y: s.h, w, h, col: ci });
+    s.h += h + gutter;
+  });
 
-    list.forEach((p, i) => {
-      // Shortest column next, so the columns stay roughly level.
-      let s = stacks[0];
-      for (const c of stacks) if (c.h < s.h) s = c;
-      const ci = stacks.indexOf(s);
-      const f  = SIZES[Math.floor(R() * SIZES.length)];
-      const ar = Math.min(2.2, Math.max(0.55, p.arn || 1.5));
-      const w  = Math.round(colW * f);
-      const h  = Math.round(w / ar);
-      const x  = Math.round(colX(ci) + (colW - w) * ALIGN[Math.floor(R() * 3)]);
-      const gap = Math.round(gutter * (0.7 + R() * 1.6));
-      s.items.push({ p, k: i % source.length, dup: i >= source.length, x, y: s.h, w, h });
-      s.h += h + gap;
-    });
+  // Level the columns so the wall ends on one line.
+  const H = Math.max(...stacks.map(s => s.h));
+  stacks.forEach(s => {
+    const extra = (H - s.h) / Math.max(1, s.items.length);
+    s.items.forEach((t, n) => { t.y = Math.round(t.y + extra * n); });
+  });
+  return {
+    tiles: stacks.flatMap(s => s.items),
+    drift: stacks.map(s => s.drift),
+    BW: cols * (colW + gutter), H, colW, gutter
+  };
+}
 
-    const BW = cols * (colW + gutter);
-    const BH = Math.max(...stacks.map(s => s.h));
-    const big = BW >= vw * 1.2 + 2 * marginX && BH >= vh * 1.2 + 2 * marginY;
-    if (!big && attempt < 9) { list = list.concat(source); continue; }
-
-    // Level every column to the sheet's height by sharing out the slack,
-    // then start each column at its own height so rows never line up.
-    const tiles = [];
-    stacks.forEach(s => {
-      const extra = (BH - s.h) / Math.max(1, s.items.length);
-      const lift  = R() * BH;
-      s.items.forEach((t, n) => { t.y = wrap(t.y + extra * n + lift, BH); tiles.push(t); });
-    });
-    return { tiles, BW, BH, colW, marginX, marginY };
-  }
+function bioMarkup() {
+  const cats = CATEGORIES.filter(c => DATA.has(c.slug));
+  return `
+    <p class="bio-lede">Devin Feilen is a photographer based in Portland, Oregon.</p>
+    <div class="bio-cols">
+      <div>
+        <h2>Work</h2>
+        ${cats.map(c => `<a class="h" href="#/c/${c.slug}">${esc(c.title)}</a>`).join('')}
+        ${RACES.length ? `<a class="h" href="#/photography">Race galleries</a>` : ''}
+      </div>
+      <div>
+        <h2>Contact</h2>
+        <a class="h" href="mailto:dfeeilen@gmail.com">Email</a>
+        <a class="h" href="https://instagram.com/devinfeilen" target="_blank" rel="noopener">Instagram</a>
+        <a class="h" href="https://buymeacoffee.com/devinfeilen" target="_blank" rel="noopener">Buy me a coffee</a>
+      </div>
+      <div>
+        <h2>Display</h2>
+        <button class="h bio-theme" type="button"></button>
+      </div>
+    </div>
+    <p class="bio-foot"><span>&copy; ${new Date().getFullYear()} Devin Feilen</span><a class="h bio-top" href="#/">Back to top</a></p>`;
 }
 
 function renderHome() {
   const el = document.createElement('div');
-  el.className = 'field';
-  el.setAttribute('role', 'region');
-  el.setAttribute('aria-label', 'Photographs. Scroll, drag or use the arrow keys to move around.');
+  el.className = 'home';
 
-  const camEl = document.createElement('div');
-  camEl.className = 'field-cam';
-  el.appendChild(camEl);
+  /* ---- banner ---- */
+  const name = 'DEVIN FEILEN';
+  const banner = document.createElement('header');
+  banner.className = 'banner';
+  banner.innerHTML = `
+    <div class="banner-in">
+      <h1 class="banner-name" aria-label="Devin Feilen">${(() => {
+        let i = 0;   // letters rise one after another across both words
+        return name.split(' ').map(w => `<span class="w" aria-hidden="true">${
+          [...w].map(ch => `<span class="l" style="--i:${i++}">${ch}</span>`).join('')
+        }</span>`).join(' ');
+      })()}</h1>
+      <p class="banner-line">Photographer, Portland, Oregon</p>
+    </div>
+    <div class="banner-foot"><span class="banner-cue">Scroll</span></div>`;
+  el.appendChild(banner);
+  const bannerIn = $('.banner-in', banner);
+
+  /* ---- wall ---- */
+  const wallEl = document.createElement('section');
+  wallEl.className = 'wall';
+  wallEl.setAttribute('aria-label', 'Photographs. Drag sideways or use the arrow keys to see more.');
+  const track = document.createElement('div');
+  track.className = 'wall-track';
+  wallEl.appendChild(track);
+  el.appendChild(wallEl);
 
   const label = document.createElement('div');
-  label.className = 'field-label';
+  label.className = 'wall-label';
   label.setAttribute('aria-hidden', 'true');
   el.appendChild(label);
 
   const touch = mq('(pointer: coarse)').matches;
   const hint = document.createElement('p');
-  hint.className = 'field-hint';
-  hint.textContent = touch ? 'Drag to explore' : 'Scroll, drag or use the arrow keys';
+  hint.className = 'wall-hint';
+  hint.textContent = touch ? 'Swipe sideways for more' : 'Drag or shift-scroll sideways for more';
   el.appendChild(hint);
 
-  let source = FIELD_CAP ? HOME.slice(0, FIELD_CAP) : HOME.slice();
+  /* ---- bio ---- */
+  const bio = document.createElement('footer');
+  bio.className = 'bio';
+  bio.innerHTML = bioMarkup();
+  el.appendChild(bio);
+  const bioTheme = $('.bio-theme', bio);
+  const syncTheme = () => {
+    bioTheme.textContent = root.getAttribute('data-theme') === 'dark' ? 'Light mode' : 'Dark mode';
+  };
+  syncTheme();
+  bioTheme.addEventListener('click', () => { themeBtn.click(); syncTheme(); });
+  $('.bio-top', bio).addEventListener('click', e => {
+    e.preventDefault();
+    scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' });
+  });
+
+  /* ---- state ---- */
+  let source = WALL_CAP ? HOME.slice(0, WALL_CAP) : HOME.slice();
   if (touch && source.length > 60) source = source.slice(0, 60);
 
-  let vw = innerWidth, vh = innerHeight, L, tiles = [];
-  let inflight = 0, guarded = false, raf = 0, tick = 0;
-  const cam = { x: fieldMemory.x, y: fieldMemory.y };
-  const tgt = { x: cam.x, y: cam.y };
-  let vx = 0, vy = 0, zoom = 1, placedOnce = false;
-  let down = false, moved = false, sx0 = 0, sy0 = 0, lx = 0, ly = 0, lt = 0;
-  let px = -1, py = -1, lblX = 0, lblY = 0, hot = null, pid = null;
-
+  let vw = innerWidth, vh = innerHeight, L, tiles = [], byCat = new Map();
+  let inflight = 0, guarded = false, raf = 0, amp = 0, dirty = false, lastWork = 0;
+  let camX = wallMemory.x, tgtX = camX, vx = 0;
+  let down = false, dragging = false, sx0 = 0, sy0 = 0, lx = 0, ly = 0, lt = 0, pid = null;
+  let px = -1, py = -1, lblX = 0, lblY = 0, hotCat = null, hinted = false;
+  let lastScroll = -1, lastCam = NaN, wallTop = 0;
+  const measure = () => {
+    wallTop = wallEl.getBoundingClientRect().top + scrollY + parseFloat(getComputedStyle(wallEl).paddingTop);
+  };
   const timers = [];
   const later = (fn, ms) => timers.push(setTimeout(fn, ms));
+  const overlayOpen = () => lb.classList.contains('open') || sheetIsOpen();
 
-  function build(reveal) {
-    camEl.textContent = '';
-    inflight = 0; hot = null;
-    L = layoutField(source, vw, vh);
+  function build() {
+    track.textContent = '';
+    inflight = 0; hotCat = null; byCat = new Map();
+    L = layoutWall(source, vw);
+    amp = REDUCED ? 0 : (vw < 700 ? 40 : 110);
+    wallEl.style.setProperty('--wall-pad', (amp / 2 + L.gutter) + 'px');
+    track.style.setProperty('--wall-h', L.H + 'px');
+
     tiles = L.tiles.map(t => {
       const tile = document.createElement('div');
       tile.className = 'tile';
       tile.style.setProperty('--w', t.w + 'px');
       tile.style.setProperty('--h', t.h + 'px');
       if (t.p.c) tile.style.setProperty('--c', t.p.c);
-
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'tile-in';
-      btn.setAttribute('aria-label',
-        `Open photograph ${pad(t.k + 1)}${t.p.cat ? ', ' + t.p.cat : ''}`);
-      if (t.dup) btn.tabIndex = -1;   // one tab stop per photograph
-
+      btn.setAttribute('aria-label', `${t.p.cat || 'Photographs'}: open the gallery`);
       const img = document.createElement('img');
-      img.alt = '';
-      img.draggable = false;
-      btn.appendChild(img);
-      tile.appendChild(btn);
-      camEl.appendChild(tile);
-
-      Object.assign(t, { el: tile, btn, img, sx: 0, sy: 0, on: false, done: false });
+      img.alt = ''; img.draggable = false;
+      btn.appendChild(img); tile.appendChild(btn); track.appendChild(tile);
+      Object.assign(t, { el: tile, img, sx: NaN, oy: 0, on: false, done: false, shown: false });
       tile.__t = t;
+      if (!byCat.has(t.p.slug)) byCat.set(t.p.slug, []);
+      byCat.get(t.p.slug).push(t);
+
       btn.addEventListener('click', e => {
-        if (moved) { e.preventDefault(); return; }
-        morph(img, () => openLB(source, t.k, img));
+        if (dragging) { e.preventDefault(); return; }
+        openSheet(t.p.slug, t.p, img);
       });
       btn.addEventListener('focus', () => {
-        // Bring a keyboard-focused photograph to the middle of the screen.
-        // Not on a mouse click: that would slide the sheet as the lightbox opens.
         try { if (!btn.matches(':focus-visible')) return; } catch (_) { return; }
-        tgt.x += t.sx + t.w / 2 - vw / 2;
-        tgt.y += t.sy + t.h / 2 - vh / 2;
+        tgtX += t.sx + t.w / 2 - vw / 2;
       });
       return t;
     });
-
-    place(true);
-
-    // The opening: tiles surface outward from the centre of the screen.
-    const cx = vw / 2, cy = vh / 2, far = Math.hypot(cx, cy);
-    tiles.forEach(t => {
-      const visible = t.sx < vw && t.sx + t.w > 0 && t.sy < vh && t.sy + t.h > 0;
-      if (!reveal || REDUCED || !visible) { t.el.classList.add('in'); return; }
-      const d = Math.hypot(t.sx + t.w / 2 - cx, t.sy + t.h / 2 - cy) / far;
-      later(() => t.el.classList.add('in'), 120 + d * 900 + Math.random() * 160);
-    });
-    pump();
+    lastScroll = -1; lastCam = NaN;
+    measure();
+    update(true);
   }
 
-  function place(force) {
-    const ox = -L.marginX - vw * 0.1, oy = -L.marginY - vh * 0.1;
+  /* Horizontal wrap plus each column's drift with the page scroll. */
+  function update(force) {
+    const y = scrollY;
+    if (!force && y === lastScroll && camX === lastCam) return false;
+    lastScroll = y; lastCam = camX;
+    const prog = Math.max(0, Math.min(1, (y + vh - wallTop) / (L.H + vh)));
+    const ox = -L.colW - L.gutter * 2;
     for (const t of tiles) {
-      const sx = wrap(t.x - cam.x - ox, L.BW) + ox;
-      const sy = wrap(t.y - cam.y - oy, L.BH) + oy;
-      if (!force && sx === t.sx && sy === t.sy) continue;
-      t.sx = sx; t.sy = sy;
-      t.el.style.transform = `translate3d(${sx.toFixed(1)}px,${sy.toFixed(1)}px,0)`;
+      const sx = wrap(t.x - camX - ox, L.BW) + ox;
+      const oy = (prog - 0.5) * amp * L.drift[t.col];
+      t.sx = sx; t.oy = oy;
+      t.el.style.transform = `translate3d(${sx.toFixed(1)}px,${(t.y + oy).toFixed(1)}px,0)`;
     }
-    placedOnce = true;
+    return true;
   }
 
-  /* Request what's near the screen, centre outward. */
+  function onScreen(t, pre) {
+    const top = wallTop - scrollY + t.y + t.oy;
+    return t.sx < vw + pre && t.sx + t.w > -pre && top < vh + pre && top + t.h > -pre ? top : null;
+  }
+
+  /* Reveal what has come into view: a wave from left to right. */
+  function reveal() {
+    const fresh = [];
+    for (const t of tiles) {
+      if (t.shown) continue;
+      const top = onScreen(t, 0);
+      if (top !== null && top < vh) fresh.push(t);
+    }
+    fresh.forEach(t => {
+      t.shown = true;
+      if (REDUCED) { t.el.classList.add('in'); return; }
+      const d = Math.max(0, Math.min(1, t.sx / vw)) * 380 + Math.random() * 90;
+      later(() => t.el.classList.add('in'), d);
+    });
+  }
+
   function pump() {
     if (inflight >= PILE_CONCURRENCY) return;
-    const pre = 320, cx = vw / 2, cy = vh / 2;
-    const want = tiles.filter(t => !t.on &&
-      t.sx < vw + pre && t.sx + t.w > -pre && t.sy < vh + pre && t.sy + t.h > -pre);
-    want.sort((a, b) =>
-      Math.hypot(a.sx - cx, a.sy - cy) - Math.hypot(b.sx - cx, b.sy - cy));
+    const want = tiles.filter(t => !t.on && onScreen(t, Math.max(400, vh * 0.8)) !== null);
+    const cx = vw / 2;
+    want.sort((a, b) => (onScreen(a, 9e9) - onScreen(b, 9e9)) || (Math.abs(a.sx - cx) - Math.abs(b.sx - cx)));
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const px = WIDTHS.find(w => w >= L.colW * dpr) || WIDTHS[WIDTHS.length - 1];
+    const pxW = WIDTHS.find(w => w >= L.colW * dpr) || WIDTHS[WIDTHS.length - 1];
     for (const t of want) {
       if (inflight >= PILE_CONCURRENCY) break;
       t.on = true; inflight++;
@@ -2078,112 +2205,110 @@ function renderHome() {
       t.img.addEventListener('load', () => {
         if (!guarded) {
           guarded = true;
-          if (pileGuard(t.img, px)) {
-            FIELD_CAP = PILE_RAW_CAP;
-            source = HOME.slice(0, FIELD_CAP);
-            build(false);
+          if (pileGuard(t.img, pxW)) {
+            WALL_CAP = PILE_RAW_CAP;
+            source = HOME.slice(0, WALL_CAP);
+            build(); reveal(); pump();
             return;
           }
         }
         settle(true);
       }, { once: true });
       t.img.addEventListener('error', () => settle(false), { once: true });
-      later(() => settle(true), PILE_TIMEOUT);   // free the slot, keep loading
-      mount(t.img, t.p.url, { sizes: L.colW + 'px', base: px, eager: true, priority: 'auto' });
+      later(() => settle(true), PILE_TIMEOUT);
+      mount(t.img, t.p.url, { sizes: L.colW + 'px', base: pxW, eager: true, priority: 'auto' });
     }
   }
 
-  function setHot(t) {
-    if (t === hot) return;
-    if (hot) hot.el.classList.remove('hot');
-    if (t && !hot && px >= 0) { lblX = px + 18; lblY = py + 16; }
-    hot = t;
-    if (t) {
-      t.el.classList.add('hot');
-      label.textContent = t.p.cat || '';
-      label.classList.toggle('on', !!t.p.cat);
-      el.classList.add('hovering');
+  function setHot(cat) {
+    if (cat === hotCat) return;
+    if (hotCat && byCat.has(hotCat)) byCat.get(hotCat).forEach(t => t.el.classList.remove('hot'));
+    if (cat && !hotCat && px >= 0) { lblX = px + 18; lblY = py + 16; }
+    hotCat = cat;
+    if (cat && byCat.has(cat)) {
+      byCat.get(cat).forEach(t => t.el.classList.add('hot'));
+      const d = DATA.get(cat);
+      label.innerHTML = `${esc(d ? d.title : '')}<small>View gallery</small>`;
+      label.classList.add('on');
+      wallEl.classList.add('hovering');
     } else {
       label.classList.remove('on');
-      el.classList.remove('hovering');
+      wallEl.classList.remove('hovering');
     }
   }
+  const tileAt = (x, y) => {
+    const hit = document.elementFromPoint(x, y);
+    const tile = hit && hit.closest && hit.closest('.tile');
+    return tile && wallEl.contains(tile) ? tile.__t : null;
+  };
 
-  let hinted = false;
   function interacted() {
     if (hinted) return;
-    hinted = true;
-    hint.classList.add('gone');
-    fieldMemory.seen = true;
+    hinted = true; hint.classList.remove('on');
   }
 
   /* ---- input ---- */
-  const lbOpen = () => lb.classList.contains('open');
-
   function onWheel(e) {
-    if (!el.isConnected || lbOpen() || e.ctrlKey) return;
+    if (!el.isConnected || overlayOpen() || e.ctrlKey) return;
+    if (!wallEl.contains(e.target)) return;
+    const k = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? vw : 1;
+    let dx = e.deltaX * k;
+    const dy = e.deltaY * k;
+    if (e.shiftKey && Math.abs(dy) > Math.abs(dx)) dx = dy;
+    else if (Math.abs(dx) <= Math.abs(dy)) return;   // vertical: the page scrolls
     e.preventDefault();
-    const k = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? vh : 1;
-    let dx = e.deltaX * k, dy = e.deltaY * k;
-    if (e.shiftKey && !dx) { dx = dy; dy = 0; }
-    tgt.x += dx; tgt.y += dy;
-    vx = vy = 0;
+    tgtX += dx; vx = 0;
     interacted();
   }
 
-  el.addEventListener('pointerdown', e => {
-    if (e.button !== 0 || lbOpen()) return;
-    down = true; moved = false; pid = e.pointerId;
-    sx0 = lx = e.clientX; sy0 = ly = e.clientY; lt = performance.now();
-    vx = vy = 0;
+  wallEl.addEventListener('pointerdown', e => {
+    if (e.button !== 0 || overlayOpen()) return;
+    down = true; dragging = false; pid = e.pointerId;
+    sx0 = lx = e.clientX; sy0 = ly = e.clientY; lt = performance.now(); vx = 0;
   });
-  el.addEventListener('pointermove', e => {
+  wallEl.addEventListener('pointermove', e => {
     px = e.clientX; py = e.clientY;
     if (!down) {
-      if (e.pointerType === 'mouse') setHot(e.target.closest && e.target.closest('.tile') ? e.target.closest('.tile').__t : null);
+      if (e.pointerType === 'mouse') { const t = tileAt(px, py); setHot(t ? t.p.slug : null); }
       return;
     }
-    if (!moved && Math.hypot(e.clientX - sx0, e.clientY - sy0) > 6) {
-      moved = true;
-      try { el.setPointerCapture(pid); } catch (_) {}
-      el.classList.add('dragging');
-      setHot(null);
-      interacted();
+    const tx = e.clientX - sx0, ty = e.clientY - sy0;
+    if (!dragging && Math.hypot(tx, ty) > 6) {
+      // A touch that sets off vertically belongs to the page.
+      if (e.pointerType !== 'mouse' && Math.abs(ty) > Math.abs(tx)) { down = false; return; }
+      dragging = true;
+      try { wallEl.setPointerCapture(pid); } catch (_) {}
+      wallEl.classList.add('dragging');
+      setHot(null); interacted();
     }
-    if (!moved) return;
+    if (!dragging) return;
     const now = performance.now(), dt = Math.max(1, now - lt);
     const dx = e.clientX - lx, dy = e.clientY - ly;
-    tgt.x -= dx; tgt.y -= dy;
-    // Velocity in px per 16ms frame, smoothed so one jittery sample can't fling it.
+    tgtX -= dx;
+    if (e.pointerType === 'mouse' && dy) scrollBy(0, -dy);   // a mouse drag can go both ways
     vx = vx * 0.6 + (-dx / dt * 16) * 0.4;
-    vy = vy * 0.6 + (-dy / dt * 16) * 0.4;
     lx = e.clientX; ly = e.clientY; lt = now;
   });
   const release = () => {
     if (!down) return;
     down = false;
-    el.classList.remove('dragging');
-    if (performance.now() - lt > 80) { vx = vy = 0; }   // held still before letting go
-    if (REDUCED) { vx = vy = 0; }
-    try { el.releasePointerCapture(pid); } catch (_) {}
-    // `moved` survives until the click that follows a drag has been swallowed.
-    setTimeout(() => { moved = false; }, 0);
+    wallEl.classList.remove('dragging');
+    if (performance.now() - lt > 80 || REDUCED) vx = 0;
+    try { wallEl.releasePointerCapture(pid); } catch (_) {}
+    setTimeout(() => { dragging = false; }, 0);
   };
-  el.addEventListener('pointerup', release);
-  el.addEventListener('pointercancel', release);
-  el.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse' && !down) setHot(null); });
-  el.addEventListener('click', e => {
-    if (moved) { e.stopPropagation(); e.preventDefault(); }
-  }, true);
+  wallEl.addEventListener('pointerup', release);
+  wallEl.addEventListener('pointercancel', release);
+  wallEl.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse' && !down) setHot(null); });
+  wallEl.addEventListener('click', e => { if (dragging) { e.stopPropagation(); e.preventDefault(); } }, true);
 
   function onKey(e) {
-    if (!el.isConnected || lbOpen()) return;
-    const step = Math.round(Math.min(vw, vh) * 0.35);
-    const map = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
-    const m = map[e.key];
-    if (!m) return;
+    if (!el.isConnected || overlayOpen()) return;
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    const r = wallEl.getBoundingClientRect();
+    if (r.bottom < 0 || r.top > vh) return;            // only while the wall is in view
     e.preventDefault();
-    tgt.x += m[0]; tgt.y += m[1];
+    tgtX += (e.key === 'ArrowRight' ? 1 : -1) * (L.colW + L.gutter);
     interacted();
   }
 
@@ -2191,82 +2316,211 @@ function renderHome() {
   function onResize() {
     clearTimeout(resizeT);
     resizeT = setTimeout(() => {
-      if (!el.isConnected) return;
+      if (!el.isConnected || innerWidth === vw) return;   // a phone's toolbar changing height isn't a resize
       vw = innerWidth; vh = innerHeight;
-      build(false);
+      build(); reveal(); pump();
     }, 160);
   }
 
   addEventListener('wheel', onWheel, { passive: false });
   addEventListener('keydown', onKey);
   addEventListener('resize', onResize);
+  // Leaving the wall by any edge clears the highlight.
+  const offWall = e => { if (hotCat && !wallEl.contains(e.target)) setHot(null); };
+  addEventListener('pointermove', offWall, { passive: true });
 
   function cleanup() {
+    removeEventListener('pointermove', offWall);
     cancelAnimationFrame(raf);
     timers.forEach(clearTimeout);
     clearTimeout(resizeT);
     removeEventListener('wheel', onWheel);
     removeEventListener('keydown', onKey);
     removeEventListener('resize', onResize);
-    fieldMemory.x = tgt.x; fieldMemory.y = tgt.y;
+    wallMemory.x = tgtX;
   }
 
   /* ---- the loop ---- */
   function frame() {
     if (!el.isConnected) { cleanup(); return; }
     raf = requestAnimationFrame(frame);
-    if (lbOpen()) return;
+    wallMemory.y = scrollY; wallMemory.x = tgtX;
+    if (overlayOpen()) return;
 
     if (!down) {
-      tgt.x += vx; tgt.y += vy;
-      vx *= 0.93; vy *= 0.93;
+      tgtX += vx; vx *= 0.93;
       if (Math.abs(vx) < 0.05) vx = 0;
-      if (Math.abs(vy) < 0.05) vy = 0;
     }
-    const ease = REDUCED ? 1 : down ? 0.4 : 0.09;
-    const bx = cam.x, by = cam.y;
-    cam.x += (tgt.x - cam.x) * ease;
-    cam.y += (tgt.y - cam.y) * ease;
-    if (Math.abs(tgt.x - cam.x) < 0.05) cam.x = tgt.x;
-    if (Math.abs(tgt.y - cam.y) < 0.05) cam.y = tgt.y;
+    camX += (tgtX - camX) * (REDUCED ? 1 : down ? 0.4 : 0.09);
+    if (Math.abs(tgtX - camX) < 0.05) camX = tgtX;
 
-    const speed = Math.hypot(cam.x - bx, cam.y - by);
-    const z = REDUCED ? 1 : 1 - Math.min(0.08, speed * 0.0016);
-    const nz = zoom + (z - zoom) * 0.1;
-    const moving = cam.x !== bx || cam.y !== by;
-
-    if (moving || !placedOnce) place(false);
-    if (Math.abs(nz - zoom) > 0.0002) {
-      zoom = nz;
-      camEl.style.transform = `scale(${zoom.toFixed(4)})`;
+    // The banner's contents drift up and fade as you leave it.
+    const y = scrollY, bh = banner.offsetHeight;
+    if (y < bh * 1.1 && !REDUCED) {
+      bannerIn.style.transform = `translate3d(0,${(y * 0.35).toFixed(1)}px,0)`;
+      bannerIn.style.opacity = String(Math.max(0, 1 - y / (bh * 0.8)).toFixed(3));
     }
 
-    // Keep the hover honest while the sheet slides under a still cursor.
-    if (moving) tick++;
-    if (moving && px >= 0 && !down && tick % 4 === 0) {
-      const hit = document.elementFromPoint(px, py);
-      const tile = hit && hit.closest && hit.closest('.tile');
-      setHot(tile && el.contains(tile) ? tile.__t : null);
-    }
-    if (moving && tick % 6 === 0) pump();
+    const r = wallEl.getBoundingClientRect();
+    const inView = r.top < vh && r.bottom > 0;
+    hint.classList.toggle('on', inView && !hinted && r.top < vh * 0.5 && r.bottom > vh * 0.6);
+    if (!inView) { if (hotCat) setHot(null); return; }
 
-    if (hot && px >= 0) {
+    const moved = update(false);
+    if (moved) dirty = true;
+    // Reveal, load and re-check the hover at most every 90ms while moving,
+    // and once more after it stops so nothing is left waiting.
+    const now = performance.now();
+    if (dirty && now - lastWork > 90) {
+      dirty = false; lastWork = now;
+      reveal(); pump();
+      if (px >= 0 && !down && mq('(pointer: fine)').matches) {
+        const t = tileAt(px, py); setHot(t ? t.p.slug : null);
+      }
+    }
+    if (hotCat && px >= 0) {
       lblX += (px + 18 - lblX) * (REDUCED ? 1 : 0.22);
       lblY += (py + 16 - lblY) * (REDUCED ? 1 : 0.22);
       label.style.transform = `translate3d(${lblX.toFixed(1)}px,${lblY.toFixed(1)}px,0)`;
     }
   }
 
-  // Build once the field is in the document, so the reveal is seen.
   requestAnimationFrame(() => {
     if (!el.isConnected) return;
     vw = innerWidth; vh = innerHeight;
-    build(true);
-    if (!fieldMemory.seen) later(() => hint.classList.add('on'), REDUCED ? 0 : 1400);
+    build();
+    if (wallMemory.back) scrollTo(0, wallMemory.y);
+    wallMemory.back = true;
+    update(true); reveal(); pump();
     raf = requestAnimationFrame(frame);
   });
 
   return el;
+}
+
+/* ============================================================================
+   CATEGORY GALLERY — a panel that rises over the wall with one category's
+   photographs in a sideways strip. The photograph you clicked flies into
+   its place in the strip; clicking any of them opens the full-screen
+   viewer, which steps through this category only.
+   ============================================================================ */
+let sheetEl = null, sheetReturn = null;
+const sheetIsOpen = () => !!(sheetEl && sheetEl.classList.contains('open'));
+
+function ensureSheet() {
+  if (sheetEl) return sheetEl;
+  sheetEl = document.createElement('div');
+  sheetEl.className = 'sheet';
+  sheetEl.setAttribute('role', 'dialog');
+  sheetEl.setAttribute('aria-modal', 'true');
+  sheetEl.innerHTML = `
+    <div class="sheet-shade"></div>
+    <div class="sheet-panel">
+      <div class="sheet-bar">
+        <h2 class="sheet-title"></h2>
+        <span class="count"></span>
+        <a class="h sheet-full" href="#/">One at a time</a>
+        <button class="h sheet-close" type="button">Close</button>
+      </div>
+      <div class="sheet-strip"></div>
+    </div>`;
+  document.body.appendChild(sheetEl);
+  $('.sheet-shade', sheetEl).addEventListener('click', closeSheet);
+  $('.sheet-close', sheetEl).addEventListener('click', closeSheet);
+  $('.sheet-full', sheetEl).addEventListener('click', () => {
+    sheetEl.classList.remove('open', 'shown');
+    root.classList.remove('sheet-open');
+  });
+  const strip = $('.sheet-strip', sheetEl);
+  // A mouse wheel moves the strip sideways; trackpads already do.
+  strip.addEventListener('wheel', e => {
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && !e.ctrlKey) {
+      e.preventDefault();
+      strip.scrollLeft += e.deltaY * (e.deltaMode === 1 ? 16 : 1);
+    }
+  }, { passive: false });
+  addEventListener('keydown', e => {
+    if (!sheetIsOpen() || lb.classList.contains('open')) return;
+    if (e.key === 'Escape') closeSheet();
+    if (e.key === 'ArrowRight') strip.scrollBy({ left: strip.clientWidth * 0.6, behavior: REDUCED ? 'auto' : 'smooth' });
+    if (e.key === 'ArrowLeft')  strip.scrollBy({ left: -strip.clientWidth * 0.6, behavior: REDUCED ? 'auto' : 'smooth' });
+  });
+  return sheetEl;
+}
+
+function openSheet(slug, photo, fromImg) {
+  const cat = DATA.get(slug);
+  if (!cat) return;
+  const s = ensureSheet();
+  const strip = $('.sheet-strip', s);
+  const list = cat.photos;
+  const at = Math.max(0, list.indexOf(photo));
+  let target = null;
+
+  const fill = () => {
+    s.setAttribute('aria-label', cat.title);
+    $('.sheet-title', s).textContent = cat.title;
+    $('.count', s).textContent = `${list.length} photograph${list.length === 1 ? '' : 's'}`;
+    $('.sheet-full', s).setAttribute('href', `#/c/${slug}`);
+    strip.textContent = '';
+    list.forEach((p, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.setAttribute('aria-label', `Open photograph ${pad(i + 1)}`);
+      if (p.ar) b.style.setProperty('--ar', p.ar);
+      if (p.c)  b.style.setProperty('--c', p.c);
+      const img = document.createElement('img');
+      img.alt = '';
+      b.appendChild(img);
+      strip.appendChild(b);
+      if (i === at && fromImg && fromImg.currentSrc) {   // start from what's already on screen
+        img.src = fromImg.currentSrc; img.classList.add('ready'); target = img;
+      }
+      const hgt = Math.round(strip.clientHeight || innerHeight * 0.7);
+      const wpx = Math.round(hgt * (p.arn || 1.5));
+      const swap = () => mount(img, p.url, { sizes: wpx + 'px', base: 1000, eager: Math.abs(i - at) < 3 });
+      if (i === at && target) setTimeout(swap, 450); else swap();
+      if (!target && i === at) target = img;
+      b.addEventListener('click', () => morph(img, () => openLB(list, i, img)));
+    });
+    sheetReturn = document.activeElement;
+    s.classList.add('open', 'shown');
+    root.classList.add('sheet-open');
+    // Bring the clicked photograph into view, a little in from the left.
+    const btn = strip.children[at];
+    if (btn) strip.scrollLeft = Math.max(0, btn.offsetLeft - parseFloat(getComputedStyle(strip).paddingLeft));
+    $('.sheet-close', s).focus({ preventScroll: true });
+  };
+
+  if (canMorph() && fromImg) {
+    // The panel appears in place and the photograph flies to its slot.
+    fromImg.style.viewTransitionName = 'photo';
+    let t;
+    try {
+      t = document.startViewTransition(() => {
+        fromImg.style.viewTransitionName = '';
+        s.classList.add('open');
+        fill();
+        if (target) target.style.viewTransitionName = 'photo';
+      });
+    } catch (e) { fromImg.style.viewTransitionName = ''; fill(); return; }
+    const clear = () => { fromImg.style.viewTransitionName = ''; if (target) target.style.viewTransitionName = ''; };
+    t.finished.then(clear, clear);
+  } else {
+    s.classList.add('open');
+    requestAnimationFrame(() => requestAnimationFrame(fill));
+  }
+}
+
+function closeSheet() {
+  if (!sheetIsOpen()) return;
+  sheetEl.classList.remove('shown');
+  setTimeout(() => {
+    sheetEl.classList.remove('open');
+    root.classList.remove('sheet-open');
+    $('.sheet-strip', sheetEl).textContent = '';
+    if (sheetReturn && sheetReturn.focus) sheetReturn.focus({ preventScroll: true });
+  }, REDUCED ? 0 : 450);
 }
 
 /* ============================================================================
@@ -2638,6 +2892,8 @@ async function route() {
   const key = JSON.stringify(r);
   if (key === current) return;
   current = key;
+  // A category panel left open shouldn't follow you to another page.
+  if (sheetIsOpen()) { sheetEl.classList.remove('open', 'shown'); root.classList.remove('sheet-open'); }
 
   // PHOTOGRAPHY stays lit while you're inside a category.
   const navKey = r.name === 'category' ? 'photography' : r.name;
@@ -2667,7 +2923,7 @@ async function route() {
   if (windowIO) { windowIO.disconnect(); windowIO = null; }
   if (raceIO)   { raceIO.disconnect();   raceIO = null; }
   document.documentElement.classList.toggle('gallery', r.name === 'race');
-  document.documentElement.classList.toggle('field-mode', r.name === 'home' && !RENOVATING);
+  document.documentElement.classList.toggle('home-mode', r.name === 'home' && !RENOVATING);
   swapIn(view, el);
   scrollTo({ top:0, behavior:'auto' });
   const hasFlow = !RENOVATING &&
@@ -2748,7 +3004,7 @@ themeBtn.addEventListener('click', () => {
        Which photographs are in the file is now the only editorial control
        left — so the argument for keeping each list short gets stronger,
        not weaker. */
-    photos.forEach(p => { p.cat = c.title; });   // the field's cursor label
+    photos.forEach(p => { p.cat = c.title; p.slug = c.slug; });   // the field's cursor label
     return photos.length ? { ...c, photos: shuffle(photos) } : null;
   }));
   loaded.filter(Boolean).forEach(c => DATA.set(c.slug, c));
