@@ -15,6 +15,11 @@
 <meta name="twitter:card" content="summary_large_image">
 
 <link rel="preconnect" href="https://devinfeilen.b-cdn.net" crossorigin>
+<!-- The wordmark face: Archivo (SIL Open Font License), heavy and slightly
+     narrowed. Only the weight and width range the mark uses is requested. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,700..900&display=swap" rel="stylesheet">
 
 <!-- Applies the saved theme before the first paint, so a returning visitor
      never watches the page flip palettes on load. -->
@@ -257,11 +262,11 @@ html:not(.varfade).theming *::after{
    heavy. The 5° slant is the typeface's own; it isn't italic. */
 .head .name{
   display:inline-block;
-  font-family:'Comico',var(--font);
-  font-size:clamp(26px, 4.4vw, 52px);
-  font-weight:400;
+  font-family:'Archivo',var(--font);
+  font-size:clamp(24px, 2.4vw, 34px);
+  font-weight:800;font-stretch:90%;
   line-height:1.06;
-  letter-spacing:.03em;
+  letter-spacing:-.05em;
   padding:0;margin:0;      /* the shared .head a tap padding would skew it */
 }
 .head .to{display:block;margin-top:10px;font-size:var(--nav);letter-spacing:.05em;
@@ -591,6 +596,7 @@ html.renovating .head .to{display:none}
    ============================================================================ */
 :root{
   --ease-out:cubic-bezier(.16,1,.3,1);
+  --mark-font:'Archivo',var(--font);
   --banner-h:62svh;
 }
 /* The lightbox's buttons are display:inline-block, which beat the hidden
@@ -601,45 +607,74 @@ html.renovating .head .to{display:none}
 .head .to{display:none}
 html.home-mode .head,html.home-mode .corner{display:none}
 html.home-mode{scroll-snap-type:none}
-:root{--head-h:clamp(70px,9vh,104px)}
+/* A sideways trackpad swipe over the wall must not trigger browser back/forward. */
+html.home-mode,html.home-mode body{overscroll-behavior-x:none}
+:root{--head-h:72px}
+/* On every other page the name sits where the front page's mark docks:
+   top left, small. */
+.head{text-align:left}
+.head .name{font-size:clamp(24px,2.4vw,34px)}
 
-/* ---- Banner ---- */
+/* ---- The opening and the mark ----
+   No block of colour. The name opens the page large; as you scroll it
+   shrinks into the top-left corner and stays there as the site's mark,
+   over the photographs. It turns up again inside the bio and once more,
+   full width, at the very bottom. Difference blending keeps it legible
+   on light, on dark and over any photograph. */
 .banner{
-  position:relative;height:var(--banner-h);min-height:300px;
-  background:var(--fg);color:var(--bg);
-  overflow:hidden;
-  display:grid;grid-template-rows:1fr auto;
-  padding:calc(var(--edge) + var(--sa-t)) var(--edge-r) calc(var(--edge) + 6px) var(--edge-l);
+  position:relative;height:var(--banner-h);min-height:260px;
+  display:flex;align-items:flex-end;
+  padding:0 var(--edge-r) calc(var(--edge) + 6px) var(--edge-l);
 }
-.banner-in{align-self:center;justify-self:center;text-align:center;will-change:transform,opacity}
-.banner-name{
-  font-family:'Comico',var(--font);font-weight:400;
-  font-size:min(10.5vw,190px);line-height:.92;letter-spacing:.01em;
-  white-space:nowrap;
-}
-.banner-name .w{display:inline-block;white-space:nowrap}
-/* .l carries the entrance, .g the cursor and scroll response. Two elements
-   because a finished animation with `forwards` would override any
-   transform set on the same element afterwards. */
-.banner-name .l{display:inline-block;transform:translateY(.5em);opacity:0;
-  animation:rise 1.1s var(--ease-out) forwards;animation-delay:calc(var(--i) * 45ms + 150ms)}
-.banner-name .g{display:inline-block;will-change:transform;transform-origin:50% 80%}
-@keyframes rise{to{transform:none;opacity:1}}
-@media (max-width:700px){.banner-name{white-space:normal;font-size:19vw}:root{--banner-h:56svh}}
-.banner-line{margin-top:clamp(12px,1.8vw,26px);font-size:var(--nav);font-weight:500;
-  opacity:0;animation:fadein 1s var(--ease) .75s forwards}
-.banner-foot{display:flex;justify-content:space-between;align-items:end;
-  font-size:var(--size);opacity:0;animation:fadein 1s var(--ease) 1.1s forwards}
-.banner-cue{display:inline-flex;gap:.5em;align-items:center}
+.banner-cue{display:inline-flex;gap:.5em;align-items:center;font-size:var(--size);
+  opacity:0;animation:fadein 1s var(--ease) 1.1s forwards}
 .banner-cue::after{content:'';width:1px;height:22px;background:currentColor;
   transform-origin:top;animation:cue 2.2s var(--ease) 1.8s infinite}
 @keyframes cue{0%{transform:scaleY(0)}45%{transform:scaleY(1)}100%{transform:scaleY(1);opacity:0}}
 @keyframes fadein{to{opacity:1}}
+@media (max-width:700px){:root{--banner-h:48svh}}
+
+.mark{
+  position:fixed;left:0;top:0;z-index:45;
+  font-family:var(--mark-font);font-weight:800;font-stretch:90%;
+  font-size:200px;line-height:1;letter-spacing:-.05em;white-space:nowrap;
+  color:#fff;mix-blend-mode:difference;
+  transform-origin:0 0;will-change:transform;
+  pointer-events:none;visibility:hidden;
+}
+.mark.ready{visibility:visible}
+.mark.docked{pointer-events:auto}
+.mark:focus-visible{outline:2px solid #fff;outline-offset:6px}
+/* .l carries the entrance, .g the cursor and scroll response. Two elements
+   because a finished animation with `forwards` would override any
+   transform set on the same element afterwards. */
+.mark .l,.bio-mark .l{display:inline-block;transform:translateY(.45em);opacity:0}
+.mark .l{animation:rise 1.1s var(--ease-out) forwards;animation-delay:calc(var(--i) * 45ms + 150ms)}
+.bio-mark.in .l{animation:rise 1.1s var(--ease-out) forwards;animation-delay:calc(var(--i) * 40ms)}
+.mark .g{display:inline-block;will-change:transform;transform-origin:50% 80%}
+@keyframes rise{to{transform:none;opacity:1}}
+
+/* ---- The opening burst ---- */
+html.intro{overflow:hidden}
+html.intro .mark .l{animation:none}
+html.intro .banner-cue{animation:none;opacity:0}
+.burst{
+  position:fixed;inset:0;z-index:300;background:var(--fg);
+  display:grid;place-items:center;cursor:pointer;
+  touch-action:none;
+}
+.burst-frame{display:block;max-height:62svh;max-width:88vw;width:auto;height:auto;transform-origin:0 0}
+.burst-count,.burst-skip{
+  position:fixed;bottom:calc(16px + var(--sa-b));color:var(--bg);font-size:var(--size);
+  font-variant-numeric:tabular-nums;letter-spacing:.04em;
+}
+.burst-count{right:var(--edge-r);font-weight:600}
+.burst-skip{left:var(--edge-l);opacity:.55}
 
 /* ---- Wall ---- */
 .wall{
   position:relative;overflow:hidden;
-  touch-action:pan-y;
+  touch-action:none;   /* the wall handles every direction itself */
   user-select:none;-webkit-user-select:none;
   padding:var(--wall-pad,60px) 0;
 }
@@ -725,6 +760,20 @@ html.home-mode{scroll-snap-type:none}
 @media (max-width:700px){
   .bio-cols{grid-template-columns:1fr 1fr;row-gap:36px}
 }
+.bio-lede .nm{font-family:var(--mark-font);font-weight:800;font-stretch:90%;letter-spacing:-.04em}
+.bio-mark{
+  font-family:var(--mark-font);font-weight:800;font-stretch:90%;
+  font-size:var(--fit,15vw);line-height:.9;letter-spacing:-.05em;white-space:nowrap;
+  margin-bottom:-.06em;
+}
+/* Race galleries open in place, under the button. */
+.bio-races-open::after{content:' +'}
+.bio-races-open[aria-expanded="true"]::after{content:' \2013'}
+.bio-races{display:grid;grid-template-rows:0fr;opacity:0;
+  transition:grid-template-rows .45s var(--ease-out),opacity .3s var(--ease)}
+.bio-races.open{grid-template-rows:1fr;opacity:1}
+.bio-races>div{overflow:hidden;padding-left:14px}
+.bio-cols .bio-races a,.bio-races .races-soon{display:block;font-weight:500;padding:3px 0}
 
 /* ---- Category gallery: a panel that rises over the wall ---- */
 html.sheet-open{overflow:hidden}
@@ -757,7 +806,7 @@ html.sheet-open{overflow:hidden}
 .sheet-strip img.ready{opacity:1}
 
 @media (prefers-reduced-motion:reduce){
-  .banner-name .l,.banner-line,.banner-foot{animation:none;opacity:1;transform:none}
+  .mark .l,.bio-mark .l,.banner-cue{animation:none;opacity:1;transform:none}
   .banner-cue::after{animation:none}
 }
 
@@ -944,7 +993,7 @@ html{scroll-snap-type:y mandatory}
 <a class="skip" href="#/">Skip to content</a>
 
 <header class="head">
-  <a class="name h" href="#/">DEVIN FEILEN</a>
+  <a class="name h" href="#/" aria-label="Devin Feilen">devin feilen</a>
   <span class="to">
     <a class="h morph" href="#/photography" data-nav="photography" data-t="PHOTOGRAPHY" aria-label="Photography"><span>PHOTOGRAPHY</span></a><span aria-hidden="true">,</span>
     <a class="h morph" href="#/information"  data-nav="information" data-t="INFORMATION" aria-label="Information"><span>INFORMATION</span></a>
@@ -1008,6 +1057,34 @@ const CATEGORIES = [
   { slug:'ab',       title:'A&B',      sources:['AB'] }
 ];
 
+/* THE FRONT PAGE'S OWN FOLDER.
+
+   The wall on the front page shows the photographs in Home.json (a Home
+   folder on the CDN, same format as the categories), at most HOME_MAX of
+   them. Until that file exists it falls back to a random HOME_MAX from
+   every category, so nothing breaks while you set it up.
+
+   Clicking a front-page photograph opens its category's gallery. The
+   category is found by file name, so a file copied from Bikes into Home
+   with the same name links to Bikes on its own. To link one by hand, give
+   its JSON entry a "cat" with the category's slug: { "file": "x.jpg",
+   "cat": "bikes" }. A photograph with neither opens on its own instead. */
+const HOME_SOURCE  = 'Home';
+const HOME_MAX     = 25;
+const HOME_SHUFFLE = true;   // false keeps Home.json's order
+
+/* THE OPENING BURST.
+
+   On each fresh visit to the front page, frames fire like a camera on
+   burst before the page appears, and the last one lands on the wall.
+   Burst.json (a Burst folder on the CDN, same format as the others) holds
+   a sequence shot on burst, in order: one pass of a rider or a car reads
+   best. Without that file it uses photographs from the front page instead,
+   ending on whichever one it lands on. Click, tap or any key skips it. */
+const BURST_SOURCE = 'Burst';
+const BURST_MAX    = 12;
+const BURST_STEP   = 85;      // ms per frame, about 12 frames a second
+
 /* How many photographs the front page shows, drawn at random from every
    category. Picked once when the page loads and held for the visit, so
    moving between Photography and back doesn't reshuffle underneath you.
@@ -1066,6 +1143,8 @@ const srcset = u => USE_OPTIMIZER ? WIDTHS.map(w=>`${sized(u,w)} ${w}w`).join(',
    ============================================================================ */
 const DATA = new Map();   // slug -> { ...category, photos }
 let HOME = [];            // the front page's random handful
+let BURST = [];           // the opening burst, if Burst.json exists
+let INTRO_DONE = false;   // the burst plays once per page load
 let RACES = [];           // race galleries, from races/index.json
 let RENOVATING = false;
 
@@ -1239,7 +1318,8 @@ async function loadFile(slug) {
         url: urlFor(slug, o.file || o.src || ''),
         ar:  (w&&h) ? `${w} / ${h}` : null,
         arn: (w&&h) ? (w/h) : null,
-        c
+        c,
+        cat: typeof o.cat === 'string' ? o.cat.trim().toLowerCase() : null
         /* `caption` and `place` in the JSON are read by nothing. */
       };
     }).filter(p => p.url);
@@ -2035,65 +2115,64 @@ function flowWall(L) {
   L.H = Math.max(...L.columns.map(c => c.end));
 }
 
-/* The name in the banner: each letter leans away from a nearby cursor, and
-   the letters spread and shear a little with the speed of the scroll. */
-function bannerType(banner) {
-  const letters = $$('.g', banner);
-  const state = letters.map(() => ({ x: 0, y: 0, r: 0, cx: 0, cy: 0 }));
-  let px = null, py = null, measured = false, lastLift = 0, liftAt = 0;
+/* The mark's letters lean away from a nearby cursor while it's large, and
+   spread and shear a little with the speed of the scroll at any size. */
+function markType(mark, area) {
+  const letters = $$('.g', mark);
+  const st = letters.map(() => ({ x: 0, y: 0, r: 0, cx: 0, cy: 0 }));
+  let px = null, py = null, measured = false;
   const measure = () => {
-    liftAt = lastLift;
-    const b = banner.getBoundingClientRect();
     letters.forEach((g, i) => {
       const r = g.getBoundingClientRect();
-      state[i].cx = r.left + r.width / 2 - b.left - state[i].x;
-      state[i].cy = r.top + r.height / 2 - b.top - state[i].y;
+      st[i].cx = r.left + r.width / 2;
+      st[i].cy = r.top + r.height / 2;
     });
     measured = true;
   };
-  banner.addEventListener('pointermove', e => {
+  area.addEventListener('pointermove', e => {
     if (e.pointerType !== 'mouse') return;
-    const b = banner.getBoundingClientRect();
-    px = e.clientX - b.left; py = e.clientY - b.top;
-    if (!measured) measure();
+    px = e.clientX; py = e.clientY;
   });
-  banner.addEventListener('pointerleave', () => { px = py = null; });
-  addEventListener('resize', () => { measured = false; });
+  area.addEventListener('pointerleave', () => { px = py = null; });
 
-  return function step(vel, lift) {
-    lastLift = lift;
-    if (REDUCED) return;
-    const n = letters.length, mid = (n - 1) / 2;
-    const spread = Math.max(-1, Math.min(1, vel / 40));
-    letters.forEach((g, i) => {
-      const s = state[i];
-      let tx = (i - mid) * spread * 2.2, ty = 0, tr = -spread * 3;
-      if (px !== null && measured) {
-        const dx = s.cx - px, dy = s.cy + (lift - liftAt) - py;
-        const f = Math.exp(-(dx * dx + dy * dy) / (2 * 140 * 140));
-        tx += Math.sign(dx) * f * 10;
-        ty += -f * 18;
-        tr += Math.sign(dx) * f * 7;
-      }
-      s.x += (tx - s.x) * 0.14; s.y += (ty - s.y) * 0.14; s.r += (tr - s.r) * 0.14;
-      g.style.transform = `translate3d(${s.x.toFixed(2)}px,${s.y.toFixed(2)}px,0) rotate(${s.r.toFixed(2)}deg)`;
-    });
+  return {
+    invalidate() { measured = false; },
+    step(vel, hover) {
+      if (REDUCED) return;
+      if (hover && px !== null && !measured) measure();
+      const n = letters.length, mid = (n - 1) / 2;
+      const spread = Math.max(-1, Math.min(1, vel / 40));
+      letters.forEach((g, i) => {
+        const s = st[i];
+        let tx = (i - mid) * spread * 2.2, ty = 0, tr = -spread * 3;
+        if (hover && px !== null) {
+          const dx = s.cx - px, dy = s.cy - py;
+          const f = Math.exp(-(dx * dx + dy * dy) / (2 * 140 * 140));
+          tx += Math.sign(dx) * f * 12;
+          ty += -f * 22;
+          tr += Math.sign(dx) * f * 7;
+        }
+        s.x += (tx - s.x) * 0.14; s.y += (ty - s.y) * 0.14; s.r += (tr - s.r) * 0.14;
+        g.style.transform = `translate3d(${s.x.toFixed(2)}px,${s.y.toFixed(2)}px,0) rotate(${s.r.toFixed(2)}deg)`;
+      });
+    }
   };
 }
 
 function bioMarkup() {
   const cats = CATEGORIES.filter(c => DATA.has(c.slug));
   return `
-    <p class="bio-lede">Devin Feilen is a photographer based in Portland, Oregon.</p>
+    <p class="bio-lede"><span class="nm">devin feilen</span> is a photographer based in Portland, Oregon.</p>
     <div class="bio-cols">
       <div>
         <h2>Work</h2>
         ${cats.map(c => `<a class="h" href="#/c/${c.slug}">${esc(c.title)}</a>`).join('')}
-        ${RACES.length ? `<a class="h" href="#/photography">Race galleries</a>` : ''}
+        ${RACES.length ? `<button class="h bio-races-open" type="button" aria-expanded="false" aria-controls="bio-races">Race galleries</button>
+        <div class="bio-races" id="bio-races" inert><div>${RACES.map(raceLink).join('')}</div></div>` : ''}
       </div>
       <div>
         <h2>Contact</h2>
-        <a class="h" href="mailto:dfeeilen@gmail.com">Email</a>
+        <a class="h" href="mailto:email@devinfeilen.com">Email</a>
         <a class="h" href="https://instagram.com/devinfeilen" target="_blank" rel="noopener">Instagram</a>
         <a class="h" href="https://buymeacoffee.com/devinfeilen" target="_blank" rel="noopener">Buy me a coffee</a>
       </div>
@@ -2102,8 +2181,36 @@ function bioMarkup() {
         <button class="h bio-theme" type="button"></button>
       </div>
     </div>
-    <p class="bio-foot"><span>&copy; ${new Date().getFullYear()} Devin Feilen</span><a class="h bio-top" href="#/">Back to top</a></p>`;
+    <p class="bio-foot"><span>&copy; ${new Date().getFullYear()} Devin Feilen</span><a class="h bio-top" href="#/">Back to top</a></p>
+    <p class="bio-mark" aria-hidden="true">${markLetters()}</p>`;
 }
+
+/* One race gallery as a link, the same three cases as the Photography page:
+   coming soon, somewhere else (new tab), or a gallery on this site. */
+function raceLink(r) {
+  const label = `${esc(r.title)}${r.date ? ` <span class="races-when">${esc(r.date)}</span>` : ''}`;
+  if (r.soon) return `<span class="races-soon">${label} <span class="races-when">(soon)</span></span>`;
+  if (r.url)  return `<a class="h" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">` +
+                     `${label}<span class="races-out" aria-hidden="true"> &#8599;</span>` +
+                     `<span class="sr">(opens in a new tab)</span></a>`;
+  return `<a class="h" href="#/r/${encodeURIComponent(r.slug)}">${label}</a>`;
+}
+
+/* The name as separate letters, for the mark and the footer. */
+const MARK_TEXT = 'devin feilen';
+function markLetters() {
+  let i = 0;
+  return MARK_TEXT.split(' ').map(w =>
+    `<span style="display:inline-block">${[...w].map(ch =>
+      `<span class="l" style="--i:${i++}"><span class="g">${esc(ch)}</span></span>`).join('')}</span>`
+  ).join(' ');
+}
+
+/* A file's name, for matching the same photograph across folders. */
+const fileKey = u => {
+  try { return decodeURIComponent(String(u).split('?')[0].split('/').pop()).toLowerCase(); }
+  catch (e) { return String(u).toLowerCase(); }
+};
 
 
 function renderHome() {
@@ -2112,24 +2219,60 @@ function renderHome() {
   const touch = mq('(pointer: coarse)').matches;
   const fine  = mq('(hover: hover) and (pointer: fine)').matches;
 
-  /* ---- banner ---- */
-  const name = 'DEVIN FEILEN';
+  /* ---- opening and mark ---- */
   const banner = document.createElement('header');
   banner.className = 'banner';
-  banner.innerHTML = `
-    <div class="banner-in">
-      <h1 class="banner-name" aria-label="Devin Feilen">${(() => {
-        let i = 0;   // letters rise one after another across both words
-        return name.split(' ').map(w => `<span class="w" aria-hidden="true">${
-          [...w].map(ch => `<span class="l" style="--i:${i++}"><span class="g">${ch}</span></span>`).join('')
-        }</span>`).join(' ');
-      })()}</h1>
-      <p class="banner-line">Photographer, Portland, Oregon</p>
-    </div>
-    <div class="banner-foot"><span class="banner-cue">Scroll</span></div>`;
+  banner.innerHTML = `<h1 class="sr">Devin Feilen</h1><span class="banner-cue">Scroll</span>`;
   el.appendChild(banner);
-  const bannerIn = $('.banner-in', banner);
-  const typeStep = bannerType(banner);
+  const mark = document.createElement('a');
+  mark.className = 'mark';
+  mark.href = '#/';
+  mark.setAttribute('aria-label', 'Devin Feilen, back to the top');
+  mark.innerHTML = `<span aria-hidden="true">${markLetters()}</span>`;
+  el.appendChild(mark);
+  mark.addEventListener('click', e => {
+    e.preventDefault();
+    scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' });
+  });
+  const type = markType(mark, banner);
+
+  /* Where the mark sits open (centred in the opening) and docked (top left,
+     the same size and place as the name on every other page). */
+  let hero = { x: 0, y: 0, s: 1 }, dock = { x: 0, y: 0, s: 0.1 }, markP = -1;
+  const safeTop = (() => {
+    const p = document.createElement('div');
+    p.style.cssText = 'position:fixed;visibility:hidden;padding-top:env(safe-area-inset-top,0px)';
+    document.body.appendChild(p);
+    const v = parseFloat(getComputedStyle(p).paddingTop) || 0;
+    p.remove(); return v;
+  })();
+  function placeMark() {
+    const keep = mark.style.transform;
+    mark.style.transform = 'none';
+    const natW = mark.offsetWidth, natH = mark.offsetHeight;
+    mark.style.transform = keep;
+    const w = innerWidth, bh = banner.offsetHeight;
+    const s = Math.min((w * (w < 700 ? 0.9 : 0.84)) / natW, (bh * 0.42) / natH);
+    hero = { s, x: (w - natW * s) / 2, y: (bh - natH * s) / 2 - bh * 0.04 };
+    const edge = w <= 700 ? 16 : Math.max(10, Math.min(28, w * 0.02));
+    const ds = Math.max(24, Math.min(34, w * 0.024)) / 200;
+    dock = { s: ds, x: edge, y: 18 + safeTop - natH * ds * 0.06 };
+    markP = -1;
+    type.invalidate();
+  }
+  function moveMark(y, force) {
+    const p = REDUCED ? (y > bannerH * 0.35 ? 1 : 0) : Math.max(0, Math.min(1, y / (bannerH * 0.7)));
+    if (!force && p === markP) return;
+    markP = p;
+    const e = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;   // ease in-out
+    const s = hero.s + (dock.s - hero.s) * e;
+    const x = hero.x + (dock.x - hero.x) * e;
+    const yy = hero.y + (dock.y - hero.y) * e;
+    mark.style.transform = `translate3d(${x.toFixed(2)}px,${yy.toFixed(2)}px,0) scale(${s.toFixed(4)})`;
+    mark.classList.toggle('docked', p >= 1);
+    mark.classList.add('ready');
+    type.invalidate();
+  }
 
   /* ---- wall ---- */
   const wallEl = document.createElement('section');
@@ -2156,7 +2299,7 @@ function renderHome() {
 
   const hint = document.createElement('p');
   hint.className = 'wall-hint';
-  hint.textContent = 'Swipe sideways for more';
+  hint.textContent = 'Drag in any direction';
   if (touch) el.appendChild(hint);
 
   /* ---- bio ---- */
@@ -2170,6 +2313,26 @@ function renderHome() {
   };
   syncTheme();
   bioTheme.addEventListener('click', () => { themeBtn.click(); syncTheme(); });
+  const racesBtn = $('.bio-races-open', bio), racesBox = $('#bio-races', bio);
+  if (racesBtn) racesBtn.addEventListener('click', () => {
+    const open = racesBtn.getAttribute('aria-expanded') !== 'true';
+    racesBtn.setAttribute('aria-expanded', String(open));
+    racesBox.classList.toggle('open', open);
+    if (open) racesBox.removeAttribute('inert'); else racesBox.setAttribute('inert', '');
+  });
+  const bioMark = $('.bio-mark', bio);
+  function fitBioMark() {
+    bioMark.style.setProperty('--fit', '100px');
+    const w = bioMark.scrollWidth, room = bio.clientWidth -
+      parseFloat(getComputedStyle(bio).paddingLeft) - parseFloat(getComputedStyle(bio).paddingRight);
+    if (w > 0) bioMark.style.setProperty('--fit', (100 * room / w).toFixed(2) + 'px');
+  }
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(es => {
+      if (es.some(x => x.isIntersecting)) { bioMark.classList.add('in'); io.disconnect(); }
+    }, { threshold: 0.3 });
+    io.observe(bioMark);
+  } else bioMark.classList.add('in');
   $('.bio-top', bio).addEventListener('click', e => {
     e.preventDefault();
     scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' });
@@ -2177,11 +2340,10 @@ function renderHome() {
 
   /* ---- state ---- */
   let source = WALL_CAP ? HOME.slice(0, WALL_CAP) : HOME.slice();
-  if (touch && source.length > 60) source = source.slice(0, 60);
 
   let vw = innerWidth, vh = innerHeight, L, tiles = [];
   let inflight = 0, guarded = false, raf = 0, amp = 0, dirty = false, lastWork = 0;
-  let camX = wallMemory.x, vx = 0, snapTo = null, glide = null;
+  let camX = wallMemory.x, vx = 0, vy = 0, glide = null, pageY = 0, lastT = 0;
   let down = false, dragging = false, kind = 'mouse', sx0 = 0, sy0 = 0, lx = 0, ly = 0, pid = null;
   const samples = [];                     // recent pointer positions, for the release velocity
   let hinted = false;
@@ -2195,6 +2357,9 @@ function renderHome() {
     padTop  = parseFloat(getComputedStyle(wallEl).paddingTop) || 0;
     wallTop = wallEl.getBoundingClientRect().top + scrollY + padTop;
     bannerH = banner.offsetHeight;
+    placeMark();
+    fitBioMark();
+    moveMark(scrollY, true);
   };
 
   function build() {
@@ -2215,7 +2380,7 @@ function renderHome() {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'tile-in';
-      btn.setAttribute('aria-label', `${t.p.cat || 'Photographs'}: open the gallery`);
+      btn.setAttribute('aria-label', t.p.slug ? `${t.p.cat}: open the gallery` : `Open photograph ${pad(t.k + 1)}`);
       const img = document.createElement('img');
       img.alt = ''; img.draggable = false;
       btn.appendChild(img); tile.appendChild(btn); track.appendChild(tile);
@@ -2224,7 +2389,8 @@ function renderHome() {
 
       btn.addEventListener('click', e => {
         if (dragging) { e.preventDefault(); return; }
-        openSheet(t.p.slug, t.p, img);
+        if (t.p.slug && DATA.has(t.p.slug)) openSheet(t.p.slug, t.p, img);
+        else morph(img, () => openLB(source, t.k, img));
       });
       btn.addEventListener('focus', () => {
         try { if (!btn.matches(':focus-visible')) return; } catch (_) { return; }
@@ -2276,6 +2442,7 @@ function renderHome() {
 
   /* Reveal what has come into view: a wave from left to right. */
   function reveal() {
+    if (holding) return;            // the opening burst is still running
     const fresh = [];
     for (const t of tiles) {
       if (t.shown) continue;
@@ -2334,7 +2501,7 @@ function renderHome() {
 
   /* Eased move by a set distance: buttons, keys, focus. */
   function glideBy(d) {
-    snapTo = null; vx = 0;
+    vx = vy = 0;
     glide = { to: (glide ? glide.to : camX) + d };
   }
   const step = () => L.colW + L.gutter;
@@ -2347,18 +2514,35 @@ function renderHome() {
     return Math.round((x - off) / s) * s + off;
   }
 
+  /* The page's own scroll, driven from here while a finger is on the wall.
+     A float is kept so slow drags don't stall on whole pixels. */
+  function scrollPage(y) {
+    const max = document.documentElement.scrollHeight - innerHeight;
+    const c = Math.max(0, Math.min(max, y));
+    scrollTo(0, c);
+    return c;
+  }
+  // Any other scroll (wheel, keys, scrollbar) stops a throw that's in flight.
+  const stopThrow = () => { vy = 0; };
+  addEventListener('wheel', stopThrow, { passive: true });
+  addEventListener('touchstart', stopThrow, { passive: true });
+
   /* ---- input ---- */
   function onWheel(e) {
     if (!el.isConnected || overlayOpen() || e.ctrlKey) return;
     if (!wallEl.contains(e.target)) return;
     const k = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? vw : 1;
-    let dx = e.deltaX * k;
-    const dy = e.deltaY * k;
-    if (e.shiftKey && Math.abs(dy) > Math.abs(dx)) dx = dy;
-    else if (Math.abs(dx) <= Math.abs(dy)) return;   // vertical: the page scrolls
-    e.preventDefault();
-    glide = null; snapTo = null; vx = 0;
-    camX += dx;                                      // trackpads already arrive smoothed
+    const dx = e.deltaX * k, dy = e.deltaY * k;
+    glide = null; vx = vy = 0;
+    if (e.shiftKey && !dx) {                         // a mouse wheel with shift: sideways only
+      e.preventDefault();
+      camX += dy;
+    } else if (dx) {
+      // A trackpad sends both axes at once, already smoothed and with the
+      // system's own momentum. Sideways moves the wall; up and down is left
+      // to the browser, so diagonal swipes move both together.
+      camX += dx;
+    } else return;
     interacted();
   }
 
@@ -2366,27 +2550,28 @@ function renderHome() {
     if (e.button !== 0 || overlayOpen()) return;
     down = true; dragging = false; pid = e.pointerId; kind = e.pointerType;
     sx0 = lx = e.clientX; sy0 = ly = e.clientY;
-    samples.length = 0; samples.push({ x: e.clientX, t: performance.now() });
-    vx = 0; glide = null; snapTo = null;            // a touch catches a moving wall
+    samples.length = 0; samples.push({ x: e.clientX, y: e.clientY, t: performance.now() });
+    vx = vy = 0; glide = null;                      // a touch catches a moving wall
+    pageY = scrollY;
   });
   wallEl.addEventListener('pointermove', e => {
     if (!down) return;
     const tx = e.clientX - sx0, ty = e.clientY - sy0;
     if (!dragging) {
       if (Math.hypot(tx, ty) < 5) return;
-      // A touch that sets off vertically belongs to the page.
-      if (kind !== 'mouse' && Math.abs(ty) > Math.abs(tx)) { down = false; return; }
       dragging = true;
       try { wallEl.setPointerCapture(pid); } catch (_) {}
       wallEl.classList.add('dragging');
       interacted();
     }
     const dx = e.clientX - lx, dy = e.clientY - ly;
-    camX -= dx;                                      // 1:1 under the finger
-    if (kind === 'mouse' && dy) scrollBy(0, -dy);    // a mouse drag can go both ways
+    // 1:1 under the finger in both directions: sideways moves the wall,
+    // up and down moves the page.
+    camX -= dx;
+    pageY = scrollPage(pageY - dy);
     lx = e.clientX; ly = e.clientY;
     const now = performance.now();
-    samples.push({ x: e.clientX, t: now });
+    samples.push({ x: e.clientX, y: e.clientY, t: now });
     while (samples.length > 2 && now - samples[0].t > 100) samples.shift();
   });
   const release = () => {
@@ -2397,15 +2582,13 @@ function renderHome() {
     if (dragging) {
       // Velocity over the last ~100ms, in px per 16ms frame.
       const now = performance.now(), a = samples[0], b = samples[samples.length - 1];
-      const dt = Math.max(1, b.t - a.t);
-      vx = (now - b.t > 90 || REDUCED) ? 0 : -(b.x - a.x) / dt * 16;
-      vx = Math.max(-90, Math.min(90, vx));
-      if (kind !== 'mouse' && !REDUCED) {
-        // Touch: project where the flick would stop and settle on that column.
-        const throwTo = camX + vx / (1 - 0.92);
-        snapTo = nearestColumn(throwTo);
-        vx = 0;
-      }
+      const dt = Math.max(1, b.t - a.t), still = now - b.t > 90 || REDUCED;
+      vx = still ? 0 : -(b.x - a.x) / dt * 16;
+      vy = still ? 0 : -(b.y - a.y) / dt * 16;
+      // Keep the direction of the throw, cap only its speed.
+      const sp = Math.hypot(vx, vy), cap = 110;
+      if (sp > cap) { vx *= cap / sp; vy *= cap / sp; }
+      pageY = scrollY; lastT = performance.now();
     }
     setTimeout(() => { dragging = false; }, 0);
   };
@@ -2444,9 +2627,123 @@ function renderHome() {
     timers.forEach(clearTimeout);
     clearTimeout(resizeT); clearTimeout(reflowT);
     removeEventListener('wheel', onWheel);
+    removeEventListener('wheel', stopThrow);
+    removeEventListener('touchstart', stopThrow);
     removeEventListener('keydown', onKey);
     removeEventListener('resize', onResize);
     wallMemory.x = camX;
+  }
+
+  /* ---- the opening burst ---- */
+  let holding = false;
+  const introWanted = !INTRO_DONE && !REDUCED && USE_OPTIMIZER && HOME.length >= 3;
+  if (introWanted) { holding = true; root.classList.add('intro'); }
+
+  async function burst() {
+    INTRO_DONE = true;
+    const ov = document.createElement('div');
+    ov.className = 'burst';
+    ov.setAttribute('role', 'presentation');
+    ov.innerHTML = `<img class="burst-frame" alt=""><span class="burst-count">00 / 00</span>` +
+                   `<span class="burst-skip">${touch ? 'Tap' : 'Click'} to skip</span>`;
+    document.body.appendChild(ov);
+    const frame = $('.burst-frame', ov), count = $('.burst-count', ov);
+    const fg = getComputedStyle(root).getPropertyValue('--fg').trim() || '#1B1B1C';
+
+    let skipped = false;
+    const skip = () => { skipped = true; };
+    ov.addEventListener('pointerdown', skip);
+    addEventListener('keydown', skip);
+    const gone = () => !el.isConnected;
+    const pause = ms => new Promise(r => setTimeout(r, ms));
+
+    const finish = () => {
+      removeEventListener('keydown', skip);
+      root.classList.remove('intro');      // the name's letters rise now
+      holding = false;
+      reveal(); pump();
+    };
+
+    // Where it lands: the wall photograph nearest the middle that's on screen.
+    let target = null, bd = 1e9;
+    tiles.forEach(t => {
+      const top = onScreen(t, 0);
+      if (top === null || top < 0 || top + t.h * 0.5 > vh) return;
+      const d = Math.abs(t.sx + t.w / 2 - vw / 2);
+      if (d < bd) { bd = d; target = t; }
+    });
+
+    // The frames: Burst.json in order, or front-page photographs ending on the target.
+    let frames;
+    if (BURST.length >= 4) frames = BURST;
+    else {
+      frames = shuffle(source.filter(p => !target || p !== target.p)).slice(0, BURST_MAX - 1);
+      if (target) frames.push(target.p);
+    }
+    const urls = frames.map(p => sized(p.url, 1000));
+
+    // Wait for them, but never long: whatever has arrived in time is the burst.
+    const ok = new Array(urls.length).fill(false);
+    await Promise.race([
+      Promise.all(urls.map((u, i) => new Promise(res => {
+        const im = new Image();
+        im.onload = () => { (im.decode ? im.decode() : Promise.resolve()).catch(() => {}).then(() => { ok[i] = true; res(); }); };
+        im.onerror = () => res();
+        im.src = u;
+      }))),
+      pause(3000)
+    ]);
+    const ready = urls.filter((u, i) => ok[i]);
+    if (gone()) { ov.remove(); return; }
+    if (ready.length < 3 || skipped) {
+      ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 250, fill: 'forwards' }).finished
+        .then(() => ov.remove());
+      return finish();
+    }
+
+    // Fire.
+    for (let i = 0; i < ready.length && !skipped; i++) {
+      frame.src = ready[i];
+      count.textContent = `${String(i + 1).padStart(2, '0')} / ${String(ready.length).padStart(2, '0')}`;
+      ov.animate([{ backgroundColor: '#fff' }, { backgroundColor: fg }], { duration: 40 });
+      frame.animate([{ filter: 'brightness(1.45)' }, { filter: 'none' }], { duration: 70 });
+      await pause(BURST_STEP);
+      if (gone()) { ov.remove(); return; }
+    }
+
+    const landsOnTarget = target && !skipped && ready[ready.length - 1] === sized(target.p.url, 1000);
+    if (skipped || !target) {
+      ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' }).finished
+        .then(() => ov.remove());
+      return finish();
+    }
+
+    // The last frame flies to its place on the wall.
+    await pause(300);
+    if (gone()) { ov.remove(); return; }
+    const a = frame.getBoundingClientRect(), b = target.el.getBoundingClientRect();
+    Object.assign(frame.style, { position: 'fixed', left: a.left + 'px', top: a.top + 'px',
+                                 width: a.width + 'px', height: a.height + 'px', maxWidth: 'none', maxHeight: 'none' });
+    count.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, fill: 'forwards' });
+    $('.burst-skip', ov).animate([{ opacity: .55 }, { opacity: 0 }], { duration: 200, fill: 'forwards' });
+    ov.animate([{ backgroundColor: fg }, { backgroundColor: 'transparent' }],
+      { duration: 700, easing: 'ease', fill: 'forwards' });
+    await frame.animate([{ transform: 'none' },
+      { transform: `translate(${b.left - a.left}px,${b.top - a.top}px) scale(${b.width / a.width},${b.height / a.height})` }],
+      { duration: 750, easing: 'cubic-bezier(.65,0,.35,1)', fill: 'forwards' }).finished.catch(() => {});
+    if (gone()) { ov.remove(); return; }
+
+    // Put the photograph in place under the frame without its usual slide-in,
+    // then let the frame go.
+    const inner = target.el.querySelector('.tile-in');
+    inner.style.transition = 'none';
+    target.el.classList.add('in'); target.shown = true;
+    void inner.offsetWidth;
+    requestAnimationFrame(() => { inner.style.transition = ''; });
+    ov.style.pointerEvents = 'none';
+    finish();
+    frame.animate([{ opacity: 1 }, { opacity: 0 }], { duration: landsOnTarget ? 350 : 600, fill: 'forwards' })
+      .finished.then(() => ov.remove(), () => ov.remove());
   }
 
   /* ---- the loop ---- */
@@ -2456,37 +2753,40 @@ function renderHome() {
     wallMemory.y = scrollY; wallMemory.x = camX;
     if (overlayOpen()) return;
 
-    // Sideways movement: momentum, a touch settling on a column, or an eased glide.
+    // After a throw the wall keeps moving in whatever direction it was sent,
+    // easing out the same way in both axes. Decay is per millisecond, so it
+    // feels the same at 60Hz and 120Hz.
+    const tNow = performance.now(), fdt = Math.min(48, tNow - (lastT || tNow)) / 16.667;
+    lastT = tNow;
     if (!down) {
-      if (snapTo !== null) {
-        camX += (snapTo - camX) * 0.16;
-        if (Math.abs(snapTo - camX) < 0.3) { camX = snapTo; snapTo = null; }
-      } else if (glide) {
+      if (glide) {
         camX += (glide.to - camX) * (REDUCED ? 1 : 0.14);
         if (Math.abs(glide.to - camX) < 0.3) { camX = glide.to; glide = null; }
-      } else if (vx) {
-        camX += vx; vx *= 0.94;
-        if (Math.abs(vx) < 0.1) vx = 0;
+      } else if (vx || vy) {
+        const decay = Math.pow(0.955, fdt);
+        camX += vx * fdt;
+        if (vy) {
+          const before = pageY;
+          pageY = scrollPage(pageY + vy * fdt);
+          if (pageY === before) vy = 0;             // ran into the top or bottom
+        }
+        vx *= decay; vy *= decay;
+        if (Math.abs(vx) < 0.05) vx = 0;
+        if (Math.abs(vy) < 0.05) vy = 0;
       }
     }
 
-    // The banner: contents drift up and fade as you leave it; the letters
-    // respond to the cursor and to how fast the page is moving.
+    // The mark: open in the opening, docked top left once past it. Its
+    // letters respond to the cursor while it's open and to the scroll always.
     const y = scrollY;
     scrollVel += ((y - prevY) - scrollVel) * 0.2;
     prevY = y;
-    if (y < bannerH * 1.1) {
-      const lift = REDUCED ? 0 : y * 0.35;
-      if (!REDUCED) {
-        bannerIn.style.transform = `translate3d(0,${lift.toFixed(1)}px,0)`;
-        bannerIn.style.opacity = String(Math.max(0, 1 - y / (bannerH * 0.8)).toFixed(3));
-      }
-      typeStep(scrollVel, lift);
-    }
+    moveMark(y, false);
+    type.step(scrollVel, markP === 0);
 
     const top = wallTop - padTop - y, bottom = top + L.H + padTop * 2;
     const inView = top < vh && bottom > 0;
-    const centred = top < vh * 0.55 && bottom > vh * 0.55;
+    const centred = top < vh * 0.35 && bottom > vh * 0.65;   // arrows only once the wall fills the middle
     prevBtn.classList.toggle('on', centred);
     nextBtn.classList.toggle('on', centred);
     if (centred && !wallMemory.nudged) {
@@ -2515,8 +2815,13 @@ function renderHome() {
     if (!wallMemory.back && vw < 700) { camX = nearestColumn(0); update(true); }
     if (wallMemory.back) scrollTo(0, wallMemory.y);
     wallMemory.back = true;
-    measure(); update(true); reveal(); pump();
+    measure(); update(true); pump();
+    if (introWanted) burst(); else reveal();
     prevY = scrollY;
+    // Archivo arrives after first paint; size the mark again once it has.
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => {
+      if (el.isConnected) { measure(); update(true); }
+    });
     raf = requestAnimationFrame(frame);
   });
 
@@ -2579,7 +2884,8 @@ function openSheet(slug, photo, fromImg) {
   const s = ensureSheet();
   const strip = $('.sheet-strip', s);
   const list = cat.photos;
-  const at = Math.max(0, list.indexOf(photo));
+  const key = fileKey(photo.url);
+  const at = Math.max(0, list.findIndex(q => q === photo || fileKey(q.url) === key));
   let target = null;
 
   const fill = () => {
@@ -2721,7 +3027,7 @@ function renderFlow(cat) {
    screen, so the two can never drift apart. */
 const INFORMATION = `
     <p>Devin Feilen is a photographer based in Portland, Oregon.</p>
-    <p><a class="h" href="mailto:dfeeilen@gmail.com">dfeeilen@gmail.com</a></p>
+    <p><a class="h" href="mailto:email@devinfeilen.com">email@devinfeilen.com</a></p>
     <p><a class="h" href="https://instagram.com/devinfeilen" target="_blank" rel="noopener">instagram</a></p>
     <p><a class="h" href="https://buymeacoffee.com/devinfeilen" target="_blank" rel="noopener">buy me a coffee</a></p>`;
 
@@ -3164,7 +3470,24 @@ themeBtn.addEventListener('click', () => {
      than inside renderHome() so that returning to the front page shows the
      pile you left rather than rebuilding a different one. A reload
      scatters it afresh. */
-  HOME = shuffle(everything);
+  /* The front page: Home.json if it's there, otherwise a random selection. */
+  const owner = new Map();
+  DATA.forEach(c => c.photos.forEach(p => owner.set(fileKey(p.url), c)));
+  const burstFile = loadFile(BURST_SOURCE);   // fetched alongside, not after
+  let front = await loadFile(HOME_SOURCE);
+  if (front.length) {
+    front.forEach(p => {
+      const named = p.cat && DATA.get(RENAMED[p.cat] || p.cat);
+      const c = named || owner.get(fileKey(p.url));
+      p.slug = c ? c.slug : null;
+      p.cat  = c ? c.title : null;
+    });
+    if (HOME_SHUFFLE) front = shuffle(front);
+  } else {
+    front = shuffle(everything);
+  }
+  HOME = front.slice(0, HOME_MAX);
+  BURST = (await burstFile).slice(0, BURST_MAX);
 
   /* Render straight away. The probe must never sit between a visitor and
      the work — on a slow connection that would be seconds of nothing for
@@ -3182,7 +3505,7 @@ themeBtn.addEventListener('click', () => {
   <div style="min-height:100svh;display:grid;place-items:center;padding:0 16px">
     <div>
       <p>Devin Feilen is a photographer based in Portland, Oregon.</p>
-      <p><a href="mailto:dfeeilen@gmail.com">dfeeilen@gmail.com</a></p>
+      <p><a href="mailto:email@devinfeilen.com">email@devinfeilen.com</a></p>
       <p><a href="https://instagram.com/devinfeilen" rel="noopener">instagram</a></p>
     </div>
   </div>
