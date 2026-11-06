@@ -581,69 +581,127 @@ html.renovating .head .to{display:none}
 }
 
 /* ============================================================================
-   THE FRONT PAGE — a pile
+   THE FRONT PAGE — an endless field
 
-   Every photograph, scattered over one screen, fading in on top of one
-   another. Three decisions worth knowing:
+   Every photograph on one sheet that never ends. Scroll moves it up and
+   down, a trackpad or shift-scroll moves it sideways, and it can be
+   dragged and flicked in any direction. The sheet wraps on itself, so
+   there is no edge to hit.
 
-   Tiles are positioned by their CENTRE, not their top-left corner. Most of
-   these photographs arrive without dimensions in the JSON, so the height
-   of a tile isn't known until the image lands. Centre-positioning doesn't
-   care — a portrait and a landscape both stay where they were put, and
-   nothing jumps when the real proportions arrive.
+   The layout is a grid that refuses to be uniform: fixed columns, but each
+   photograph takes a different share of its column, sits left, right or
+   centre within it, and the columns start at different heights. Ordered
+   enough to read as a contact sheet, loose enough to feel placed by hand.
 
-   The scatter is deliberately biased towards the middle. Two random
-   numbers averaged, rather than one, which clusters tiles centrally and
-   leaves the corners sparse. Uniformly random positions look evenly
-   sprinkled, which is the opposite of a pile.
-
-   Stacking order is just DOM order — later arrivals paint on top. No
-   z-index bookkeeping, and the pile builds in the order things load.
+   Header, theme toggle, hint and cursor label all use difference blending
+   while the field is up, so they stay legible over any photograph in
+   either theme.
    ============================================================================ */
-.pile{position:relative;min-height:100svh;overflow:hidden}
-.pile-field{
-  position:absolute;
-  top:var(--head-h);
-  right:var(--edge-r);
-  bottom:calc(12vh + var(--sa-b));
-  left:var(--edge-l);
+:root{--ease-out:cubic-bezier(.16,1,.3,1)}
+/* The lightbox's buttons are display:inline-block, which beat the hidden
+   attribute and left Save showing on every photograph. */
+.lb-bar button[hidden]{display:none}
+
+html.field-mode,html.field-mode body{overflow:hidden;overscroll-behavior:none}
+html.field-mode{scroll-snap-type:none}
+
+.field{
+  position:fixed;inset:0;z-index:1;overflow:hidden;
+  touch-action:none;cursor:grab;
+  user-select:none;-webkit-user-select:none;
 }
-.chip{
-  position:absolute;
-  left:calc(var(--x) * 100%);
-  top:calc(var(--y) * 100%);
-  width:calc(var(--pile-w) * var(--f,1));
-  border:0;padding:0;background:none;
-  cursor:zoom-in;
-  line-height:0;
-  opacity:0;
-  transform:translate(-50%,-50%) rotate(var(--r,0deg)) scale(.94);
-  transition:opacity .75s var(--ease), transform .75s var(--ease);
-  will-change:opacity,transform;
+.field.dragging{cursor:grabbing}
+.field-cam{position:absolute;inset:0;transform-origin:50% 50%;will-change:transform}
+
+.tile{
+  position:absolute;left:0;top:0;
+  width:var(--w);height:var(--h);
+  will-change:transform;contain:layout paint;
 }
-.chip.in{opacity:1;transform:translate(-50%,-50%) rotate(var(--r,0deg)) scale(1)}
-/* The tone sits on the image itself so the coloured area is exactly the
-   photograph's footprint. Until it loads there is no intrinsic height to
-   give the tile a shape, so an assumed 3:2 reserves one — released the
-   moment the real proportions are known. Tiles are centre-positioned, so
-   correcting a wrong guess grows the tile about its middle rather than
-   shoving the pile around. */
-.chip img{display:block;width:100%;height:auto;background-color:var(--c,var(--tone))}
-.chip img:not(.ready){aspect-ratio:var(--ar,3/2)}
-/* The lift lives on the image rather than the button so it doesn't fight
-   the translate/rotate the chip is already carrying. */
+.tile.dead{display:none}
+.tile-in{
+  display:block;width:100%;height:100%;overflow:hidden;
+  background:var(--c,var(--tone));
+  cursor:inherit;
+  opacity:0;transform:scale(.86);
+  transition:opacity .9s var(--ease-out),transform 1.2s var(--ease-out);
+}
+.tile.in .tile-in{opacity:1;transform:none}
+.tile img{
+  width:100%;height:100%;object-fit:cover;
+  opacity:0;transform:scale(1.12);
+  transition:opacity 1s var(--ease-out),transform 1.6s var(--ease-out);
+  -webkit-user-drag:none;pointer-events:none;
+}
+.tile img.ready{opacity:1;transform:none}
+.field.dragging .tile-in{cursor:grabbing}
+
 @media (hover:hover) and (pointer:fine){
-  .chip img{transition:transform .3s var(--ease)}
-  .chip:hover{z-index:60}
-  .chip:hover img{transform:scale(1.04)}
-}
-.pile-tail{
-  position:absolute;left:0;right:0;
-  bottom:calc(5vh + var(--sa-b));
-  text-align:center;z-index:70;
-  font-size:var(--nav);
+  .tile-in{cursor:zoom-in}
+  /* One photograph comes forward, the rest step back. */
+  .field.hovering:not(.dragging) .tile.in .tile-in{opacity:.32;transition-duration:.5s}
+  .field.hovering:not(.dragging) .tile.in.hot .tile-in{opacity:1}
+  .tile.hot img.ready{transform:scale(1.04);transition-duration:.7s}
 }
 
+.field-label,.field-hint{
+  position:fixed;z-index:5;pointer-events:none;
+  color:#fff;mix-blend-mode:difference;
+}
+.field-label{
+  left:0;top:0;
+  font-size:var(--nav);font-weight:var(--heavy);font-style:italic;
+  letter-spacing:.02em;white-space:nowrap;
+  opacity:0;transition:opacity .3s var(--ease);
+}
+.field-label.on{opacity:1}
+.field.dragging .field-label{opacity:0}
+.field-hint{
+  left:var(--edge-l);bottom:calc(14px + var(--sa-b));
+  opacity:0;transition:opacity .8s var(--ease);
+}
+.field-hint.on{opacity:1}
+.field-hint.gone{opacity:0}
+
+/* Chrome over the field */
+html.field-mode .head{background:none;color:#fff;mix-blend-mode:difference}
+html.field-mode .corner{color:#fff;mix-blend-mode:difference}
+html.field-mode .head a.h:hover,html.field-mode .head a.h:focus-visible,
+html.field-mode .head a.h.on,
+html.field-mode .corner button.h:hover,html.field-mode .corner button.h:focus-visible{color:inherit}
+html.field-mode .head .name:hover,html.field-mode .corner button.h:hover{opacity:.6}
+html.field-mode .head .name,html.field-mode .corner button.h{transition:opacity .3s var(--ease)}
+html.field-mode :focus-visible{outline-color:#fff}
+
+/* ============================================================================
+   PHOTOGRAPHY — a photograph follows the cursor over each category name,
+   and a different one each time you come back to the same name.
+   ============================================================================ */
+.cat-peek{
+  position:fixed;left:0;top:0;z-index:40;
+  width:clamp(170px,19vw,300px);
+  pointer-events:none;
+  opacity:0;transition:opacity .35s var(--ease);
+}
+.cat-peek.on{opacity:1}
+.cat-peek img{display:block;width:100%;height:auto;background:var(--tone)}
+
+/* ============================================================================
+   THE FLOW — each photograph develops as it comes into view.
+   Chromium and Safari 26+; elsewhere the photographs simply appear.
+   ============================================================================ */
+@supports (animation-timeline: view()){
+  @media (prefers-reduced-motion:no-preference){
+    .plate .frame{
+      animation:develop linear both;
+      animation-timeline:view();
+      animation-range:entry 0% cover 42%;
+    }
+    @keyframes develop{
+      from{opacity:.15;transform:scale(.92);filter:saturate(0)}
+    }
+  }
+}
 /* ============================================================================
    THE FLOW — one photograph at a time
 
@@ -1030,6 +1088,7 @@ function declareRenovation(why) {
   RENOVATING = true;
   console.warn('Showing the renovation notice — ' + why + '.');
   document.documentElement.classList.add('renovating');
+  document.documentElement.classList.remove('field-mode');
   if (windowIO) { windowIO.disconnect(); windowIO = null; }
   if (parseRoute().name !== 'information') swapIn(view, renderRenovation());
   current = '';
@@ -1150,6 +1209,7 @@ function renderCategories() {
     });
     el.querySelector('.cats-inner').appendChild(box);
   }
+  attachPeek(el);
   return el;
 }
 
@@ -1815,173 +1875,454 @@ function pileGuard(img, want) {
   return ignored;
 }
 
+/* ============================================================================
+   THE FIELD
+
+   One element per photograph, positioned every frame with a modulo so the
+   sheet wraps in both directions. The sheet is always built larger than
+   the screen (the photo list is repeated until it is), which means a
+   photograph can only ever be on screen once and nothing needs cloning.
+
+   Movement: the camera eases towards a target. Wheel and keys move the
+   target; dragging moves it directly and a flick carries on with inertia.
+   The faster it moves, the further the sheet pulls back, so speed reads as
+   distance.
+
+   Loading: only photographs on or near the screen are requested, nearest
+   the centre first, PILE_CONCURRENCY at a time. Duplicates ask for the
+   identical URL, so the second copy comes from cache.
+   ============================================================================ */
+const FIELD_SEED = (Math.random() * 1e9) | 0;      // one layout per visit
+const fieldMemory = { x: 0, y: 0, seen: false };   // where you left it
+let FIELD_CAP = 0;                                 // set if pileGuard fires
+
+function seeded(seed) {
+  return () => {
+    seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const wrap = (v, m) => ((v % m) + m) % m;
+
+function layoutField(source, vw, vh) {
+  const coarse = vw < 700;
+  const colW   = coarse ? Math.round(vw * 0.42)
+                        : Math.round(Math.min(270, Math.max(150, vw * 0.14)));
+  const gutter = coarse ? 16 : Math.round(colW * 0.2);
+  const SIZES  = [1, 1, 0.84, 0.72, 0.6];   // share of the column, weighted
+  const ALIGN  = [0, 0.5, 1];
+  const marginX = colW + gutter * 2;
+  const marginY = colW * 1.8 + gutter * 2;
+
+  let list = source.slice();
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const R = seeded(FIELD_SEED + attempt);
+    const cols = Math.max(3, Math.round(Math.sqrt(list.length * (vw / vh) * 0.85)));
+    const colX = n => n * (colW + gutter);
+    const stacks = Array.from({ length: cols }, () => ({ h: 0, items: [] }));
+
+    list.forEach((p, i) => {
+      // Shortest column next, so the columns stay roughly level.
+      let s = stacks[0];
+      for (const c of stacks) if (c.h < s.h) s = c;
+      const ci = stacks.indexOf(s);
+      const f  = SIZES[Math.floor(R() * SIZES.length)];
+      const ar = Math.min(2.2, Math.max(0.55, p.arn || 1.5));
+      const w  = Math.round(colW * f);
+      const h  = Math.round(w / ar);
+      const x  = Math.round(colX(ci) + (colW - w) * ALIGN[Math.floor(R() * 3)]);
+      const gap = Math.round(gutter * (0.7 + R() * 1.6));
+      s.items.push({ p, k: i % source.length, dup: i >= source.length, x, y: s.h, w, h });
+      s.h += h + gap;
+    });
+
+    const BW = cols * (colW + gutter);
+    const BH = Math.max(...stacks.map(s => s.h));
+    const big = BW >= vw * 1.2 + 2 * marginX && BH >= vh * 1.2 + 2 * marginY;
+    if (!big && attempt < 9) { list = list.concat(source); continue; }
+
+    // Level every column to the sheet's height by sharing out the slack,
+    // then start each column at its own height so rows never line up.
+    const tiles = [];
+    stacks.forEach(s => {
+      const extra = (BH - s.h) / Math.max(1, s.items.length);
+      const lift  = R() * BH;
+      s.items.forEach((t, n) => { t.y = wrap(t.y + extra * n + lift, BH); tiles.push(t); });
+    });
+    return { tiles, BW, BH, colW, marginX, marginY };
+  }
+}
+
 function renderHome() {
   const el = document.createElement('div');
-  el.className = 'pile';
+  el.className = 'field';
+  el.setAttribute('role', 'region');
+  el.setAttribute('aria-label', 'Photographs. Scroll, drag or use the arrow keys to move around.');
 
-  const field = document.createElement('div');
-  field.className = 'pile-field';
-  el.appendChild(field);
+  const camEl = document.createElement('div');
+  camEl.className = 'field-cam';
+  el.appendChild(camEl);
 
-  /* A phone gets a subset. This is not a rendering limit — it's that
-     thirty tiles is already a dense pile on a 390px screen, and ninety is
-     neither legible nor affordable. */
-  const coarse = mq('(pointer: coarse)').matches || window.innerWidth < 700;
-  const list = coarse ? HOME.slice(0, PILE_MOBILE_MAX) : HOME.slice();
+  const label = document.createElement('div');
+  label.className = 'field-label';
+  label.setAttribute('aria-hidden', 'true');
+  el.appendChild(label);
 
-  /* Two randoms averaged rather than one. A single uniform random spreads
-     tiles evenly to the edges, which reads as a sprinkle; averaging two
-     pulls them towards the middle, which reads as a pile.
+  const touch = mq('(pointer: coarse)').matches;
+  const hint = document.createElement('p');
+  hint.className = 'field-hint';
+  hint.textContent = touch ? 'Drag to explore' : 'Scroll, drag or use the arrow keys';
+  el.appendChild(hint);
 
-     The horizontal spread then widens with the shape of the screen. The
-     same distribution on both axes gives a tidy central clump on a wide
-     monitor with a third of the width left empty either side — correct on
-     a phone, wrong on a laptop. The vertical spread stays tight, because
-     that's the axis the pile actually reads along. */
-  const shape   = Math.min(2, Math.max(1, window.innerWidth / Math.max(1, window.innerHeight)));
-  const spreadX = Math.min(0.94, 0.82 * shape);
-  const spreadY = 0.82;
-  const middling = sp => (1 - sp) / 2 + ((Math.random() + Math.random()) / 2) * sp;
-  const between  = (a,b) => a + Math.random() * (b - a);
+  let source = FIELD_CAP ? HOME.slice(0, FIELD_CAP) : HOME.slice();
+  if (touch && source.length > 60) source = source.slice(0, 60);
 
-  const chips = list.map((p, n) => {
-    const btn = document.createElement('button');
-    btn.className = 'chip';
-    btn.type = 'button';
-    btn.setAttribute('aria-label', `Open photograph ${pad(n+1)}`);
-    btn.style.setProperty('--x', middling(spreadX).toFixed(4));
-    btn.style.setProperty('--y', middling(spreadY).toFixed(4));
-    btn.style.setProperty('--r', between(-9, 9).toFixed(2) + 'deg');
-    btn.style.setProperty('--f', between(0.72, 1.34).toFixed(3));
+  let vw = innerWidth, vh = innerHeight, L, tiles = [];
+  let inflight = 0, guarded = false, raf = 0, tick = 0;
+  const cam = { x: fieldMemory.x, y: fieldMemory.y };
+  const tgt = { x: cam.x, y: cam.y };
+  let vx = 0, vy = 0, zoom = 1, placedOnce = false;
+  let down = false, moved = false, sx0 = 0, sy0 = 0, lx = 0, ly = 0, lt = 0;
+  let px = -1, py = -1, lblX = 0, lblY = 0, hot = null, pid = null;
 
-    const img = document.createElement('img');
-    img.alt = `Photograph ${pad(n+1)}`;   // never shown; a screen reader
-    /* Which photograph this tile is, recorded before it loads. The flow
-       does the same. It costs nothing and means a tile is identifiable
-       while it's still queued behind the concurrency limit. */
-    img.dataset.url = p.url;
-    if (p.c)  img.style.setProperty('--c', p.c);
-    if (p.ar) img.style.setProperty('--ar', p.ar);
-    btn.appendChild(img);                 // still has to announce something
-    field.appendChild(btn);
-    btn.addEventListener('click', () => morph(img, () => openLB(list, n, img)));
-    return { btn, img, p };
+  const timers = [];
+  const later = (fn, ms) => timers.push(setTimeout(fn, ms));
+
+  function build(reveal) {
+    camEl.textContent = '';
+    inflight = 0; hot = null;
+    L = layoutField(source, vw, vh);
+    tiles = L.tiles.map(t => {
+      const tile = document.createElement('div');
+      tile.className = 'tile';
+      tile.style.setProperty('--w', t.w + 'px');
+      tile.style.setProperty('--h', t.h + 'px');
+      if (t.p.c) tile.style.setProperty('--c', t.p.c);
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'tile-in';
+      btn.setAttribute('aria-label',
+        `Open photograph ${pad(t.k + 1)}${t.p.cat ? ', ' + t.p.cat : ''}`);
+      if (t.dup) btn.tabIndex = -1;   // one tab stop per photograph
+
+      const img = document.createElement('img');
+      img.alt = '';
+      img.draggable = false;
+      btn.appendChild(img);
+      tile.appendChild(btn);
+      camEl.appendChild(tile);
+
+      Object.assign(t, { el: tile, btn, img, sx: 0, sy: 0, on: false, done: false });
+      tile.__t = t;
+      btn.addEventListener('click', e => {
+        if (moved) { e.preventDefault(); return; }
+        morph(img, () => openLB(source, t.k, img));
+      });
+      btn.addEventListener('focus', () => {
+        // Bring a keyboard-focused photograph to the middle of the screen.
+        // Not on a mouse click: that would slide the sheet as the lightbox opens.
+        try { if (!btn.matches(':focus-visible')) return; } catch (_) { return; }
+        tgt.x += t.sx + t.w / 2 - vw / 2;
+        tgt.y += t.sy + t.h / 2 - vh / 2;
+      });
+      return t;
+    });
+
+    place(true);
+
+    // The opening: tiles surface outward from the centre of the screen.
+    const cx = vw / 2, cy = vh / 2, far = Math.hypot(cx, cy);
+    tiles.forEach(t => {
+      const visible = t.sx < vw && t.sx + t.w > 0 && t.sy < vh && t.sy + t.h > 0;
+      if (!reveal || REDUCED || !visible) { t.el.classList.add('in'); return; }
+      const d = Math.hypot(t.sx + t.w / 2 - cx, t.sy + t.h / 2 - cy) / far;
+      later(() => t.el.classList.add('in'), 120 + d * 900 + Math.random() * 160);
+    });
+    pump();
+  }
+
+  function place(force) {
+    const ox = -L.marginX - vw * 0.1, oy = -L.marginY - vh * 0.1;
+    for (const t of tiles) {
+      const sx = wrap(t.x - cam.x - ox, L.BW) + ox;
+      const sy = wrap(t.y - cam.y - oy, L.BH) + oy;
+      if (!force && sx === t.sx && sy === t.sy) continue;
+      t.sx = sx; t.sy = sy;
+      t.el.style.transform = `translate3d(${sx.toFixed(1)}px,${sy.toFixed(1)}px,0)`;
+    }
+    placedOnce = true;
+  }
+
+  /* Request what's near the screen, centre outward. */
+  function pump() {
+    if (inflight >= PILE_CONCURRENCY) return;
+    const pre = 320, cx = vw / 2, cy = vh / 2;
+    const want = tiles.filter(t => !t.on &&
+      t.sx < vw + pre && t.sx + t.w > -pre && t.sy < vh + pre && t.sy + t.h > -pre);
+    want.sort((a, b) =>
+      Math.hypot(a.sx - cx, a.sy - cy) - Math.hypot(b.sx - cx, b.sy - cy));
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const px = WIDTHS.find(w => w >= L.colW * dpr) || WIDTHS[WIDTHS.length - 1];
+    for (const t of want) {
+      if (inflight >= PILE_CONCURRENCY) break;
+      t.on = true; inflight++;
+      const settle = ok => {
+        if (t.done) return;
+        t.done = true; inflight--;
+        if (!ok) t.el.classList.add('dead');
+        pump();
+      };
+      t.img.addEventListener('load', () => {
+        if (!guarded) {
+          guarded = true;
+          if (pileGuard(t.img, px)) {
+            FIELD_CAP = PILE_RAW_CAP;
+            source = HOME.slice(0, FIELD_CAP);
+            build(false);
+            return;
+          }
+        }
+        settle(true);
+      }, { once: true });
+      t.img.addEventListener('error', () => settle(false), { once: true });
+      later(() => settle(true), PILE_TIMEOUT);   // free the slot, keep loading
+      mount(t.img, t.p.url, { sizes: L.colW + 'px', base: px, eager: true, priority: 'auto' });
+    }
+  }
+
+  function setHot(t) {
+    if (t === hot) return;
+    if (hot) hot.el.classList.remove('hot');
+    if (t && !hot && px >= 0) { lblX = px + 18; lblY = py + 16; }
+    hot = t;
+    if (t) {
+      t.el.classList.add('hot');
+      label.textContent = t.p.cat || '';
+      label.classList.toggle('on', !!t.p.cat);
+      el.classList.add('hovering');
+    } else {
+      label.classList.remove('on');
+      el.classList.remove('hovering');
+    }
+  }
+
+  let hinted = false;
+  function interacted() {
+    if (hinted) return;
+    hinted = true;
+    hint.classList.add('gone');
+    fieldMemory.seen = true;
+  }
+
+  /* ---- input ---- */
+  const lbOpen = () => lb.classList.contains('open');
+
+  function onWheel(e) {
+    if (!el.isConnected || lbOpen() || e.ctrlKey) return;
+    e.preventDefault();
+    const k = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? vh : 1;
+    let dx = e.deltaX * k, dy = e.deltaY * k;
+    if (e.shiftKey && !dx) { dx = dy; dy = 0; }
+    tgt.x += dx; tgt.y += dy;
+    vx = vy = 0;
+    interacted();
+  }
+
+  el.addEventListener('pointerdown', e => {
+    if (e.button !== 0 || lbOpen()) return;
+    down = true; moved = false; pid = e.pointerId;
+    sx0 = lx = e.clientX; sy0 = ly = e.clientY; lt = performance.now();
+    vx = vy = 0;
+  });
+  el.addEventListener('pointermove', e => {
+    px = e.clientX; py = e.clientY;
+    if (!down) {
+      if (e.pointerType === 'mouse') setHot(e.target.closest && e.target.closest('.tile') ? e.target.closest('.tile').__t : null);
+      return;
+    }
+    if (!moved && Math.hypot(e.clientX - sx0, e.clientY - sy0) > 6) {
+      moved = true;
+      try { el.setPointerCapture(pid); } catch (_) {}
+      el.classList.add('dragging');
+      setHot(null);
+      interacted();
+    }
+    if (!moved) return;
+    const now = performance.now(), dt = Math.max(1, now - lt);
+    const dx = e.clientX - lx, dy = e.clientY - ly;
+    tgt.x -= dx; tgt.y -= dy;
+    // Velocity in px per 16ms frame, smoothed so one jittery sample can't fling it.
+    vx = vx * 0.6 + (-dx / dt * 16) * 0.4;
+    vy = vy * 0.6 + (-dy / dt * 16) * 0.4;
+    lx = e.clientX; ly = e.clientY; lt = now;
+  });
+  const release = () => {
+    if (!down) return;
+    down = false;
+    el.classList.remove('dragging');
+    if (performance.now() - lt > 80) { vx = vy = 0; }   // held still before letting go
+    if (REDUCED) { vx = vy = 0; }
+    try { el.releasePointerCapture(pid); } catch (_) {}
+    // `moved` survives until the click that follows a drag has been swallowed.
+    setTimeout(() => { moved = false; }, 0);
+  };
+  el.addEventListener('pointerup', release);
+  el.addEventListener('pointercancel', release);
+  el.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse' && !down) setHot(null); });
+  el.addEventListener('click', e => {
+    if (moved) { e.stopPropagation(); e.preventDefault(); }
+  }, true);
+
+  function onKey(e) {
+    if (!el.isConnected || lbOpen()) return;
+    const step = Math.round(Math.min(vw, vh) * 0.35);
+    const map = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
+    const m = map[e.key];
+    if (!m) return;
+    e.preventDefault();
+    tgt.x += m[0]; tgt.y += m[1];
+    interacted();
+  }
+
+  let resizeT = 0;
+  function onResize() {
+    clearTimeout(resizeT);
+    resizeT = setTimeout(() => {
+      if (!el.isConnected) return;
+      vw = innerWidth; vh = innerHeight;
+      build(false);
+    }, 160);
+  }
+
+  addEventListener('wheel', onWheel, { passive: false });
+  addEventListener('keydown', onKey);
+  addEventListener('resize', onResize);
+
+  function cleanup() {
+    cancelAnimationFrame(raf);
+    timers.forEach(clearTimeout);
+    clearTimeout(resizeT);
+    removeEventListener('wheel', onWheel);
+    removeEventListener('keydown', onKey);
+    removeEventListener('resize', onResize);
+    fieldMemory.x = tgt.x; fieldMemory.y = tgt.y;
+  }
+
+  /* ---- the loop ---- */
+  function frame() {
+    if (!el.isConnected) { cleanup(); return; }
+    raf = requestAnimationFrame(frame);
+    if (lbOpen()) return;
+
+    if (!down) {
+      tgt.x += vx; tgt.y += vy;
+      vx *= 0.93; vy *= 0.93;
+      if (Math.abs(vx) < 0.05) vx = 0;
+      if (Math.abs(vy) < 0.05) vy = 0;
+    }
+    const ease = REDUCED ? 1 : down ? 0.4 : 0.09;
+    const bx = cam.x, by = cam.y;
+    cam.x += (tgt.x - cam.x) * ease;
+    cam.y += (tgt.y - cam.y) * ease;
+    if (Math.abs(tgt.x - cam.x) < 0.05) cam.x = tgt.x;
+    if (Math.abs(tgt.y - cam.y) < 0.05) cam.y = tgt.y;
+
+    const speed = Math.hypot(cam.x - bx, cam.y - by);
+    const z = REDUCED ? 1 : 1 - Math.min(0.08, speed * 0.0016);
+    const nz = zoom + (z - zoom) * 0.1;
+    const moving = cam.x !== bx || cam.y !== by;
+
+    if (moving || !placedOnce) place(false);
+    if (Math.abs(nz - zoom) > 0.0002) {
+      zoom = nz;
+      camEl.style.transform = `scale(${zoom.toFixed(4)})`;
+    }
+
+    // Keep the hover honest while the sheet slides under a still cursor.
+    if (moving) tick++;
+    if (moving && px >= 0 && !down && tick % 4 === 0) {
+      const hit = document.elementFromPoint(px, py);
+      const tile = hit && hit.closest && hit.closest('.tile');
+      setHot(tile && el.contains(tile) ? tile.__t : null);
+    }
+    if (moving && tick % 6 === 0) pump();
+
+    if (hot && px >= 0) {
+      lblX += (px + 18 - lblX) * (REDUCED ? 1 : 0.22);
+      lblY += (py + 16 - lblY) * (REDUCED ? 1 : 0.22);
+      label.style.transform = `translate3d(${lblX.toFixed(1)}px,${lblY.toFixed(1)}px,0)`;
+    }
+  }
+
+  // Build once the field is in the document, so the reveal is seen.
+  requestAnimationFrame(() => {
+    if (!el.isConnected) return;
+    vw = innerWidth; vh = innerHeight;
+    build(true);
+    if (!fieldMemory.seen) later(() => hint.classList.add('on'), REDUCED ? 0 : 1400);
+    raf = requestAnimationFrame(frame);
   });
 
-  const tailEl = document.createElement('div');
-  tailEl.className = 'pile-tail';
-  tailEl.innerHTML = `<a class="h" href="#/photography">Photography &rarr;</a>`;
-  el.appendChild(tailEl);
-
-  /* The loader runs once the pile is in the document, because each tile's
-     width has to be measured before it can be asked for at that size. */
-  requestAnimationFrame(() => runPile(chips));
   return el;
 }
 
-/* THE LOADER.
+/* ============================================================================
+   PHOTOGRAPHY — the cursor carries a photograph from whichever category
+   it's over. Mouse and trackpad only; on touch the names are just links.
+   ============================================================================ */
+function attachPeek(el) {
+  if (REDUCED || !mq('(hover: hover) and (pointer: fine)').matches) return;
+  const peek = document.createElement('div');
+  peek.className = 'cat-peek';
+  peek.setAttribute('aria-hidden', 'true');
+  const img = document.createElement('img');
+  img.alt = '';
+  peek.appendChild(img);
+  el.appendChild(peek);
 
-   Eight photographs are in flight at a time and each one that settles starts
-   the next. Two things have gone wrong with that shape, and the fix for the
-   second is what this now looks like.
+  const turn = new Map();          // which photograph each name shows next
+  let x = 0, y = 0, tx = 0, ty = 0, rot = 0, on = false, raf = 0;
 
-   First: a request that never resolves kept its slot. Marking the tiles
-   `eager` fixed the cause (lazy loading was declining to fetch them), and a
-   per-image deadline covered the rest.
+  // The first photograph of each category, warmed so the first hover is instant.
+  CATEGORIES.forEach(c => {
+    const d = DATA.get(c.slug);
+    if (d && d.photos[0]) { const i = new Image(); i.src = sized(d.photos[0].url, 640); }
+  });
 
-   Then it stalled again on a phone — about eight of thirty, which is exactly
-   one full pool. Whatever the reason, a queue that can only advance when an
-   event fires is a queue that can stop, and I can't reproduce a phone from
-   here. So it no longer advances on events alone.
+  $$('a[data-slug]', el).forEach(a => {
+    a.addEventListener('pointerenter', e => {
+      const d = DATA.get(a.dataset.slug);
+      if (!d || !d.photos.length) return;
+      const n = turn.get(a.dataset.slug) || 0;
+      turn.set(a.dataset.slug, n + 1);
+      const p = d.photos[n % d.photos.length];
+      img.style.aspectRatio = p.ar || '3 / 2';
+      img.src = sized(p.url, 640);
+      if (!on) { x = tx = e.clientX; y = ty = e.clientY; }
+      on = true; peek.classList.add('on');
+      if (!raf) raf = requestAnimationFrame(follow);
+      // Warm the next one for the following visit to this name.
+      const q = d.photos[(n + 1) % d.photos.length];
+      if (q) { const i = new Image(); i.src = sized(q.url, 640); }
+    });
+    a.addEventListener('pointerleave', () => { on = false; peek.classList.remove('on'); });
+  });
+  el.addEventListener('pointermove', e => { tx = e.clientX; ty = e.clientY; });
 
-   A timer runs every second and does three things: force-settles anything
-   past its deadline, refills the pool to its limit, and retries once — with
-   a fresh URL, so it is a genuinely new request — any photograph that was
-   given up on. Events still drive the common case; the sweep guarantees
-   progress even if not one of them ever arrives.
-
-   The counter is the part to be careful with: `inflight` must go down exactly
-   once per photograph, which is why settle() is the only thing that touches
-   it and why it returns early once a tile has settled. */
-function runPile(chips) {
-  const total = () => Math.min(cap, chips.length);
-  let started = 0, inflight = 0, cap = chips.length, checked = false;
-  let sweeper = null;
-  const t0 = Date.now();
-
-  const reveal = (c, i) => {
-    const due = REDUCED ? 0 : Math.max(0, i * PILE_STAGGER - (Date.now() - t0));
-    setTimeout(() => { if (c.btn.isConnected) c.btn.classList.add('in'); }, due);
-  };
-
-  /* One more go, as a new request rather than the same one again — a dropped
-     connection isn't retried by re-reading the identical URL out of cache. */
-  const retry = c => {
-    if (c.retried || !c.btn.isConnected) return;
-    c.retried = true;
-    const u = c.img.getAttribute('src');
-    if (!u) return;
-    c.img.removeAttribute('srcset');          /* pick nothing cleverer this time */
-    c.img.src = u + (u.includes('?') ? '&' : '?') + 'retry=1';
-  };
-
-  const settle = (c, i, kind) => {
-    if (c.settled) return;
-    c.settled = true;
-    inflight--;
-    if (kind === 'error') c.btn.remove();
-    else { reveal(c, i); if (kind === 'timeout') retry(c); }
-  };
-
-  const start = () => {
-    if (started >= total()) return false;
-    const i = started++, c = chips[i];
-    inflight++;
-    c.at = Date.now();
-    const want = Math.round(c.btn.getBoundingClientRect().width) || 200;
-
-    c.img.addEventListener('load', () => {
-      if (!checked) {
-        checked = true;
-        if (pileGuard(c.img, want)) {
-          cap = Math.min(cap, PILE_RAW_CAP);
-          chips.slice(cap).forEach(x => x.btn.remove());
-        }
-      }
-      settle(c, i, 'load');
-      pump();
-    }, { once:true });
-
-    /* A photograph that won't load is removed rather than left as a broken
-       frame. mount() has already told the renovation check about it, so if
-       they ALL fail the site still falls back properly. */
-    c.img.addEventListener('error', () => { settle(c, i, 'error'); pump(); }, { once:true });
-
-    mount(c.img, c.p.url, { sizes: want + 'px', base: 640, eager: true, priority: 'auto' });
-    return true;
-  };
-
-  const pump = () => { while (inflight < PILE_CONCURRENCY && start()) {} };
-
-  const sweep = () => {
-    const now = Date.now();
-    for (let k = 0; k < started; k++) {
-      const c = chips[k];
-      if (!c.settled && c.at && now - c.at > PILE_TIMEOUT) settle(c, k, 'timeout');
-    }
-    pump();
-    /* Once everything has been started and settled, one last look for tiles
-       whose photograph still never arrived, then stop. */
-    if (started >= total() && inflight === 0) {
-      chips.slice(0, total()).forEach(c => {
-        if (c.btn.isConnected && c.img.naturalWidth === 0) retry(c);
-      });
-      clearInterval(sweeper); sweeper = null;
-    }
-  };
-
-  sweeper = setInterval(sweep, 1000);
-  pump();
+  function follow() {
+    if (!el.isConnected) { raf = 0; return; }
+    raf = requestAnimationFrame(follow);
+    const dx = tx - x;
+    x += dx * 0.14; y += (ty - y) * 0.14;
+    rot += (Math.max(-7, Math.min(7, dx * 0.06)) - rot) * 0.12;
+    peek.style.transform =
+      `translate3d(${(x + 28).toFixed(1)}px,${(y - peek.offsetHeight / 2).toFixed(1)}px,0) rotate(${rot.toFixed(2)}deg)`;
+    // Rest once it has caught up and faded out.
+    if (!on && Math.abs(tx - x) < 0.5 && Math.abs(ty - y) < 0.5) { cancelAnimationFrame(raf); raf = 0; }
+  }
 }
 
 function renderFlow(cat) {
@@ -2096,14 +2437,25 @@ const canMorph = () =>
 
 function morph(el, change) {
   if (!canMorph() || !el) { change(); return; }
-  el.style.viewTransitionName = 'photo';
-  lbImg.style.viewTransitionName = 'photo';
+  /* Only one element may carry the name in each snapshot. The old state
+     names whichever is on screen now, the new state names the other, so
+     the swap happens inside the callback. Naming both at once is a
+     duplicate in the new snapshot and the browser skips the morph. */
+  const closing = lb.classList.contains('open');
+  const from = closing ? lbImg : el, to = closing ? el : lbImg;
+  from.style.viewTransitionName = 'photo';
   const clear = () => {
     el.style.viewTransitionName = '';
     lbImg.style.viewTransitionName = '';
   };
   let t;
-  try { t = document.startViewTransition(change); }
+  try {
+    t = document.startViewTransition(() => {
+      from.style.viewTransitionName = '';
+      change();
+      to.style.viewTransitionName = 'photo';
+    });
+  }
   catch (e) { clear(); change(); return; }
   /* finished rejects if the transition is skipped — a second one starting,
      or the tab going to the background. The DOM change has still happened,
@@ -2315,6 +2667,7 @@ async function route() {
   if (windowIO) { windowIO.disconnect(); windowIO = null; }
   if (raceIO)   { raceIO.disconnect();   raceIO = null; }
   document.documentElement.classList.toggle('gallery', r.name === 'race');
+  document.documentElement.classList.toggle('field-mode', r.name === 'home' && !RENOVATING);
   swapIn(view, el);
   scrollTo({ top:0, behavior:'auto' });
   const hasFlow = !RENOVATING &&
@@ -2395,6 +2748,7 @@ themeBtn.addEventListener('click', () => {
        Which photographs are in the file is now the only editorial control
        left — so the argument for keeping each list short gets stronger,
        not weaker. */
+    photos.forEach(p => { p.cat = c.title; });   // the field's cursor label
     return photos.length ? { ...c, photos: shuffle(photos) } : null;
   }));
   loaded.filter(Boolean).forEach(c => DATA.set(c.slug, c));
