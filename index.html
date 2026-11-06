@@ -1063,7 +1063,7 @@ const CATEGORIES = [
    its JSON entry a "cat" with the category's slug: { "file": "x.jpg",
    "cat": "bikes" }. A photograph with neither opens on its own instead. */
 const HOME_SOURCE  = 'Home';
-const HOME_MAX     = 32;   // every photograph in Home.json, up to this many
+const HOME_MAX     = 45;   // every photograph in Home.json, up to this many
 const HOME_SHUFFLE = true;   // false keeps Home.json's order
 
 /* THE OPENING BURST.
@@ -1075,8 +1075,8 @@ const HOME_SHUFFLE = true;   // false keeps Home.json's order
    They play in a new random order each visit, and the last frame is always
    the front-page photograph it lands on, so it settles into its own tile. */
 const BURST_SOURCE = 'Burst';
-const BURST_MAX    = 32;
-const BURST_STEP   = 60;      // ms per frame: 32 frames in about two seconds
+const BURST_MAX    = 45;
+const BURST_STEP   = 45;      // ms per frame: 45 frames in about two seconds
 
 /* How many photographs the front page shows, drawn at random from every
    category. Picked once when the page loads and held for the visit, so
@@ -1106,9 +1106,9 @@ const PILE_RAW_CAP     = 12;
 const PILE_TIMEOUT     = 4000;
 
 /* Safety cap per file, not a curation tool — with the site down to ~53
-   photographs every one should appear. This only stops a stale or
+   photographs every one should appear (Home and Burst hold 45 each). This only stops a stale or
    accidentally restored file dumping a hundred frames into a category. */
-const MAX_PER_FILE = 40;
+const MAX_PER_FILE = 60;
 
 
 const mq = q => (window.matchMedia ? window.matchMedia(q) : { matches:false });
