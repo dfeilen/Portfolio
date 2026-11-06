@@ -684,6 +684,8 @@ html.intro .banner-cue{animation:none;opacity:0}
 .wall-track{position:relative;height:var(--wall-h,100svh)}
 
 /* The sides fade, so the photographs plainly carry on past the edge. */
+.wall.still{touch-action:auto;cursor:auto}
+.wall.still::before,.wall.still::after{display:none}
 .wall::before,.wall::after{
   content:'';position:absolute;top:0;bottom:0;width:clamp(28px,6vw,110px);z-index:2;
   pointer-events:none;
@@ -2078,14 +2080,18 @@ const ratioOf = p => Math.min(3.5, Math.max(0.3, p.arn || 1.5));
 
 /* Columns and widths are decided here, once. Heights and y positions are
    worked out by flowWall() and can be redone whenever a ratio is learned. */
-function layoutWall(list, vw) {
+function layoutWall(list, vw, still) {
   const R = seeded(WALL_SEED);
-  const coarse = vw < 700;
-  const colW   = coarse ? Math.round(vw * 0.78) : Math.round(Math.min(560, Math.max(300, vw * 0.27)));
-  const gutter = coarse ? 6 : Math.round(Math.max(8, Math.min(14, vw * 0.007)));
-  const cols   = Math.min(WALL_COLS, Math.max(1, list.length));
-    const columns = Array.from({ length: cols }, (_, i) => ({
-    start: Math.round(R() * colW * 0.35),
+  /* On a touch screen the wall doesn't move sideways: it's as wide as the
+     screen (two columns on a phone, three on a tablet) and the page scrolls
+     natively. Elsewhere it's eight columns wider than the screen. */
+  const edge   = still ? (vw < 700 ? 16 : Math.max(10, Math.min(28, vw * 0.02))) : 0;
+  const gutter = still ? 6 : Math.round(Math.max(8, Math.min(14, vw * 0.007)));
+  const cols   = Math.min(still ? (vw < 700 ? 2 : 3) : WALL_COLS, Math.max(1, list.length));
+  const colW   = still ? Math.floor((vw - edge * 2 - gutter * (cols - 1)) / cols)
+                       : Math.round(Math.min(560, Math.max(300, vw * 0.27)));
+  const columns = Array.from({ length: cols }, (_, i) => ({
+    start: Math.round(R() * colW * (still ? 0.2 : 0.35)),
     drift: [-1, 0.55, -0.4, 1, -0.7, 0.3, -1, 0.8][i % 8],
     est: 0, items: []
   }));
@@ -2096,7 +2102,7 @@ function layoutWall(list, vw) {
     for (const d of columns) if (d.est < c.est) c = d;
     const col = columns.indexOf(c);
     const w = colW;   // every photograph fills its column
-    const x = col * (colW + gutter);
+    const x = edge + col * (colW + gutter);
     const t = { p, k: i, col, x, w, h: 0, y: 0, gap: gutter };
     c.items.push(t);
     c.est += w / ratioOf(p) + t.gap;
@@ -2217,6 +2223,7 @@ function renderHome() {
   const el = document.createElement('div');
   el.className = 'home';
   const touch = mq('(pointer: coarse)').matches;
+  const still = touch;     // touch screens: no sideways movement, native scrolling
   const fine  = mq('(hover: hover) and (pointer: fine)').matches;
 
   /* ---- opening and mark ---- */
@@ -2295,12 +2302,11 @@ function renderHome() {
   nextBtn.type = 'button';
   nextBtn.setAttribute('aria-label', 'More photographs');
   nextBtn.innerHTML = arrow('M9 5l7 7-7 7');
-  el.appendChild(prevBtn); el.appendChild(nextBtn);
+  if (!still) { el.appendChild(prevBtn); el.appendChild(nextBtn); }
 
   const hint = document.createElement('p');
   hint.className = 'wall-hint';
   hint.textContent = 'Drag in any direction';
-  if (touch) el.appendChild(hint);
 
   /* ---- bio ---- */
   const bio = document.createElement('footer');
@@ -2365,9 +2371,10 @@ function renderHome() {
   function build() {
     track.textContent = '';
     inflight = 0;
-    L = layoutWall(source, vw);
+    L = layoutWall(source, vw, still);
+    wallEl.classList.toggle('still', still);
     flowWall(L);
-    amp = REDUCED ? 0 : (vw < 700 ? 30 : 90);
+    amp = REDUCED || still ? 0 : 90;
     wallEl.style.setProperty('--wall-pad', Math.round(amp / 2 + L.gutter) + 'px');
     track.style.setProperty('--wall-h', L.H + 'px');
 
@@ -2424,6 +2431,14 @@ function renderHome() {
     const y = scrollY;
     if (!force && y === lastScroll && camX === lastCam) return false;
     lastScroll = y; lastCam = camX;
+    if (still) {
+      // Nothing moves but the page itself; positions are written once.
+      if (force) tiles.forEach(t => {
+        t.sx = t.x; t.oy = 0;
+        t.el.style.transform = `translate3d(${t.x}px,${t.y}px,0)`;
+      });
+      return true;
+    }
     const prog = Math.max(0, Math.min(1, (y + vh - wallTop) / (L.H + vh)));
     const ox = -L.colW - L.gutter * 2;
     for (const t of tiles) {
@@ -2528,31 +2543,53 @@ function renderHome() {
   addEventListener('touchstart', stopThrow, { passive: true });
 
   /* ---- input ---- */
+  // How much sideways movement it takes before the wall starts to follow.
+  const SIDE_WHEEL = 36;                    // trackpad, px of accumulated delta
+  const SIDE_DRAG  = touch ? 18 : 10;       // finger or mouse, px of travel
+  let wheelAcc = 0, wheelOn = false, wheelT = 0;
+  let sideOn = false, sideSign = 0, sideDone = 0;
+
   function onWheel(e) {
     if (!el.isConnected || overlayOpen() || e.ctrlKey) return;
     if (!wallEl.contains(e.target)) return;
     const k = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? vw : 1;
     const dx = e.deltaX * k, dy = e.deltaY * k;
-    glide = null; vx = vy = 0;
+    let move = 0;
     if (e.shiftKey && !dx) {                         // a mouse wheel with shift: sideways only
       e.preventDefault();
-      camX += dy;
+      move = dy;
     } else if (dx) {
-      // A trackpad sends both axes at once, already smoothed and with the
-      // system's own momentum. Sideways moves the wall; up and down is left
-      // to the browser, so diagonal swipes move both together.
-      camX += dx;
+      // A trackpad sends both axes at once. Up and down is left to the
+      // browser. Sideways has to be meant: a gesture that's mostly vertical
+      // never moves the wall, and a sideways one only starts after
+      // SIDE_WHEEL px of intent, with that buffer taken off so it eases in
+      // rather than jumping.
+      const now = performance.now();
+      if (now - wheelT > 220) { wheelAcc = 0; wheelOn = false; }   // a new gesture
+      wheelT = now;
+      if (!wheelOn) {
+        if (Math.abs(dx) < Math.abs(dy) * 0.6) { wheelAcc *= 0.5; return; }
+        wheelAcc += dx;
+        if (Math.abs(wheelAcc) < SIDE_WHEEL) return;
+        wheelOn = true;
+        move = wheelAcc - Math.sign(wheelAcc) * SIDE_WHEEL;
+      } else move = dx;
     } else return;
+    vx = 0;
+    // Into an eased target rather than straight onto the wall, so small
+    // uneven deltas don't read as jerks.
+    glide = { to: (glide ? glide.to : camX) + move, ease: 0.22 };
     interacted();
   }
 
   wallEl.addEventListener('pointerdown', e => {
-    if (e.button !== 0 || overlayOpen()) return;
+    if (still || e.button !== 0 || overlayOpen()) return;
     down = true; dragging = false; pid = e.pointerId; kind = e.pointerType;
     sx0 = lx = e.clientX; sy0 = ly = e.clientY;
     samples.length = 0; samples.push({ x: e.clientX, y: e.clientY, t: performance.now() });
     vx = vy = 0; glide = null;                      // a touch catches a moving wall
     pageY = scrollY;
+    sideOn = false; sideSign = 0; sideDone = 0;
   });
   wallEl.addEventListener('pointermove', e => {
     if (!down) return;
@@ -2564,10 +2601,18 @@ function renderHome() {
       wallEl.classList.add('dragging');
       interacted();
     }
-    const dx = e.clientX - lx, dy = e.clientY - ly;
-    // 1:1 under the finger in both directions: sideways moves the wall,
-    // up and down moves the page.
-    camX -= dx;
+    const dy = e.clientY - ly;
+    // Up and down follows the finger 1:1 straight away. Sideways waits until
+    // the drag has gone SIDE_DRAG px sideways and isn't mostly vertical, then
+    // follows from that point on, so it starts from zero instead of jumping.
+    if (!sideOn && Math.abs(tx) > SIDE_DRAG && Math.abs(tx) > Math.abs(ty) * 0.5) {
+      sideOn = true; sideSign = Math.sign(tx);
+    }
+    if (sideOn) {
+      const want = tx - sideSign * SIDE_DRAG;
+      camX -= want - sideDone;
+      sideDone = want;
+    }
     pageY = scrollPage(pageY - dy);
     lx = e.clientX; ly = e.clientY;
     const now = performance.now();
@@ -2585,6 +2630,8 @@ function renderHome() {
       const dt = Math.max(1, b.t - a.t), still = now - b.t > 90 || REDUCED;
       vx = still ? 0 : -(b.x - a.x) / dt * 16;
       vy = still ? 0 : -(b.y - a.y) / dt * 16;
+      // A flick that's mostly vertical doesn't carry the wall sideways.
+      if (!sideOn || Math.abs(vx) < Math.abs(vy) * 0.4) vx = 0;
       // Keep the direction of the throw, cap only its speed.
       const sp = Math.hypot(vx, vy), cap = 110;
       if (sp > cap) { vx *= cap / sp; vy *= cap / sp; }
@@ -2597,7 +2644,7 @@ function renderHome() {
   wallEl.addEventListener('click', e => { if (dragging) { e.stopPropagation(); e.preventDefault(); } }, true);
 
   function onKey(e) {
-    if (!el.isConnected || overlayOpen()) return;
+    if (still || !el.isConnected || overlayOpen()) return;
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
     const top = wallTop - padTop - scrollY;
     if (top > vh || top + L.H + padTop * 2 < 0) return;   // only while the wall is in view
@@ -2705,8 +2752,10 @@ function renderHome() {
     for (let i = 0; i < ready.length && !skipped; i++) {
       frame.src = ready[i];
       count.textContent = `${String(i + 1).padStart(2, '0')} / ${String(ready.length).padStart(2, '0')}`;
-      ov.animate([{ backgroundColor: '#fff' }, { backgroundColor: fg }], { duration: 40 });
-      frame.animate([{ filter: 'brightness(1.45)' }, { filter: 'none' }], { duration: 70 });
+      if (!touch) {   // on phones the frames simply cut, no flash
+        ov.animate([{ backgroundColor: '#fff' }, { backgroundColor: fg }], { duration: 40 });
+        frame.animate([{ filter: 'brightness(1.45)' }, { filter: 'none' }], { duration: 70 });
+      }
       await pause(BURST_STEP);
       if (gone()) { ov.remove(); return; }
     }
@@ -2760,7 +2809,7 @@ function renderHome() {
     lastT = tNow;
     if (!down) {
       if (glide) {
-        camX += (glide.to - camX) * (REDUCED ? 1 : 0.14);
+        camX += (glide.to - camX) * (REDUCED ? 1 : (glide.ease || 0.14));
         if (Math.abs(glide.to - camX) < 0.3) { camX = glide.to; glide = null; }
       } else if (vx || vy) {
         const decay = Math.pow(0.955, fdt);
@@ -2789,7 +2838,7 @@ function renderHome() {
     const centred = top < vh * 0.35 && bottom > vh * 0.65;   // arrows only once the wall fills the middle
     prevBtn.classList.toggle('on', centred);
     nextBtn.classList.toggle('on', centred);
-    if (centred && !wallMemory.nudged) {
+    if (centred && !wallMemory.nudged && !still) {
       wallMemory.nudged = true;
       nextBtn.classList.add('nudge');
       // One small slide on first sight shows the wall moves sideways.
@@ -2812,7 +2861,6 @@ function renderHome() {
     vw = innerWidth; vh = innerHeight;
     build();
     // On a phone, start with one column centred so the swipe steps read cleanly.
-    if (!wallMemory.back && vw < 700) { camX = nearestColumn(0); update(true); }
     if (wallMemory.back) scrollTo(0, wallMemory.y);
     wallMemory.back = true;
     measure(); update(true); pump();
