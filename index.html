@@ -687,6 +687,7 @@ html.intro .banner-cue{animation:none;opacity:0}
   display:grid;place-items:center;
   touch-action:none;
 }
+.burst>img{grid-area:1/1}   /* stacked, so one frame can dissolve over the last */
 .burst-frame{display:block;max-height:62svh;max-width:88vw;width:auto;height:auto;transform-origin:0 0}
 
 /* ---- Wall ---- */
@@ -1097,8 +1098,14 @@ const HOME_SHUFFLE = true;   // false keeps Home.json's order
    They play in a new random order each visit, and the last frame is always
    the front-page photograph it lands on, so it settles into its own tile. */
 const BURST_SOURCE = 'Burst';
-const BURST_MAX    = 45;
-const BURST_STEP   = 45;      // ms per frame: 45 frames in about two seconds
+/* Kept deliberately calm for photosensitive visitors: 15 frames, each held
+   BURST_STEP ms and dissolving into the next over BURST_FADE ms rather than
+   cutting. WCAG 2.3.1 sets the limit at three flashes in any second; at
+   200ms a frame this is about five changes a second, softened by the
+   dissolve. Raise BURST_STEP to 340 or more to stay at three or fewer. */
+const BURST_MAX    = 15;
+const BURST_STEP   = 200;     // ms per frame: 15 frames in about three seconds
+const BURST_FADE   = 90;      // ms each frame takes to dissolve into the next
 
 /* How many photographs the front page shows, drawn at random from every
    category. Picked once when the page loads and held for the visit, so
@@ -2698,10 +2705,11 @@ function renderHome() {
     const ov = document.createElement('div');
     ov.className = 'burst';
     ov.setAttribute('role', 'presentation');
-    ov.innerHTML = `<img class="burst-frame" alt="">`;
+    ov.innerHTML = `<img class="burst-frame burst-under" alt=""><img class="burst-frame" alt="">`;
     document.body.appendChild(ov);
     uncover();                         // same colour underneath, so no change on screen
-    const frame = $('.burst-frame', ov);
+    const under = $('.burst-under', ov);
+    const frame = $('.burst-frame:not(.burst-under)', ov);
     const fg = getComputedStyle(root).getPropertyValue('--fg').trim() || '#1B1B1C';
     const gone = () => !el.isConnected;
     const pause = ms => new Promise(r => setTimeout(r, ms));
@@ -2754,7 +2762,11 @@ function renderHome() {
 
     // Fire.
     for (let i = 0; i < ready.length; i++) {
+      // The previous frame stays underneath while the next dissolves in on
+      // top: no hard cut, so no sudden jump in brightness.
+      if (i > 0) under.src = ready[i - 1];
       frame.src = ready[i];
+      if (i > 0) frame.animate([{ opacity: 0 }, { opacity: 1 }], { duration: BURST_FADE, easing: 'ease' });
       await pause(BURST_STEP);
       if (gone()) { ov.remove(); return; }
     }
@@ -2771,6 +2783,7 @@ function renderHome() {
     await pause(Math.max(0, 300 - BURST_STEP));
     if (gone()) { ov.remove(); return; }
 
+    under.remove();                    // only the last frame travels
     // The last frame flies to its place on the wall.
     const a = frame.getBoundingClientRect(), b = target.el.getBoundingClientRect();
     Object.assign(frame.style, { position: 'fixed', left: a.left + 'px', top: a.top + 'px',
