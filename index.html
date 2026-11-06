@@ -23,7 +23,23 @@
 
 <!-- Applies the saved theme before the first paint, so a returning visitor
      never watches the page flip palettes on load. -->
-<script>try{if(localStorage.getItem('theme')==='dark')document.documentElement.setAttribute('data-theme','dark')}catch(e){}</script>
+<script>
+/* Before anything paints: the saved theme, and — on the front page — the
+   opening burst's own background, so the first thing on screen is the
+   burst's colour rather than the page's. The cover lifts the instant the
+   burst is up (or straight away on any page that has no burst). */
+(function(){
+  var d=document.documentElement;
+  try{if(localStorage.getItem('theme')==='dark')d.setAttribute('data-theme','dark')}catch(e){}
+  try{
+    var h=location.hash;
+    if((h===''||h==='#'||h==='#/')&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
+      d.classList.add('precover');
+      setTimeout(function(){d.classList.remove('precover')},9000);   // never strand anyone
+    }
+  }catch(e){}
+})();
+</script>
 
 <style>
 /* ============================================================================
@@ -145,6 +161,12 @@
   --edge-l:calc(var(--edge) + var(--sa-l));
   --edge-r:calc(var(--edge) + var(--sa-r));
 }
+/* The cover shown before the opening burst: the burst's own colour, which
+   follows the theme like everything else (dark in light mode, light in
+   dark mode). */
+html.precover,html.precover body{background:var(--fg);overflow:hidden}
+html.precover body>*{visibility:hidden}
+
 [data-theme="dark"]{
   --bg:#0a0a0a; --fg:#ffffff; --fg-dim:#8a8a8a; --sunk:#161616;
   --tone:#17171a;
@@ -1138,6 +1160,7 @@ const DATA = new Map();   // slug -> { ...category, photos }
 let HOME = [];            // the front page's random handful
 let BURST = [];           // the opening burst, if Burst.json exists
 let INTRO_DONE = false;   // the burst plays once per page load
+let CUE_GONE = false;     // the phone's "Scroll" cue, once scrolled, stays gone until a reload
 let RACES = [];           // race galleries, from races/index.json
 let RENOVATING = false;
 
@@ -1243,7 +1266,11 @@ function noteImage(ok) {
     declareRenovation('every photograph attempted so far has failed to load');
   }
 }
+/* Lift the pre-burst cover. Safe to call any number of times. */
+function uncover() { document.documentElement.classList.remove('precover'); }
+
 function declareRenovation(why) {
+  uncover();
   if (RENOVATING) return;
   RENOVATING = true;
   console.warn('Showing the renovation notice — ' + why + '.');
@@ -2220,7 +2247,7 @@ function renderHome() {
   const banner = document.createElement('header');
   banner.className = 'banner';
   // The "Scroll" cue is for phones only; on desktop the wall peeking in is cue enough.
-  banner.innerHTML = `<h1 class="sr">Devin Feilen</h1>${touch ? '<span class="banner-cue">Scroll</span>' : ''}`;
+  banner.innerHTML = `<h1 class="sr">Devin Feilen</h1>${touch && !CUE_GONE ? '<span class="banner-cue">Scroll</span>' : ''}`;
   el.appendChild(banner);
   const mark = document.createElement('a');
   mark.className = 'mark';
@@ -2664,6 +2691,7 @@ function renderHome() {
   let holding = false;
   const introWanted = !INTRO_DONE && !REDUCED && USE_OPTIMIZER && HOME.length >= 3;
   if (introWanted) { holding = true; root.classList.add('intro'); }
+  else uncover();
 
   async function burst() {
     INTRO_DONE = true;
@@ -2672,6 +2700,7 @@ function renderHome() {
     ov.setAttribute('role', 'presentation');
     ov.innerHTML = `<img class="burst-frame" alt="">`;
     document.body.appendChild(ov);
+    uncover();                         // same colour underneath, so no change on screen
     const frame = $('.burst-frame', ov);
     const fg = getComputedStyle(root).getPropertyValue('--fg').trim() || '#1B1B1C';
     const gone = () => !el.isConnected;
@@ -2806,6 +2835,12 @@ function renderHome() {
     scrollVel += ((y - prevY) - scrollVel) * 0.2;
     prevY = y;
     moveMark(y, false);
+    if (!CUE_GONE && y > 8) {
+      CUE_GONE = true;
+      const cue = $('.banner-cue', banner);
+      if (cue) cue.animate([{ opacity: getComputedStyle(cue).opacity }, { opacity: 0 }],
+        { duration: 300, fill: 'forwards' }).finished.then(() => cue.remove(), () => cue.remove());
+    }
     type.step(scrollVel, markP === 0);
 
     const top = wallTop - padTop - y, bottom = top + L.H + padTop * 2;
@@ -3371,6 +3406,7 @@ async function route() {
   } else {
     el = renderMissing('That page does not exist.');
   }
+  if (r.name !== 'home' || RENOVATING) uncover();
 
   if (windowIO) { windowIO.disconnect(); windowIO = null; }
   if (raceIO)   { raceIO.disconnect();   raceIO = null; }
