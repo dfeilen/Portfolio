@@ -1098,15 +1098,33 @@ const HOME_SHUFFLE = true;   // false keeps Home.json's order
    They play in a new random order each visit, and the last frame is always
    the front-page photograph it lands on, so it settles into its own tile. */
 const BURST_SOURCE = 'Burst';
-/* 25 frames, each held BURST_STEP ms and dissolving into the next over
-   BURST_FADE ms rather than cutting, so brightness never jumps abruptly.
-   Note for photosensitive visitors: WCAG 2.3.1 sets the limit at three
-   flashes in any second, and at 120ms a frame this makes about eight
-   changes a second. Raising BURST_STEP to 340 (with fewer frames) stays
-   within it. Reduced-motion visitors never see the burst. */
-const BURST_MAX    = 25;
-const BURST_STEP   = 120;     // ms per frame: 25 frames in about three seconds
-const BURST_FADE   = 70;      // ms each frame takes to dissolve into the next
+/* 45 frames that start unhurried and accelerate, like a camera winding up
+   to full burst rate: the first frame holds BURST_START ms, each one after
+   holds a little less, and the whole run lasts BURST_TOTAL ms. Frames
+   dissolve into each other rather than cutting, so brightness never jumps
+   abruptly. Note for photosensitive visitors: the fastest stretch changes
+   far more often than WCAG 2.3.1's three flashes a second; a longer
+   BURST_TOTAL or fewer frames calms it. Reduced-motion visitors never see
+   the burst. */
+const BURST_MAX    = 45;
+const BURST_START  = 150;     // ms the first frame holds
+const BURST_TOTAL  = 3500;    // ms for the whole burst
+const BURST_MIN    = 30;      // the fastest any frame may go
+const BURST_FADE   = 70;      // ms a frame dissolves in over, at most
+
+/* How long each of n frames holds: a steady acceleration (every frame a
+   fixed fraction shorter than the last) that starts at `start` and adds up
+   to `total`. If n is small enough that even an even pace is slower than
+   the start, they simply share the time evenly. */
+function burstSchedule(n, start, total) {
+  if (n < 2) return [total];
+  if (start * n <= total) return new Array(n).fill(total / n);
+  const sum = r => start * (1 - Math.pow(r, n)) / (1 - r);
+  let lo = 0.5, hi = 0.99999;
+  for (let k = 0; k < 60; k++) { const m = (lo + hi) / 2; if (sum(m) > total) hi = m; else lo = m; }
+  const steps = Array.from({ length: n }, (_, i) => Math.max(BURST_MIN, start * Math.pow(lo, i)));
+  return steps;
+}
 
 /* How many photographs the front page shows, drawn at random from every
    category. Picked once when the page loads and held for the visit, so
@@ -2747,7 +2765,7 @@ function renderHome() {
      a random order. While it runs, riseOff holds each column's offset and
      update() adds it to every tile in that column. */
   let riseOff = null, rise = null;
-  const RISE_DUR = 900, RISE_GAP = 90, RISE_LEAD = 200;
+  const RISE_DUR = 800, RISE_GAP = 55, RISE_LEAD = 0;   // straight from the last frame, no pause
   function startRise() {
     wallSeen = true;
     const n = L.columns.length;
@@ -2829,11 +2847,14 @@ function renderHome() {
 
     // Fire. The previous frame stays underneath while the next dissolves in
     // on top: no hard cut, so no sudden jump in brightness.
+    const steps = burstSchedule(ready.length, BURST_START, BURST_TOTAL);
     for (let i = 0; i < ready.length; i++) {
       if (i > 0) under.src = ready[i - 1];
       frame.src = ready[i];
-      if (i > 0) frame.animate([{ opacity: 0 }, { opacity: 1 }], { duration: BURST_FADE, easing: 'ease' });
-      await pause(BURST_STEP);
+      // The dissolve shortens with the frame, so it never outlasts it.
+      if (i > 0) frame.animate([{ opacity: 0 }, { opacity: 1 }],
+        { duration: Math.min(BURST_FADE, steps[i] * 0.5), easing: 'ease' });
+      await pause(steps[i]);
       if (gone()) { ov.remove(); return; }
     }
     under.remove();
@@ -2842,11 +2863,11 @@ function renderHome() {
     // wall's columns come up from below, out of step with each other.
     if (reflowT) reflowNow();             // shapes learned during the burst, applied before measuring
     const total = startRise();
-    frame.animate([{ transform: 'none', opacity: 1 }, { transform: 'translateY(30vh) scale(.9)', opacity: 0 }],
-      { duration: 450, easing: 'cubic-bezier(.5,0,.75,0)', fill: 'forwards' });
+    frame.animate([{ transform: 'none', opacity: 1 }, { transform: 'translateY(20vh) scale(.94)', opacity: 0 }],
+      { duration: 260, easing: 'cubic-bezier(.5,0,.75,0)', fill: 'forwards' });
     ov.style.pointerEvents = 'none';
     ov.animate([{ backgroundColor: fg }, { backgroundColor: 'transparent' }],
-      { duration: 700, delay: 150, easing: 'ease', fill: 'forwards' })
+      { duration: 380, easing: 'ease-out', fill: 'forwards' })
       .finished.then(() => ov.remove(), () => ov.remove());
     // The name starts to rise as the last columns are arriving.
     setTimeout(() => { if (!gone()) finish(); }, Math.round(total * 0.6));
