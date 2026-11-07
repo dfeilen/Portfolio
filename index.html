@@ -2765,38 +2765,47 @@ function renderHome() {
      a random order. While it runs, riseOff holds each column's offset and
      update() adds it to every tile in that column. */
   let riseOff = null, rise = null;
-  const RISE_DUR = 800, RISE_GAP = 55, RISE_LEAD = 0;   // straight from the last frame, no pause
-  function startRise() {
+  const RISE_DUR = 650, RISE_GAP = 40;
+  /* Get everything ready while the last frame is still on screen (the
+     wall is hidden under it), so the hand-off itself does no layout work
+     and the first frame of the rise is as smooth as the rest. */
+  function prepRise() {
     wallSeen = true;
+    if (reflowT) reflowNow();             // shapes learned during the burst
     const n = L.columns.length;
     const order = shuffle([...Array(n).keys()]);
     const delay = new Array(n);
-    order.forEach((c, k) => { delay[c] = RISE_LEAD + k * RISE_GAP; });
-    rise = { t0: performance.now(), delay, from: vh * 1.1 };
-    riseOff = new Array(n).fill(rise.from);
+    order.forEach((c, k) => { delay[c] = k * RISE_GAP; });
+    // Travel only as far as needed to start just below the screen: a
+    // shorter trip reads as quicker and smoother than a long one.
+    const wallOnScreen = wallTop - scrollY;
+    const from = Math.max(vh * 0.4, vh - wallOnScreen + 40);
+    rise = { t0: 0, delay, from };
+    riseOff = new Array(n).fill(from);
     // Everything that will be on screen once the columns are up is shown
-    // now, already settled, so the columns arrive full rather than filling in.
-    tiles.forEach(t => {
+    // now, already settled, so the columns arrive full. Done in one batch:
+    // switch transitions off, change every tile, one layout, switch back.
+    const now = tiles.filter(t => {
       const top = wallTop - scrollY + t.y + t.oy;
-      if (top < vh && top + t.h > 0) {
-        const inner = t.el.querySelector('.tile-in');
-        inner.style.transition = 'none';
-        t.el.classList.add('in'); t.shown = true;
-        void inner.offsetWidth;
-        inner.style.transition = '';
-      }
+      return top < vh && top + t.h > 0;
     });
+    const inners = now.map(t => t.el.querySelector('.tile-in'));
+    inners.forEach(x => { x.style.transition = 'none'; });
+    now.forEach(t => { t.el.classList.add('in'); t.shown = true; });
+    void track.offsetWidth;
+    requestAnimationFrame(() => inners.forEach(x => { x.style.transition = ''; }));
     update(true);
-    return RISE_LEAD + (n - 1) * RISE_GAP + RISE_DUR;
+    return (n - 1) * RISE_GAP + RISE_DUR;
   }
+  function goRise() { if (rise) rise.t0 = performance.now(); }
   function stepRise() {
-    if (!rise) return;
+    if (!rise || !rise.t0) return;
     const now = performance.now();
     let done = true;
     for (let c = 0; c < riseOff.length; c++) {
       const k = Math.max(0, Math.min(1, (now - rise.t0 - rise.delay[c]) / RISE_DUR));
       if (k < 1) done = false;
-      riseOff[c] = rise.from * Math.pow(1 - k, 4);    // fast start, long soft landing
+      riseOff[c] = rise.from * Math.pow(1 - k, 3);    // ease-out: quick away, soft landing
     }
     if (done) { rise = null; riseOff = null; }
     update(true);
@@ -2854,6 +2863,7 @@ function renderHome() {
       // The dissolve shortens with the frame, so it never outlasts it.
       if (i > 0) frame.animate([{ opacity: 0 }, { opacity: 1 }],
         { duration: Math.min(BURST_FADE, steps[i] * 0.5), easing: 'ease' });
+      if (i === ready.length - 1) prepRise();   // set up underneath while the last frame shows
       await pause(steps[i]);
       if (gone()) { ov.remove(); return; }
     }
@@ -2861,16 +2871,18 @@ function renderHome() {
 
     // Columns rise. The last frame drops away as the dark lifts, and the
     // wall's columns come up from below, out of step with each other.
-    if (reflowT) reflowNow();             // shapes learned during the burst, applied before measuring
-    const total = startRise();
-    frame.animate([{ transform: 'none', opacity: 1 }, { transform: 'translateY(20vh) scale(.94)', opacity: 0 }],
-      { duration: 260, easing: 'cubic-bezier(.5,0,.75,0)', fill: 'forwards' });
+    // Everything starts on the same frame: the last photograph fades back,
+    // the dark lifts, the columns come up.
+    const total = (L.columns.length - 1) * RISE_GAP + RISE_DUR;
+    goRise();
+    frame.animate([{ transform: 'none', opacity: 1 }, { transform: 'scale(.97)', opacity: 0 }],
+      { duration: 220, easing: 'ease-out', fill: 'forwards' });
     ov.style.pointerEvents = 'none';
     ov.animate([{ backgroundColor: fg }, { backgroundColor: 'transparent' }],
-      { duration: 380, easing: 'ease-out', fill: 'forwards' })
+      { duration: 300, easing: 'ease-out', fill: 'forwards' })
       .finished.then(() => ov.remove(), () => ov.remove());
-    // The name starts to rise as the last columns are arriving.
-    setTimeout(() => { if (!gone()) finish(); }, Math.round(total * 0.6));
+    // The name starts to rise as the columns are settling.
+    setTimeout(() => { if (!gone()) finish(); }, Math.round(total * 0.5));
   }
 
   /* ---- the loop ---- */
