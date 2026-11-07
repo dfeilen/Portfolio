@@ -2121,20 +2121,44 @@ function layoutWall(list, vw, still) {
     drift: [-1, 0.55, -0.4, 1, -0.7, 0.3, -1, 0.8][i % 8],
     est: 0, items: []
   }));
-  columns.forEach(c => { c.est = c.start; });
+  const tiles = list.map((p, i) => ({ p, k: i, col: 0, x: 0, w: colW, h: 0, y: 0, gap: gutter }));
+  const L = { columns, BW: cols * (colW + gutter), colW, gutter, edge, H: 0, tiles };
+  assignWall(L);
+  return L;
+}
 
-  list.forEach((p, i) => {
-    let c = columns[0];
-    for (const d of columns) if (d.est < c.est) c = d;
-    const col = columns.indexOf(c);
-    const w = colW;   // every photograph fills its column
-    const x = edge + col * (colW + gutter);
-    const t = { p, k: i, col, x, w, h: 0, y: 0, gap: gutter };
-    c.items.push(t);
-    c.est += w / ratioOf(p) + t.gap;
+/* Share the photographs between the columns so they come out as close to
+   the same length as possible: tallest first, each to whichever column is
+   shortest so far (so a run of portraits can't pile into one column), then
+   each column's order is shuffled so the tall ones aren't all at the top.
+
+   It runs again whenever real shapes arrive. `fixed` holds the photographs
+   someone may already have seen; they stay exactly where they are, and only
+   the rest (all further down, out of sight) are shared out again. */
+function assignWall(L, fixed) {
+  const R = seeded(WALL_SEED + 7);
+  L.columns.forEach(c => {
+    c.items = fixed ? c.items.filter(t => fixed.has(t)) : [];
+    c.keep = c.items.length;
+    c.est = c.start + c.items.reduce((sum, t) => sum + t.w / ratioOf(t.p) + t.gap, 0);
   });
-  return { columns, BW: cols * (colW + gutter), colW, gutter, H: 0,
-           tiles: columns.flatMap(c => c.items) };
+  const free = fixed ? L.tiles.filter(t => !fixed.has(t)) : L.tiles;
+  const tallest = free.slice().sort((a, b) => (1 / ratioOf(b.p)) - (1 / ratioOf(a.p)) || a.k - b.k);
+  for (const t of tallest) {
+    let c = L.columns[0];
+    for (const d of L.columns) if (d.est < c.est) c = d;
+    t.col = L.columns.indexOf(c);
+    t.w = L.colW;                                  // every photograph fills its column
+    t.x = L.edge + t.col * (L.colW + L.gutter);
+    c.items.push(t);
+    c.est += t.w / ratioOf(t.p) + t.gap;
+  }
+  L.columns.forEach(c => {
+    for (let i = c.items.length - 1; i > c.keep; i--) {
+      const j = c.keep + Math.floor(R() * (i - c.keep + 1));
+      [c.items[i], c.items[j]] = [c.items[j], c.items[i]];
+    }
+  });
 }
 
 function flowWall(L) {
@@ -2367,7 +2391,7 @@ function renderHome() {
   const samples = [];                     // recent pointer positions, for the release velocity
   let hinted = false;
   let lastScroll = -1, lastCam = NaN, wallTop = 0, padTop = 0, bannerH = 0, prevY = scrollY, scrollVel = 0;
-  let reflowT = 0;
+  let reflowT = 0, wallSeen = false;
   const timers = [];
   const later = (fn, ms) => timers.push(setTimeout(fn, ms));
   const overlayOpen = () => lb.classList.contains('open') || sheetIsOpen();
@@ -2426,7 +2450,10 @@ function renderHome() {
      once a few have come in rather than once per photograph. */
   function learnRatio(t) {
     const w = t.img.naturalWidth, h = t.img.naturalHeight;
-    if (!w || !h || t.p.arn) return;
+    if (!w || !h) return;
+    // Already right (from the JSON or an earlier load): nothing to do. A
+    // JSON ratio that disagrees with the real image is corrected.
+    if (t.p.arn && Math.abs(w / h - t.p.arn) / t.p.arn < 0.02) return;
     t.p.arn = w / h; t.p.ar = `${w} / ${h}`;
     clearTimeout(reflowT);
     reflowT = setTimeout(reflowNow, 120);
@@ -2434,6 +2461,18 @@ function renderHome() {
   function reflowNow() {
     clearTimeout(reflowT); reflowT = 0;
     if (!el.isConnected) return;
+    // Rebalance the columns. Before anyone has seen the wall, all of it;
+    // after, only what lies below everything already shown in each column.
+    let fixed = null;
+    if (wallSeen) {
+      fixed = new Set();
+      L.columns.forEach(c => {
+        let last = -1;
+        c.items.forEach((t, i) => { if (t.shown) last = i; });
+        for (let i = 0; i <= last; i++) fixed.add(c.items[i]);
+      });
+    }
+    assignWall(L, fixed);
     flowWall(L);
     tiles.forEach(x => x.el.style.setProperty('--h', x.h + 'px'));
     track.style.setProperty('--wall-h', L.H + 'px');
@@ -2473,6 +2512,7 @@ function renderHome() {
   /* Reveal what has come into view: a wave from left to right. */
   function reveal() {
     if (holding) return;            // the opening burst is still running
+    wallSeen = true;
     const fresh = [];
     for (const t of tiles) {
       if (t.shown) continue;
@@ -2709,6 +2749,7 @@ function renderHome() {
   let riseOff = null, rise = null;
   const RISE_DUR = 900, RISE_GAP = 90, RISE_LEAD = 200;
   function startRise() {
+    wallSeen = true;
     const n = L.columns.length;
     const order = shuffle([...Array(n).keys()]);
     const delay = new Array(n);
