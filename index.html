@@ -1098,14 +1098,15 @@ const HOME_SHUFFLE = true;   // false keeps Home.json's order
    They play in a new random order each visit, and the last frame is always
    the front-page photograph it lands on, so it settles into its own tile. */
 const BURST_SOURCE = 'Burst';
-/* Kept deliberately calm for photosensitive visitors: 15 frames, each held
-   BURST_STEP ms and dissolving into the next over BURST_FADE ms rather than
-   cutting. WCAG 2.3.1 sets the limit at three flashes in any second; at
-   200ms a frame this is about five changes a second, softened by the
-   dissolve. Raise BURST_STEP to 340 or more to stay at three or fewer. */
-const BURST_MAX    = 15;
-const BURST_STEP   = 200;     // ms per frame: 15 frames in about three seconds
-const BURST_FADE   = 90;      // ms each frame takes to dissolve into the next
+/* 25 frames, each held BURST_STEP ms and dissolving into the next over
+   BURST_FADE ms rather than cutting, so brightness never jumps abruptly.
+   Note for photosensitive visitors: WCAG 2.3.1 sets the limit at three
+   flashes in any second, and at 120ms a frame this makes about eight
+   changes a second. Raising BURST_STEP to 340 (with fewer frames) stays
+   within it. Reduced-motion visitors never see the burst. */
+const BURST_MAX    = 25;
+const BURST_STEP   = 120;     // ms per frame: 25 frames in about three seconds
+const BURST_FADE   = 70;      // ms each frame takes to dissolve into the next
 
 /* How many photographs the front page shows, drawn at random from every
    category. Picked once when the page loads and held for the visit, so
@@ -2448,7 +2449,7 @@ function renderHome() {
       // Nothing moves but the page itself; positions are written once.
       if (force) tiles.forEach(t => {
         t.sx = t.x; t.oy = 0;
-        t.el.style.transform = `translate3d(${t.x}px,${t.y}px,0)`;
+        t.el.style.transform = `translate3d(${t.x}px,${(t.y + (riseOff ? riseOff[t.col] : 0)).toFixed(1)}px,0)`;
       });
       return true;
     }
@@ -2458,7 +2459,8 @@ function renderHome() {
       const sx = wrap(t.x - camX - ox, L.BW) + ox;
       const oy = (prog - 0.5) * amp * L.columns[t.col].drift;
       t.sx = sx; t.oy = oy;
-      t.el.style.transform = `translate3d(${sx.toFixed(1)}px,${(t.y + oy).toFixed(1)}px,0)`;
+      const rise = riseOff ? riseOff[t.col] : 0;
+      t.el.style.transform = `translate3d(${sx.toFixed(1)}px,${(t.y + oy + rise).toFixed(1)}px,0)`;
     }
     return true;
   }
@@ -2700,6 +2702,47 @@ function renderHome() {
   if (introWanted) { holding = true; root.classList.add('intro'); }
   else uncover();
 
+  /* The hand-over from the burst to the wall: every column starts a
+     screen-height below its place and slides up, each at its own moment in
+     a random order. While it runs, riseOff holds each column's offset and
+     update() adds it to every tile in that column. */
+  let riseOff = null, rise = null;
+  const RISE_DUR = 900, RISE_GAP = 90, RISE_LEAD = 200;
+  function startRise() {
+    const n = L.columns.length;
+    const order = shuffle([...Array(n).keys()]);
+    const delay = new Array(n);
+    order.forEach((c, k) => { delay[c] = RISE_LEAD + k * RISE_GAP; });
+    rise = { t0: performance.now(), delay, from: vh * 1.1 };
+    riseOff = new Array(n).fill(rise.from);
+    // Everything that will be on screen once the columns are up is shown
+    // now, already settled, so the columns arrive full rather than filling in.
+    tiles.forEach(t => {
+      const top = wallTop - scrollY + t.y + t.oy;
+      if (top < vh && top + t.h > 0) {
+        const inner = t.el.querySelector('.tile-in');
+        inner.style.transition = 'none';
+        t.el.classList.add('in'); t.shown = true;
+        void inner.offsetWidth;
+        inner.style.transition = '';
+      }
+    });
+    update(true);
+    return RISE_LEAD + (n - 1) * RISE_GAP + RISE_DUR;
+  }
+  function stepRise() {
+    if (!rise) return;
+    const now = performance.now();
+    let done = true;
+    for (let c = 0; c < riseOff.length; c++) {
+      const k = Math.max(0, Math.min(1, (now - rise.t0 - rise.delay[c]) / RISE_DUR));
+      if (k < 1) done = false;
+      riseOff[c] = rise.from * Math.pow(1 - k, 4);    // fast start, long soft landing
+    }
+    if (done) { rise = null; riseOff = null; }
+    update(true);
+  }
+
   async function burst() {
     INTRO_DONE = true;
     const ov = document.createElement('div');
@@ -2715,28 +2758,15 @@ function renderHome() {
     const pause = ms => new Promise(r => setTimeout(r, ms));
     const fadeOut = ms => ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: ms, fill: 'forwards' })
       .finished.then(() => ov.remove(), () => ov.remove());
-
     const finish = () => {
       root.classList.remove('intro');      // the name's letters rise now
       holding = false;
       reveal(); pump();
     };
 
-    // Where it lands: the wall photograph nearest the middle that's on screen.
-    let target = null, bd = 1e9;
-    tiles.forEach(t => {
-      const top = onScreen(t, 0);
-      if (top === null || top < 0 || top + t.h * 0.5 > vh) return;
-      const d = Math.abs(t.sx + t.w / 2 - vw / 2);
-      if (d < bd) { bd = d; target = t; }
-    });
-
-    // The frames, in a new random order every visit, always ending on the
-    // photograph that sits in the target's place on the wall.
+    // The frames, in a new random order every visit.
     const pool = BURST.length >= 4 ? BURST : source;
-    const tKey = target ? fileKey(target.p.url) : null;
-    const frames = shuffle(pool.filter(p => fileKey(p.url) !== tKey)).slice(0, BURST_MAX - (target ? 1 : 0));
-    if (target) frames.push(target.p);
+    const frames = shuffle(pool).slice(0, BURST_MAX);
     // Frames flash past, so they're asked for smaller than the wall's photographs.
     const fw = vw < 700 ? 640 : 1000;
     const urls = frames.map(p => sized(p.url, fw));
@@ -2756,60 +2786,29 @@ function renderHome() {
     if (gone()) { ov.remove(); return; }
     if (ready.length < 3) { fadeOut(250); return finish(); }
 
-    // The last frame has to be the target's photograph for the landing to work.
-    const lands = target && ok[urls.length - 1];
-    if (target && !lands) ready.push(ready.shift());   // keep the count; no landing
-
-    // Fire.
+    // Fire. The previous frame stays underneath while the next dissolves in
+    // on top: no hard cut, so no sudden jump in brightness.
     for (let i = 0; i < ready.length; i++) {
-      // The previous frame stays underneath while the next dissolves in on
-      // top: no hard cut, so no sudden jump in brightness.
       if (i > 0) under.src = ready[i - 1];
       frame.src = ready[i];
       if (i > 0) frame.animate([{ opacity: 0 }, { opacity: 1 }], { duration: BURST_FADE, easing: 'ease' });
       await pause(BURST_STEP);
       if (gone()) { ov.remove(); return; }
     }
-    if (!lands) { fadeOut(300); return finish(); }
+    under.remove();
 
-    // Make sure the target's own tile is loaded and the right shape before
-    // measuring where the frame should go, so it lands exactly on it.
-    const tImg = target.img;
-    if (!(tImg.complete && tImg.naturalWidth)) {
-      await Promise.race([new Promise(r => tImg.addEventListener('load', r, { once: true })), pause(1500)]);
-    }
-    if (tImg.naturalWidth && !target.p.arn) learnRatio(target);
-    if (reflowT) reflowNow();
-    await pause(Math.max(0, 300 - BURST_STEP));
-    if (gone()) { ov.remove(); return; }
-
-    under.remove();                    // only the last frame travels
-    // The last frame flies to its place on the wall.
-    const a = frame.getBoundingClientRect(), b = target.el.getBoundingClientRect();
-    Object.assign(frame.style, { position: 'fixed', left: a.left + 'px', top: a.top + 'px',
-                                 width: a.width + 'px', height: a.height + 'px', maxWidth: 'none', maxHeight: 'none' });
-    ov.animate([{ backgroundColor: fg }, { backgroundColor: 'transparent' }],
-      { duration: 700, easing: 'ease', fill: 'forwards' });
-    await frame.animate([{ transform: 'none' },
-      { transform: `translate(${b.left - a.left}px,${b.top - a.top}px) scale(${b.width / a.width},${b.height / a.height})` }],
-      { duration: 750, easing: 'cubic-bezier(.65,0,.35,1)', fill: 'forwards' }).finished.catch(() => {});
-    if (gone()) { ov.remove(); return; }
-
-    // Put the same photograph in place underneath, already settled (no
-    // slide-in, no fade), then take the frame away: one picture, never two.
-    const inner = target.el.querySelector('.tile-in');
-    inner.style.transition = 'none';
-    tImg.style.transition = 'none';
-    if (tImg.naturalWidth) tImg.classList.add('ready');
-    target.el.classList.add('in'); target.shown = true;
-    void inner.offsetWidth;
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      inner.style.transition = ''; tImg.style.transition = '';
-    }));
+    // Columns rise. The last frame drops away as the dark lifts, and the
+    // wall's columns come up from below, out of step with each other.
+    if (reflowT) reflowNow();             // shapes learned during the burst, applied before measuring
+    const total = startRise();
+    frame.animate([{ transform: 'none', opacity: 1 }, { transform: 'translateY(30vh) scale(.9)', opacity: 0 }],
+      { duration: 450, easing: 'cubic-bezier(.5,0,.75,0)', fill: 'forwards' });
     ov.style.pointerEvents = 'none';
-    finish();
-    frame.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, delay: 60, fill: 'forwards' })
+    ov.animate([{ backgroundColor: fg }, { backgroundColor: 'transparent' }],
+      { duration: 700, delay: 150, easing: 'ease', fill: 'forwards' })
       .finished.then(() => ov.remove(), () => ov.remove());
+    // The name starts to rise as the last columns are arriving.
+    setTimeout(() => { if (!gone()) finish(); }, Math.round(total * 0.6));
   }
 
   /* ---- the loop ---- */
@@ -2856,6 +2855,7 @@ function renderHome() {
     }
     type.step(scrollVel, markP === 0);
 
+    if (rise) stepRise();
     const top = wallTop - padTop - y, bottom = top + L.H + padTop * 2;
     const inView = top < vh && bottom > 0;
     const centred = top < vh * 0.35 && bottom > vh * 0.65;   // arrows only once the wall fills the middle
