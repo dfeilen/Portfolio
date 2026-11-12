@@ -12,7 +12,16 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="Devin Feilen">
 <meta property="og:description" content="Photographer based in Portland, Oregon.">
+<meta property="og:url" content="https://devinfeilen.com/">
+<!-- The picture shown when the site is shared in a message or on social
+     media. Put a 1200 x 630 JPEG named og.jpg next to index.html. -->
+<meta property="og:image" content="https://devinfeilen.com/og.jpg">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://devinfeilen.com/og.jpg">
+<link rel="canonical" href="https://devinfeilen.com/">
+<!-- The browser-tab icon: "df" on the site's dark, drawn inline so there is
+     no extra file to keep. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%231B1B1C'/%3E%3Ctext x='32' y='45' text-anchor='middle' font-family='Arial Black,Arial,Helvetica,sans-serif' font-weight='900' font-size='36' letter-spacing='-3' fill='%23EAE7E2'%3Edf%3C/text%3E%3C/svg%3E">
 
 <link rel="preconnect" href="https://devinfeilen.b-cdn.net" crossorigin>
 <!-- The wordmark face: Archivo (SIL Open Font License), heavy and slightly
@@ -35,6 +44,9 @@
     var h=location.hash;
     if((h===''||h==='#'||h==='#/')&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
       d.classList.add('precover');
+      // The phone's browser bar takes the cover's colour too, not the page's.
+      var m=document.querySelector('meta[name="theme-color"]');
+      if(m)m.content=d.getAttribute('data-theme')==='dark'?'#ffffff':'#1B1B1C';
       setTimeout(function(){d.classList.remove('precover')},9000);   // never strand anyone
     }
   }catch(e){}
@@ -791,6 +803,19 @@ html.intro .banner-cue{animation:none;opacity:0}
 .bio-races>div{overflow:hidden;padding-left:14px}
 .bio-cols .bio-races a,.bio-races .races-soon{display:block;font-weight:500;padding:3px 0}
 
+/* ---- Information page: the bio, below the fixed name ---- */
+.info-page{min-height:100svh;display:flex;align-items:flex-end;padding-top:var(--head-h)}
+.info-page .bio{width:100%}
+/* The bio has its own theme switch, so the corner one steps aside here. */
+html.info-mode .corner{display:none}
+
+/* ---- Category page: where you are ---- */
+.where{position:fixed;left:var(--edge-l);bottom:calc(14px + var(--sa-b));z-index:40;margin:0;
+  display:flex;gap:10px;align-items:baseline;pointer-events:none;
+  color:#fff;mix-blend-mode:difference}
+.where b{font-weight:var(--heavy)}
+.where span{font-variant-numeric:tabular-nums}
+
 /* ---- Category gallery: a panel that rises over the wall ---- */
 html.sheet-open{overflow:hidden}
 .sheet{position:fixed;inset:0;z-index:150;display:none}
@@ -805,18 +830,28 @@ html.sheet-open{overflow:hidden}
   transform:translateY(100%);transition:transform .6s var(--ease-out);
 }
 .sheet.shown .sheet-panel{transform:none}
-.sheet-bar{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;
+.sheet-bar{display:flex;align-items:baseline;gap:6px 18px;flex-wrap:wrap;
   padding:20px var(--edge-r) 16px var(--edge-l)}
-.sheet-title{font-size:var(--cat);font-weight:var(--heavy);line-height:1;margin-right:auto}
-.sheet-bar .count{color:var(--fg-dim)}
+.sheet-title{font-size:var(--cat);font-weight:var(--heavy);line-height:1}
+/* The count sits with the title; the two actions keep to the right, on the
+   same line whenever there's room and together on the next when there isn't. */
+.sheet-bar .count{color:var(--fg-dim);margin-right:auto;white-space:nowrap}
+.sheet-bar a,.sheet-bar button{white-space:nowrap}
+@media (max-width:700px){
+  /* On a phone the count gives way so Close stays on the title's line. */
+  .sheet-bar .count{display:none}
+  .sheet-title{margin-right:auto}
+}
 .sheet-bar a,.sheet-bar button{font-weight:600;padding:8px 4px;margin:-8px -4px}
 .sheet-strip{
-  display:flex;gap:clamp(8px,1vw,16px);overflow-x:auto;overflow-y:hidden;
+  display:flex;align-items:center;gap:clamp(8px,1vw,16px);overflow-x:auto;overflow-y:hidden;
   padding:0 var(--edge-r) clamp(18px,3vh,32px) var(--edge-l);
   overscroll-behavior:contain;scrollbar-width:thin;
   scroll-snap-type:x proximity;
 }
-.sheet-strip button{flex:none;height:100%;aspect-ratio:var(--ar,3/2);
+/* As tall as the panel allows, but never wider than the screen: a wide
+   photograph on a phone is shown whole rather than running off the edge. */
+.sheet-strip button{flex:none;height:min(100%, calc(86vw / var(--arn,1.5)));aspect-ratio:var(--ar,3/2);
   background:var(--c,var(--tone));scroll-snap-align:start;cursor:zoom-in;overflow:hidden}
 .sheet-strip img{width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .8s var(--ease)}
 .sheet-strip img.ready{opacity:1}
@@ -955,6 +990,7 @@ html{scroll-snap-type:y mandatory}
   opacity:0;transition:opacity .45s var(--ease);
 }
 .lb-body img.ready{opacity:1}
+.lb-count{color:var(--fg-dim);font-variant-numeric:tabular-nums}
 .lb-bar{position:absolute;top:50%;left:0;right:0;transform:translateY(-50%);
   display:flex;justify-content:flex-end;align-items:baseline;
   padding:0 var(--edge-r) 0 var(--edge-l);gap:20px;pointer-events:none}
@@ -1006,7 +1042,7 @@ html{scroll-snap-type:y mandatory}
 </head>
 
 <body>
-<a class="skip" href="#/">Skip to content</a>
+<a class="skip" href="#/" id="skip">Skip to content</a>
 
 <header class="head">
   <a class="name h" href="#/" aria-label="Devin Feilen">devin feilen</a>
@@ -1018,11 +1054,12 @@ html{scroll-snap-type:y mandatory}
 
 <div class="corner"><button class="h" id="theme" aria-label="Switch to dark mode"><span class="theme-word">Dark mode</span><svg class="theme-icon theme-moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20.2 14.6A8.2 8.2 0 0 1 9.4 3.8a8.2 8.2 0 1 0 10.8 10.8Z"/></svg><svg class="theme-icon theme-sun" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4.1"/><path d="M12 1.6v3M12 19.4v3M1.6 12h3M19.4 12h3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M19.4 4.6l-2.1 2.1M6.7 17.3l-2.1 2.1"/></svg></button></div>
 
-<main id="view"><div class="boot"><p class="dim">Loading</p></div></main>
+<main id="view" tabindex="-1"><div class="boot"><p class="dim">Loading</p></div></main>
 
 <div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Image viewer">
   <div class="lb-body"><img id="lb-img" alt=""></div>
   <div class="lb-bar">
+    <span class="lb-count" id="lb-count" aria-live="polite"></span>
     <span class="lb-nav">
       <button class="h" id="lb-prev">Prev</button>
       <button class="h" id="lb-next">Next</button>
@@ -1293,7 +1330,13 @@ function noteImage(ok) {
   }
 }
 /* Lift the pre-burst cover. Safe to call any number of times. */
-function uncover() { document.documentElement.classList.remove('precover'); }
+function uncover() {
+  const d = document.documentElement;
+  if (!d.classList.contains('precover')) return;
+  d.classList.remove('precover');
+  const m = document.querySelector('meta[name="theme-color"]');
+  if (m) m.content = d.getAttribute('data-theme') === 'dark' ? '#0a0a0a' : '#EAE7E2';
+}
 
 function declareRenovation(why) {
   uncover();
@@ -1344,7 +1387,7 @@ function mount(img, url, { sizes, eager, base, priority } = {}) {
 /* ============================================================================
    DATA — accepts the object schema or plain arrays of filenames/URLs
    ============================================================================ */
-async function loadFile(slug) {
+async function loadFile(slug, optional) {
   try {
     const res = await fetch(`${slug}.json`, { cache:'no-cache' });
     if (!res.ok) throw new Error(res.status);
@@ -1370,7 +1413,7 @@ async function loadFile(slug) {
       };
     }).filter(p => p.url);
   } catch (e) {
-    console.warn(`[${slug}] ${slug}.json did not load`, e);
+    if (!optional) console.warn(`[${slug}] ${slug}.json did not load`, e);
     return [];
   }
 }
@@ -2381,23 +2424,7 @@ function renderHome() {
   bio.className = 'bio';
   bio.innerHTML = bioMarkup();
   el.appendChild(bio);
-  const bioTheme = $('.bio-theme', bio);
-  const syncTheme = () => {
-    bioTheme.textContent = root.getAttribute('data-theme') === 'dark' ? 'Light mode' : 'Dark mode';
-  };
-  syncTheme();
-  bioTheme.addEventListener('click', () => { themeBtn.click(); syncTheme(); });
-  const racesBtn = $('.bio-races-open', bio), racesBox = $('#bio-races', bio);
-  if (racesBtn) racesBtn.addEventListener('click', () => {
-    const open = racesBtn.getAttribute('aria-expanded') !== 'true';
-    racesBtn.setAttribute('aria-expanded', String(open));
-    racesBox.classList.toggle('open', open);
-    if (open) racesBox.removeAttribute('inert'); else racesBox.setAttribute('inert', '');
-  });
-  $('.bio-top', bio).addEventListener('click', e => {
-    e.preventDefault();
-    scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' });
-  });
+  wireBio(bio, true);
 
   /* ---- state ---- */
   let source = WALL_CAP ? HOME.slice(0, WALL_CAP) : HOME.slice();
@@ -2998,11 +3025,17 @@ function ensureSheet() {
       <div class="sheet-strip"></div>
     </div>`;
   document.body.appendChild(sheetEl);
-  $('.sheet-shade', sheetEl).addEventListener('click', closeSheet);
-  $('.sheet-close', sheetEl).addEventListener('click', closeSheet);
-  $('.sheet-full', sheetEl).addEventListener('click', () => {
+  $('.sheet-shade', sheetEl).addEventListener('click', () => dismiss(closeSheet));
+  $('.sheet-close', sheetEl).addEventListener('click', () => dismiss(closeSheet));
+  $('.sheet-full', sheetEl).addEventListener('click', e => {
+    // Go to the category in place of the panel's history step, so Back from
+    // the category returns to the wall in one press, not two.
+    e.preventDefault();
+    const href = e.currentTarget.getAttribute('href');
     sheetEl.classList.remove('open', 'shown');
     root.classList.remove('sheet-open');
+    if (overlaySteps > 0 && history.state && history.state.overlay) { overlaySteps--; location.replace(href); }
+    else location.hash = href;
   });
   const strip = $('.sheet-strip', sheetEl);
   // A mouse wheel moves the strip sideways; trackpads already do.
@@ -3014,7 +3047,7 @@ function ensureSheet() {
   }, { passive: false });
   addEventListener('keydown', e => {
     if (!sheetIsOpen() || lb.classList.contains('open')) return;
-    if (e.key === 'Escape') closeSheet();
+    if (e.key === 'Escape') dismiss(closeSheet);
     if (e.key === 'ArrowRight') strip.scrollBy({ left: strip.clientWidth * 0.6, behavior: REDUCED ? 'auto' : 'smooth' });
     if (e.key === 'ArrowLeft')  strip.scrollBy({ left: -strip.clientWidth * 0.6, behavior: REDUCED ? 'auto' : 'smooth' });
   });
@@ -3042,6 +3075,7 @@ function openSheet(slug, photo, fromImg) {
       b.type = 'button';
       b.setAttribute('aria-label', `Open photograph ${pad(i + 1)}`);
       if (p.ar) b.style.setProperty('--ar', p.ar);
+      b.style.setProperty('--arn', p.arn || 1.5);
       if (p.c)  b.style.setProperty('--c', p.c);
       const img = document.createElement('img');
       img.alt = '';
@@ -3051,13 +3085,14 @@ function openSheet(slug, photo, fromImg) {
         img.src = fromImg.currentSrc; img.classList.add('ready'); target = img;
       }
       const hgt = Math.round(strip.clientHeight || innerHeight * 0.7);
-      const wpx = Math.round(hgt * (p.arn || 1.5));
+      const wpx = Math.round(Math.min(hgt * (p.arn || 1.5), innerWidth * 0.86));
       const swap = () => mount(img, p.url, { sizes: wpx + 'px', base: 1000, eager: Math.abs(i - at) < 3 });
       if (i === at && target) setTimeout(swap, 450); else swap();
       if (!target && i === at) target = img;
       b.addEventListener('click', () => morph(img, () => openLB(list, i, img)));
     });
     sheetReturn = document.activeElement;
+    pushOverlay('sheet');
     s.classList.add('open', 'shown');
     root.classList.add('sheet-open');
     // Bring the clicked photograph into view, a little in from the left.
@@ -3159,7 +3194,26 @@ function renderFlow(cat) {
   const next = live[(i + 1) % live.length];
 
   const el = document.createElement('div');
-  el.appendChild(buildFlow(cat.photos));
+  const flow = buildFlow(cat.photos);
+  el.appendChild(flow);
+
+  /* Where you are: the category's name and which photograph is on screen,
+     bottom left, kept current as you scroll. */
+  const where = document.createElement('p');
+  where.className = 'where';
+  where.innerHTML = `<b>${esc(cat.title)}</b> <span aria-live="polite">${pad(1)} / ${pad(cat.photos.length)}</span>`;
+  el.appendChild(where);
+  const plates = $$('.plate', flow), spot = $('span', where);
+  if ('IntersectionObserver' in window && plates.length) {
+    const io = new IntersectionObserver(es => {
+      es.forEach(e => {
+        if (!e.isIntersecting) return;
+        spot.textContent = `${pad(plates.indexOf(e.target) + 1)} / ${pad(plates.length)}`;
+      });
+      if (!el.isConnected) io.disconnect();
+    }, { threshold: 0.55 });
+    plates.forEach(p => io.observe(p));
+  }
   el.appendChild(next && next.slug !== cat.slug
     ? tail(`#/c/${next.slug}`, next.title)
     : tail('#/photography', 'Photography'));
@@ -3174,11 +3228,40 @@ const INFORMATION = `
     <p><a class="h" href="https://instagram.com/devinfeilen" target="_blank" rel="noopener">instagram</a></p>
     <p><a class="h" href="https://buymeacoffee.com/devinfeilen" target="_blank" rel="noopener">buy me a coffee</a></p>`;
 
+/* The Information page is the same block that ends the front page, so the
+   two always say the same thing in the same way. */
 function renderInformation() {
   const el = document.createElement('div');
-  el.className = 'info';
-  el.innerHTML = `<div class="info-inner">${INFORMATION}</div>`;
+  el.className = 'info-page';
+  const bio = document.createElement('div');
+  bio.className = 'bio';
+  bio.innerHTML = bioMarkup();
+  el.appendChild(bio);
+  wireBio(bio, false);
   return el;
+}
+
+/* The buttons inside a bio block: theme, the race list, back to top. */
+function wireBio(bio, withTop) {
+  const bioTheme = $('.bio-theme', bio);
+  const syncTheme = () => {
+    bioTheme.textContent = root.getAttribute('data-theme') === 'dark' ? 'Light mode' : 'Dark mode';
+  };
+  syncTheme();
+  bioTheme.addEventListener('click', () => { themeBtn.click(); syncTheme(); });
+  const racesBtn = $('.bio-races-open', bio), racesBox = $('#bio-races', bio);
+  if (racesBtn) racesBtn.addEventListener('click', () => {
+    const open = racesBtn.getAttribute('aria-expanded') !== 'true';
+    racesBtn.setAttribute('aria-expanded', String(open));
+    racesBox.classList.toggle('open', open);
+    if (open) racesBox.removeAttribute('inert'); else racesBox.setAttribute('inert', '');
+  });
+  const top = $('.bio-top', bio);
+  if (withTop) top.addEventListener('click', e => {
+    e.preventDefault();
+    scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' });
+  });
+  else top.remove();
 }
 
 function renderRenovation() {
@@ -3204,7 +3287,8 @@ function renderMissing(msg) {
   const el = document.createElement('div');
   el.className = 'info';
   el.innerHTML = `<div class="info-inner"><p>${esc(msg)}</p>
-    <p><a class="h" href="#/photography">Photography</a></p></div>`;
+    <p><a class="h" href="#/">Back to the front page</a></p>
+    <p><a class="h" href="#/photography">All categories</a></p></div>`;
   return el;
 }
 
@@ -3291,6 +3375,32 @@ function morph(el, change) {
   t.finished.then(clear, clear);
 }
 
+/* ============================================================================
+   OVERLAYS AND THE BACK BUTTON
+
+   On a phone the natural way out of a full-screen photograph or a category
+   panel is the back button or the back swipe. Without help that leaves the
+   site altogether. So opening an overlay adds one step to the browser's
+   history, and going back closes the overlay instead of leaving.
+
+   dismiss() is what every Close button, Escape and backdrop click calls:
+   if the overlay has a history step, it goes back (and the popstate handler
+   does the closing); if not, it just closes.
+   ============================================================================ */
+let overlaySteps = 0;
+function pushOverlay(kind) {
+  try { history.pushState({ overlay: kind }, ''); overlaySteps++; } catch (e) {}
+}
+function dismiss(close) {
+  if (overlaySteps > 0 && history.state && history.state.overlay) history.back();
+  else close();
+}
+addEventListener('popstate', () => {
+  // Back (or forward) was pressed: close whatever is on top.
+  if (lb.classList.contains('open')) { overlaySteps = Math.max(0, overlaySteps - 1); closeLB(); }
+  else if (sheetIsOpen()) { overlaySteps = Math.max(0, overlaySteps - 1); closeSheet(); }
+});
+
 function openLB(list, i, from, savable) {
   if (!list || !list.length) return;
   lbList = list; lbi = i; lastFocus = document.activeElement;
@@ -3298,6 +3408,7 @@ function openLB(list, i, from, savable) {
   if (lbSave) lbSave.hidden = !lbCanSave;
   lbSource = from || null;
   lockScroll();
+  pushOverlay('lb');
   lb.classList.add('open');
   requestAnimationFrame(() => lb.classList.add('shown'));
   drawLB(from && from.currentSrc ? from.currentSrc : (from && from.src) || null);
@@ -3361,7 +3472,9 @@ function drawLB(seed) {
   const mine = ++lbToken;
   lbImg.removeAttribute('srcset');
   lbImg.removeAttribute('sizes');
-  lbImg.alt = `Photograph ${pad(lbi+1)}`;
+  lbImg.alt = `${f.cat ? f.cat + ', photograph' : 'Photograph'} ${lbi + 1} of ${lbList.length}`;
+  const lbCount = $('#lb-count');
+  if (lbCount) lbCount.textContent = lbList.length > 1 ? `${pad(lbi + 1)} / ${pad(lbList.length)}` : '';
   lbImg.decoding = 'async';
   lbImg.fetchPriority = 'high';
   loadedLBWidth = lbTargetWidth(f);
@@ -3402,16 +3515,23 @@ if (lbSave) lbSave.addEventListener('click', async () => {
   lbSave.disabled = false;
   if (how === 'opened') setTimeout(() => { lbSave.textContent = was; }, 4000);
 });
-$('#lb-close').addEventListener('click', closeLB);
+$('#lb-close').addEventListener('click', () => dismiss(closeLB));
 $('#lb-prev').addEventListener('click', () => stepLB(-1));
 $('#lb-next').addEventListener('click', () => stepLB(1));
-lb.addEventListener('click', e => { if (e.target===lb || e.target.closest('.lb-body')) closeLB(); });
+lb.addEventListener('click', e => { if (e.target===lb || e.target.closest('.lb-body')) dismiss(closeLB); });
 addEventListener('keydown', e => {
   if (!lb.classList.contains('open')) return;
-  if (e.key === 'Escape')     closeLB();
+  if (e.key === 'Escape')     dismiss(closeLB);
   if (e.key === 'ArrowLeft')  stepLB(-1);
   if (e.key === 'ArrowRight') stepLB(1);
-  if (e.key === 'Tab') { e.preventDefault(); $('#lb-close').focus(); }
+  if (e.key === 'Tab') {
+    // Keep Tab inside the viewer, moving through its own buttons in order.
+    e.preventDefault();
+    const btns = $$('.lb-nav button', lb).filter(b => !b.hidden && !b.disabled);
+    const at = btns.indexOf(document.activeElement);
+    const to = btns[(at + (e.shiftKey ? -1 : 1) + btns.length) % btns.length] || $('#lb-close');
+    to.focus();
+  }
 });
 let tx=0, ty=0;
 lb.addEventListener('touchstart', e => { tx=e.touches[0].clientX; ty=e.touches[0].clientY; }, {passive:true});
@@ -3468,6 +3588,7 @@ async function route() {
   current = key;
   // A category panel left open shouldn't follow you to another page.
   if (sheetIsOpen()) { sheetEl.classList.remove('open', 'shown'); root.classList.remove('sheet-open'); }
+  overlaySteps = 0;
 
   // PHOTOGRAPHY stays lit while you're inside a category.
   const navKey = r.name === 'category' ? 'photography' : r.name;
@@ -3499,6 +3620,7 @@ async function route() {
   if (raceIO)   { raceIO.disconnect();   raceIO = null; }
   document.documentElement.classList.toggle('gallery', r.name === 'race');
   document.documentElement.classList.toggle('home-mode', r.name === 'home' && !RENOVATING);
+  document.documentElement.classList.toggle('info-mode', r.name === 'information' && !RENOVATING);
   swapIn(view, el);
   scrollTo({ top:0, behavior:'auto' });
   const hasFlow = !RENOVATING &&
@@ -3512,9 +3634,20 @@ async function route() {
   const cat = r.name === 'category' && DATA.get(r.slug);
   document.title = cat ? `${cat.title} — Devin Feilen`
     : r.name === 'information' ? 'Information — Devin Feilen'
-    : r.name === 'race' ? 'Gallery — Devin Feilen' : 'Devin Feilen';
+    : r.name === 'photography' ? 'Photography — Devin Feilen'
+    : r.name === 'race' ? 'Gallery — Devin Feilen'
+    : r.name === 'home' ? 'Devin Feilen' : 'Page not found — Devin Feilen';
 }
 addEventListener('hashchange', route);
+
+/* "Skip to content" moves keyboard focus into the page itself. (Its link
+   can't point at an id: on this site everything after # is a route.) */
+$('#skip').addEventListener('click', e => {
+  e.preventDefault();
+  const v = $('#view');
+  v.focus({ preventScroll: true });
+  v.scrollIntoView({ block: 'start' });
+});
 
 /* ============================================================================
    THEME — warm light is the default, so the button offers Dark mode
@@ -3620,8 +3753,8 @@ themeBtn.addEventListener('click', () => {
   /* GitHub Pages is case-sensitive, so home.json is not Home.json. Try the
      expected name first, then the all-lowercase one. */
   const loadEither = async name => {
-    const a = await loadFile(name);
-    return a.length || name === name.toLowerCase() ? a : loadFile(name.toLowerCase());
+    const a = await loadFile(name, true);      // optional: missing is fine, no warning
+    return a.length || name === name.toLowerCase() ? a : loadFile(name.toLowerCase(), true);
   };
   const burstFile = loadEither(BURST_SOURCE);   // fetched alongside, not after
   let front = await loadEither(HOME_SOURCE);
